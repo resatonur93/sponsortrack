@@ -5,7 +5,7 @@ export function getSetupErrorHint(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
       case "P2021":
-        return "Tablo yok (P2021). Bu veritabanında Prisma şeması uygulanmamış. Sunucuda proje kökünde bir kez `npx prisma db push` çalıştırın veya deploy “Release/Post-deploy command” olarak ekleyin.";
+        return "Tablo yok (P2021). Şema uygulanmamış. Repoda migration var: sunucuda `npm run db:deploy` veya `npx prisma migrate deploy` çalıştırın. Yeni sürümde `npm start` önce migrate deploy çalıştırır; deploy edip konteyneri yeniden başlatın.";
       case "P1000":
         return "PostgreSQL giriş reddedildi (P1000). DATABASE_URL içindeki kullanıcı adı ve şifreyi kontrol edin.";
       case "P1001":

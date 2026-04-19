@@ -15,9 +15,10 @@ export function SetupDbUnavailable({ hint }: { hint?: string }): JSX.Element {
             </p>
           ) : null}
           <p>
-            <strong>Sık nedenler:</strong> Veritabanına bağlanıyor olsanız bile{" "}
-            <code className="rounded bg-slate-200 px-1">prisma db push</code> hiç çalışmadıysa tablolar
-            yoktur. Coolify/Railway’de release/post-deploy komutu veya SSH ile bir kez uygulayın.
+            <strong>Sık nedenler:</strong> Projede artık migration dosyaları var; canlıda{" "}
+            <code className="rounded bg-slate-200 px-1">npm run db:deploy</code> veya konteyner
+            başlarken varsayılan <code className="rounded bg-slate-200 px-1">npm start</code> (içinde{" "}
+            <code className="rounded bg-slate-200 px-1">prisma migrate deploy</code>) şemayı oluşturur.
           </p>
           <p>
             Uzak Postgres çoğu zaman{" "}
