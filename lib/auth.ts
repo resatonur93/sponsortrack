@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { normalizeEmail } from "@/lib/registration";
 
 const credentialsSchema = z.object({
   email: z.string().trim().email(),
@@ -25,8 +26,9 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
         const { email, password } = parsed.data;
+        const normalized = normalizeEmail(email);
         const user = await prismaBase.user.findFirst({
-          where: { email, isActive: true },
+          where: { email: normalized, isActive: true },
           include: { tenant: true },
         });
         if (!user?.tenant.isActive) {

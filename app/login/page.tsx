@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,17 @@ export default function LoginPage(): JSX.Element {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Giriş..." : "Giriş"}
             </Button>
+            <div className="space-y-1 text-center text-sm text-slate-600">
+              <p>
+                <Link href="/setup" className="text-blue-800 underline">
+                  İlk kurulum
+                </Link>
+                {" · "}
+                <Link href="/register" className="text-blue-800 underline">
+                  Kurumsal kayıt
+                </Link>
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>
