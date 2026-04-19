@@ -1,0 +1,418 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser, withTenant } from "@/lib/api-context";
+import { prisma } from "@/lib/prisma";
+import { workerUpdateSchema } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
+import { visaNotificationsToCreate } from "@/lib/notification-rules";
+import { buildComplianceEventData } from "@/lib/compliance-event-factory";
+import { getReportDeadlineForEvent } from "@/lib/deadline-rules";
+import {
+  type ComplianceRiskLevel,
+  type NotificationStatus,
+} from "@prisma/client";
+
+export const dynamic = "force-dynamic";
+
+type RouteParams = { params: { id: string } };
+
+function computeRiskSnapshot(input: {
+  notifications: { status: NotificationStatus }[];
+  documents: { expiryDate: Date | null }[];
+}): ComplianceRiskLevel {
+  const overdue = input.notifications.filter((n) => n.status === "OVERDUE").length;
+  const pending = input.notifications.filter((n) => n.status === "PENDING").length;
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 30);
+  const docGap = input.documents.some(
+    (d) => d.expiryDate && d.expiryDate < soon && d.expiryDate > new Date()
+  );
+  if (overdue > 0) return "CRITICAL";
+  if (pending > 2 || docGap) return "HIGH";
+  if (pending > 0) return "MEDIUM";
+  return "LOW";
+}
+
+export async function GET(
+  req: NextRequest,
+  context: RouteParams
+): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { id } = context.params;
+
+    return await withTenant(user, req, async () => {
+      const worker = await prisma.worker.findUnique({
+        where: { id },
+        include: {
+          documents: { where: { isDeleted: false }, orderBy: { uploadDate: "desc" } },
+          notifications: { orderBy: { dueDate: "desc" }, take: 150 },
+          changeLogs: { orderBy: { createdAt: "desc" }, take: 100 },
+          absences: { orderBy: { startDate: "desc" }, take: 100 },
+          rtwChecks: { orderBy: { checkedAt: "desc" }, take: 50 },
+          salaryHistory: { orderBy: { effectiveDate: "desc" }, take: 30 },
+        },
+      });
+      if (!worker) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      const riskSnapshot = computeRiskSnapshot({
+        notifications: worker.notifications,
+        documents: worker.documents,
+      });
+      return NextResponse.json({
+        data: { ...worker, riskSnapshot },
+      });
+    });
+  } catch (error) {
+    logger.error("GET /api/workers/[id] failed", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  req: NextRequest,
+  context: RouteParams
+): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { id } = context.params;
+    const body: unknown = await req.json();
+    const parsed = workerUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    return await withTenant(user, req, async () => {
+      const existing = await prisma.worker.findUnique({ where: { id } });
+      if (!existing) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
+      const d = parsed.data;
+
+      if (
+        d.salary !== undefined &&
+        d.salary < existing.salary &&
+        (!d.salaryReductionJustification ||
+          d.salaryReductionJustification.trim().length < 5)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Maaş düşüşü için gerekçe zorunludur (en az 5 karakter).",
+          },
+          { status: 400 }
+        );
+      }
+
+      const data: Record<string, unknown> = {};
+
+      const set = (key: string, v: unknown) => {
+        if (v !== undefined) data[key] = v;
+      };
+
+      set("firstName", d.firstName);
+      set("lastName", d.lastName);
+      set("email", d.email);
+      set("phone", d.phone ?? undefined);
+      set("workPhone", d.workPhone ?? undefined);
+      set("personalEmail", d.personalEmail ?? undefined);
+      set("nationality", d.nationality);
+      set("dateOfBirth", d.dateOfBirth ? new Date(d.dateOfBirth) : undefined);
+      set("passportNumber", d.passportNumber ?? undefined);
+      set("brpNumber", d.brpNumber ?? undefined);
+      set(
+        "nationalInsuranceNumber",
+        d.nationalInsuranceNumber ?? undefined
+      );
+      set("visaType", d.visaType);
+      set("cosReference", d.cosReference);
+      set(
+        "cosAssignDate",
+        d.cosAssignDate ? new Date(d.cosAssignDate) : undefined
+      );
+      set(
+        "cosExpiryDate",
+        d.cosExpiryDate ? new Date(d.cosExpiryDate) : undefined
+      );
+      set(
+        "visaStartDate",
+        d.visaStartDate ? new Date(d.visaStartDate) : undefined
+      );
+      set(
+        "visaExpiryDate",
+        d.visaExpiryDate ? new Date(d.visaExpiryDate) : undefined
+      );
+      set("jobTitle", d.jobTitle);
+      set("occupationCode", d.occupationCode);
+      set("jobDescription", d.jobDescription ?? undefined);
+      set("contractJobDescription", d.contractJobDescription ?? undefined);
+      set("actualDayToDayDuties", d.actualDayToDayDuties ?? undefined);
+      set(
+        "occupationCodeJustification",
+        d.occupationCodeJustification ?? undefined
+      );
+      set("salary", d.salary);
+      set("workLocation", d.workLocation);
+      set("employmentStatus", d.employmentStatus);
+      set("isOffshoreWorker", d.isOffshoreWorker);
+      set("vesselName", d.vesselName ?? undefined);
+      set(
+        "employmentStartDate",
+        d.employmentStartDate ? new Date(d.employmentStartDate) : undefined
+      );
+      set("lineManagerName", d.lineManagerName ?? undefined);
+      set("lineManagerEmail", d.lineManagerEmail ?? undefined);
+      set(
+        "rightToWorkLastCheckedAt",
+        d.rightToWorkLastCheckedAt
+          ? new Date(d.rightToWorkLastCheckedAt)
+          : undefined
+      );
+      set(
+        "sponsorshipStartDate",
+        d.sponsorshipStartDate ? new Date(d.sponsorshipStartDate) : undefined
+      );
+      set(
+        "sponsorshipEndDate",
+        d.sponsorshipEndDate ? new Date(d.sponsorshipEndDate) : undefined
+      );
+      set("complianceRiskLevel", d.complianceRiskLevel);
+      set("requiresAtasCertificate", d.requiresAtasCertificate);
+      set("preRegistrationNurse", d.preRegistrationNurse);
+
+      if (d.employmentStatus === "TERMINATED" && d.sponsorshipEndDate === undefined) {
+        data.sponsorshipEndDate = new Date();
+      }
+
+      const updated = await prisma.worker.update({
+        where: { id },
+        data: data as object,
+      });
+
+      const wName = `${updated.firstName} ${updated.lastName}`;
+
+      if (d.salary !== undefined && d.salary !== existing.salary) {
+        await prisma.salaryHistory.create({
+          data: {
+            workerId: id,
+            tenantId: user.tenantId,
+            effectiveDate: new Date(),
+            oldSalary: existing.salary,
+            newSalary: d.salary,
+            justification: d.salaryReductionJustification ?? undefined,
+            createdByUserId: user.id,
+          },
+        });
+      }
+
+      if (d.salary !== undefined && d.salary < existing.salary) {
+        const occurred = new Date();
+        const deadline = getReportDeadlineForEvent("SALARY_REDUCTION", occurred);
+        const key = `${id}-SALARY_REDUCTION-${Date.now()}`;
+        await prisma.notificationEvent.create({
+          data: buildComplianceEventData({
+            workerId: id,
+            tenantId: user.tenantId,
+            eventType: "SALARY_REDUCTION",
+            idempotencyKey: key,
+            dueDate: deadline,
+            reportDeadlineAt: deadline,
+            occurredAt: occurred,
+            workerName: wName,
+            cosReference: updated.cosReference,
+            metadata: {
+              oldSalary: existing.salary,
+              newSalary: d.salary,
+              justification: d.salaryReductionJustification ?? null,
+            },
+          }),
+        });
+      }
+
+      if (
+        d.workLocation !== undefined &&
+        d.workLocation !== existing.workLocation
+      ) {
+        const occurred = new Date();
+        const deadline = getReportDeadlineForEvent(
+          "WORK_LOCATION_CHANGE",
+          occurred
+        );
+        const key = `${id}-WORK_LOCATION_CHANGE-${Date.now()}`;
+        await prisma.notificationEvent.create({
+          data: buildComplianceEventData({
+            workerId: id,
+            tenantId: user.tenantId,
+            eventType: "WORK_LOCATION_CHANGE",
+            idempotencyKey: key,
+            dueDate: deadline,
+            reportDeadlineAt: deadline,
+            occurredAt: occurred,
+            workerName: wName,
+            cosReference: updated.cosReference,
+            metadata: {
+              oldLocation: existing.workLocation,
+              newLocation: d.workLocation,
+            },
+          }),
+        });
+      }
+
+      if (d.employmentStatus === "ACTIVE" && existing.employmentStatus !== "ACTIVE") {
+        await prisma.notificationEvent.updateMany({
+          where: {
+            workerId: id,
+            eventType: "NO_SHOW",
+            status: "PENDING",
+          },
+          data: { status: "CANCELLED" },
+        });
+      }
+
+      if (
+        d.employmentStatus === "TERMINATED" &&
+        existing.employmentStatus !== "TERMINATED"
+      ) {
+        const end = updated.sponsorshipEndDate ?? new Date();
+        const occurred = new Date();
+        const deadline = getReportDeadlineForEvent("SPONSORSHIP_ENDED", occurred);
+        const key = `${id}-SPONSORSHIP_ENDED-${Date.now()}`;
+        await prisma.notificationEvent.create({
+          data: buildComplianceEventData({
+            workerId: id,
+            tenantId: user.tenantId,
+            eventType: "SPONSORSHIP_ENDED",
+            idempotencyKey: key,
+            dueDate: deadline,
+            reportDeadlineAt: deadline,
+            occurredAt: occurred,
+            workerName: wName,
+            cosReference: updated.cosReference,
+            metadata: { endedAt: end.toISOString() },
+          }),
+        });
+      }
+
+      if (
+        d.visaExpiryDate !== undefined &&
+        updated.visaExpiryDate &&
+        (!existing.visaExpiryDate ||
+          updated.visaExpiryDate.getTime() !==
+            existing.visaExpiryDate.getTime())
+      ) {
+        const rows = visaNotificationsToCreate(
+          id,
+          user.tenantId,
+          updated.visaExpiryDate,
+          {
+            firstName: updated.firstName,
+            lastName: updated.lastName,
+            cosReference: updated.cosReference,
+          }
+        );
+        if (rows.length > 0) {
+          await prisma.notificationEvent.createMany({
+            data: rows,
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      const fresh = await prisma.worker.findUnique({
+        where: { id },
+        include: {
+          documents: { where: { isDeleted: false } },
+          notifications: { orderBy: { dueDate: "desc" }, take: 150 },
+          changeLogs: { orderBy: { createdAt: "desc" }, take: 100 },
+          absences: { orderBy: { startDate: "desc" }, take: 100 },
+          rtwChecks: { orderBy: { checkedAt: "desc" }, take: 50 },
+          salaryHistory: { orderBy: { effectiveDate: "desc" }, take: 30 },
+        },
+      });
+
+      const riskSnapshot = fresh
+        ? computeRiskSnapshot({
+            notifications: fresh.notifications,
+            documents: fresh.documents,
+          })
+        : "LOW";
+
+      return NextResponse.json({
+        data: fresh ? { ...fresh, riskSnapshot } : null,
+      });
+    });
+  } catch (error) {
+    logger.error("PUT /api/workers/[id] failed", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  context: RouteParams
+): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { id } = context.params;
+
+    return await withTenant(user, req, async () => {
+      const existing = await prisma.worker.findUnique({ where: { id } });
+      if (!existing) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      const end = new Date();
+      const updated = await prisma.worker.update({
+        where: { id },
+        data: {
+          employmentStatus: "TERMINATED",
+          sponsorshipEndDate: end,
+        },
+      });
+      const occurred = new Date();
+      const deadline = getReportDeadlineForEvent("SPONSORSHIP_ENDED", occurred);
+      const key = `${id}-SPONSORSHIP_ENDED-${Date.now()}`;
+      const wName = `${updated.firstName} ${updated.lastName}`;
+      await prisma.notificationEvent.create({
+        data: buildComplianceEventData({
+          workerId: id,
+          tenantId: user.tenantId,
+          eventType: "SPONSORSHIP_ENDED",
+          idempotencyKey: key,
+          dueDate: deadline,
+          reportDeadlineAt: deadline,
+          occurredAt: occurred,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          metadata: { reason: "DELETE", endedAt: end.toISOString() },
+        }),
+      });
+      logger.info("worker terminated via DELETE", { workerId: id });
+      return NextResponse.json({ data: updated });
+    });
+  } catch (error) {
+    logger.error("DELETE /api/workers/[id] failed", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

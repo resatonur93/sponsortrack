@@ -1,0 +1,387 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id            String   @id @default(cuid())
+  companyName   String
+  licenceNumber String   @unique
+  address       String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  users         User[]
+  workers       Worker[]
+  notifications NotificationEvent[]
+  documents     Document[]
+  auditLogs     AuditLog[]
+  orgChanges    OrganisationChange[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String
+  password  String
+  firstName String
+  lastName  String
+  role      Role
+  isActive  Boolean  @default(true)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+}
+
+enum Role {
+  AUTHORISING_OFFICER
+  LEVEL_1_USER
+  LEVEL_2_USER
+}
+
+model Worker {
+  id                        String   @id @default(cuid())
+  firstName                 String
+  lastName                  String
+  email                     String
+  phone                     String?
+  workPhone                 String?
+  personalEmail             String?
+  nationality               String
+  dateOfBirth               DateTime?
+  passportNumber            String?
+  brpNumber                 String?
+  nationalInsuranceNumber   String?
+  visaType                  String
+  cosReference              String
+  cosAssignDate             DateTime
+  cosExpiryDate             DateTime
+  visaStartDate             DateTime?
+  visaExpiryDate            DateTime?
+  jobTitle                  String
+  occupationCode            String
+  jobDescription            String?  @db.Text
+  contractJobDescription    String?  @db.Text
+  actualDayToDayDuties      String?  @db.Text
+  occupationCodeJustification String? @db.Text
+  salary                    Int
+  workLocation              String
+  employmentStatus          EmploymentStatus @default(PENDING_START)
+  employmentStartDate       DateTime?
+  lineManagerName           String?
+  lineManagerEmail          String?
+  rightToWorkLastCheckedAt  DateTime?
+  isOffshoreWorker          Boolean  @default(false)
+  vesselName                String?
+  sponsorshipStartDate      DateTime?
+  sponsorshipEndDate        DateTime?
+  complianceRiskLevel       ComplianceRiskLevel @default(LOW)
+  tenantId                  String
+  tenant                    Tenant   @relation(fields: [tenantId], references: [id])
+  notifications             NotificationEvent[]
+  documents                 Document[]
+  changeLogs                WorkerChangeLog[]
+  absences                  AbsenceRecord[]
+  rtwChecks                 RightToWorkCheck[]
+  salaryHistory             SalaryHistory[]
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  requiresAtasCertificate   Boolean  @default(false)
+  preRegistrationNurse    Boolean  @default(false)
+
+  @@unique([cosReference, tenantId])
+  @@index([visaExpiryDate])
+  @@index([employmentStatus])
+  @@index([tenantId])
+}
+
+enum ComplianceRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum EmploymentStatus {
+  PENDING_START
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+model NotificationEvent {
+  id                 String             @id @default(cuid())
+  eventType          NotificationType
+  workerId           String
+  worker             Worker             @relation(fields: [workerId], references: [id])
+  idempotencyKey     String             @unique
+  dueDate            DateTime
+  occurredAt         DateTime?
+  reportDeadlineAt   DateTime?
+  status             NotificationStatus @default(PENDING)
+  reportedDate       DateTime?
+  notes              String?
+  metadata           Json?
+  evidenceRequired   String?            @db.Text
+  smsDraft           String?            @db.Text
+  internalApprovalNote String?          @db.Text
+  approverRole       Role?
+  reminderStage      Int                @default(0)
+  tenantId           String
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  documents          Document[]         @relation("ComplianceDocuments")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([status, dueDate])
+  @@index([reportDeadlineAt])
+  @@index([workerId, eventType, status])
+  @@index([tenantId])
+}
+
+enum NotificationType {
+  NO_SHOW
+  UNAUTHORISED_ABSENCE
+  UNPAID_OR_REDUCED_PAY_ABSENCE
+  SALARY_REDUCTION
+  CHANGE_OF_ROLE_OR_DUTIES
+  PROMOTION_SAME_SOC
+  WORK_LOCATION_CHANGE
+  SPONSORSHIP_ENDED
+  OFFSHORE_ARRIVAL
+  OFFSHORE_DEPARTURE
+  ORGANISATION_CHANGE
+  ADDRESS_CONTACT_UPDATE
+  ORGANISATION_SIZE_CHANGE
+  CHARITY_STATUS_CHANGE
+  KEY_PERSONNEL_CHANGE
+  MERGER_TUPE_RESTRUCTURING
+  INSOLVENCY_RELATED
+  VISA_EXPIRING_90_DAYS
+  VISA_EXPIRING_30_DAYS
+  VISA_EXPIRING_7_DAYS
+  DOCUMENT_EXPIRING
+  WORKER_MISSING_DOCUMENTS
+  SALARY_DISCREPANCY
+}
+
+enum NotificationStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+model Document {
+  id                  String         @id @default(cuid())
+  workerId            String
+  worker              Worker         @relation(fields: [workerId], references: [id])
+  documentType      DocumentType
+  vaultFolder         DocumentVaultFolder @default(OTHER)
+  fileName            String
+  fileUrl             String
+  fileData            String?        @db.Text
+  metadata            Json?
+  version             Int            @default(1)
+  replacesDocumentId  String?
+  replaces            Document?      @relation("DocumentVersions", fields: [replacesDocumentId], references: [id])
+  laterVersions       Document[]     @relation("DocumentVersions")
+  uploadDate          DateTime       @default(now())
+  expiryDate          DateTime?
+  retentionUntil      DateTime?
+  verifiedAt          DateTime?
+  verifiedByUserId    String?
+  verificationNote    String?        @db.Text
+  uploadedBy          String
+  isDeleted           Boolean        @default(false)
+  deletedAt           DateTime?
+  deletedReason       String?
+  complianceEventId   String?
+  complianceEvent     NotificationEvent? @relation("ComplianceDocuments", fields: [complianceEventId], references: [id])
+  tenantId            String
+  tenant              Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@index([workerId])
+  @@index([retentionUntil])
+  @@index([tenantId])
+  @@index([vaultFolder])
+  @@index([complianceEventId])
+}
+
+enum DocumentVaultFolder {
+  IDENTITY_IMMIGRATION
+  RIGHT_TO_WORK
+  COS_APPLICATION
+  EMPLOYMENT_CONTRACT
+  PAYROLL_SALARY
+  ABSENCE_LEAVE
+  ADDRESS_CONTACT
+  ROLE_ORG_CHART
+  RECRUITMENT_VACANCY
+  REPORTING_SUBMISSIONS
+  COMPLIANCE_VISIT_PACK
+  OTHER
+}
+
+enum DocumentType {
+  PASSPORT
+  BRP
+  EVISA
+  SHARE_CODE
+  VISA
+  COS
+  ATAS_CERTIFICATE
+  DBS_CHECK
+  EMPLOYMENT_CONTRACT
+  QUALIFICATION
+  PROFESSIONAL_REGISTRATION
+  RIGHT_TO_WORK
+  PROOF_OF_ADDRESS
+  NMC_REGISTRATION
+  VESSEL_ASSIGNMENT_LETTER
+}
+
+model RightToWorkCheck {
+  id               String          @id @default(cuid())
+  workerId         String
+  worker           Worker          @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  checkedAt        DateTime        @default(now())
+  checkMethod      RtwCheckMethod
+  outcomeSummary   String?         @db.Text
+  shareCodeUsed    String?
+  notes            String?         @db.Text
+  evidenceDocumentId String?
+  nextCheckDueAt   DateTime?
+  tenantId         String
+  createdByUserId  String
+  createdAt        DateTime        @default(now())
+
+  @@index([workerId])
+  @@index([tenantId])
+  @@index([checkedAt])
+}
+
+enum RtwCheckMethod {
+  ONLINE_SHARE_CODE
+  MANUAL_DOCUMENT_CHECK
+  EMPLOYER_PORTAL
+  RE_VERIFICATION
+  OTHER
+}
+
+model WorkerChangeLog {
+  id            String   @id @default(cuid())
+  workerId      String
+  worker        Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  changeCategory ChangeCategory
+  summary       String
+  previousValue String?  @db.Text
+  newValue      String?  @db.Text
+  effectiveDate DateTime?
+  tenantId      String
+  createdByUserId String
+  createdAt     DateTime @default(now())
+
+  @@index([workerId])
+  @@index([tenantId])
+}
+
+enum ChangeCategory {
+  ADDRESS
+  PHONE_EMAIL
+  SALARY
+  WORK_LOCATION
+  ROLE_TITLE
+  PROMOTION
+  ABSENCE
+  OTHER
+}
+
+model AbsenceRecord {
+  id              String   @id @default(cuid())
+  workerId        String
+  worker          Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  startDate       DateTime
+  endDate         DateTime?
+  absenceType     AbsenceType @default(UNAUTHORISED)
+  isAuthorised    Boolean  @default(false)
+  consecutiveWorkingDays Int?
+  notes           String?  @db.Text
+  contactAttemptsLog String? @db.Text
+  approvedBy      String?
+  tenantId        String
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  @@index([workerId])
+  @@index([tenantId])
+}
+
+enum AbsenceType {
+  SICK
+  UNAUTHORISED
+  AUTHORISED
+}
+
+model SalaryHistory {
+  id              String   @id @default(cuid())
+  workerId        String
+  worker          Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  tenantId        String
+  effectiveDate   DateTime
+  oldSalary       Int
+  newSalary       Int
+  reason          String?  @db.Text
+  justification   String?  @db.Text
+  approvedBy      String?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  @@index([workerId])
+  @@index([tenantId])
+  @@index([effectiveDate])
+}
+
+model OrganisationChange {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  title            String
+  description      String?  @db.Text
+  occurredAt       DateTime?
+  reportDeadlineAt DateTime?
+  status           OrgChangeStatus @default(OPEN)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+enum OrgChangeStatus {
+  OPEN
+  REPORTED
+  CLOSED
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  entityType  String
+  entityId    String
+  changes     Json?
+  performedBy String
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime @default(now())
+  ipAddress   String?
+  userAgent   String?
+
+  @@index([entityType, entityId])
+  @@index([tenantId, createdAt])
+}
