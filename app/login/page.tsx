@@ -12,7 +12,6 @@ export default function LoginPage(): JSX.Element {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [tenantId, setTenantId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +23,6 @@ export default function LoginPage(): JSX.Element {
       redirect: false,
       email,
       password,
-      tenantId,
     });
     setLoading(false);
     if (res?.error) {
@@ -46,17 +44,6 @@ export default function LoginPage(): JSX.Element {
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="tenantId">Tenant ID</Label>
-              <Input
-                id="tenantId"
-                value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
-                required
-                autoComplete="off"
-                placeholder="Kiracı kimliği (seed çıktısı)"
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="email">E-posta</Label>
               <Input

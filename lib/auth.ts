@@ -8,7 +8,6 @@ import { logger } from "@/lib/logger";
 const credentialsSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(1),
-  tenantId: z.string().trim().min(1),
 });
 
 export const authOptions: NextAuthOptions = {
@@ -18,7 +17,6 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        tenantId: { label: "Tenant ID", type: "text" },
       },
       async authorize(credentials) {
         const parsed = credentialsSchema.safeParse(credentials);
@@ -26,9 +24,9 @@ export const authOptions: NextAuthOptions = {
           logger.warn("login validation failed", { issues: parsed.error.flatten() });
           return null;
         }
-        const { email, password, tenantId } = parsed.data;
+        const { email, password } = parsed.data;
         const user = await prismaBase.user.findFirst({
-          where: { email, tenantId, isActive: true },
+          where: { email, isActive: true },
           include: { tenant: true },
         });
         if (!user?.tenant.isActive) {

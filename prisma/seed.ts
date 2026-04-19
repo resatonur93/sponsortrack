@@ -23,7 +23,7 @@ async function main(): Promise<void> {
 
   await prisma.user.upsert({
     where: {
-      email_tenantId: { email: "officer@demo.local", tenantId: tenant.id },
+      email: "officer@demo.local",
     },
     update: { password: passwordHash },
     create: {
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
 
   await prisma.user.upsert({
     where: {
-      email_tenantId: { email: "readonly@demo.local", tenantId: tenant.id },
+      email: "readonly@demo.local",
     },
     update: { password: passwordHash },
     create: {
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
 
   await prisma.user.upsert({
     where: {
-      email_tenantId: { email: "admin@sponsortrack.local", tenantId: tenant.id },
+      email: "admin@sponsortrack.local",
     },
     update: { password: passwordHash },
     create: {
@@ -68,9 +68,7 @@ async function main(): Promise<void> {
 
   console.log("");
   console.log("========== SponsorTrack seed OK ==========");
-  console.log("Tenant ID (login formuna aynen bunu yazın):");
-  console.log(tenant.id);
-  console.log("");
+  console.log("Giriş: e-posta + şifre (Tenant ID gerekmez).");
   console.log("Şifre (hepsi için aynı): Password123!");
   console.log("");
   console.log("Kullanıcılar:");

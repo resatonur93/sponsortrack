@@ -34,7 +34,7 @@ model User {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
 
-  @@unique([email, tenantId])
+  @@unique([email])
   @@index([tenantId])
 }
 
