@@ -10,9 +10,13 @@ export default async function Home(): Promise<never> {
   if (session?.user) {
     redirect("/dashboard");
   }
-  const userCount = await prismaBase.user.count();
-  if (userCount === 0) {
-    redirect("/setup");
+  try {
+    const userCount = await prismaBase.user.count();
+    if (userCount === 0) {
+      redirect("/setup");
+    }
+  } catch {
+    redirect("/login");
   }
   redirect("/login");
 }
