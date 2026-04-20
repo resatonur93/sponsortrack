@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/branding/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
@@ -36,11 +36,12 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="items-center pb-6">
-          <Image src="/logo-full.svg" alt="SponsorTrack Logo" width={200} height={50} className="mb-2" />
-          <p className="text-sm text-slate-600 text-center">
+          <Logo size="lg" variant="light" />
+          <p className="text-caption mt-3 text-center">Compliance Made Clear</p>
+          <p className="mt-1 text-center text-sm text-brand-slate">
             UK sponsor uyum yönetimi — giriş yapın
           </p>
         </CardHeader>
@@ -67,20 +68,20 @@ export default function LoginPage(): JSX.Element {
               />
             </div>
             {error ? (
-              <p className="text-sm text-red-600" role="alert">
+              <p className="text-sm text-brand-rose" role="alert">
                 {error}
               </p>
             ) : null}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Giriş..." : "Giriş"}
             </Button>
-            <div className="space-y-1 text-center text-sm text-slate-600">
+            <div className="space-y-1 text-center text-sm text-brand-slate">
               <p>
-                <Link href="/setup" className="text-indigo-800 underline">
+                <Link href="/setup" className="font-medium text-brand-royal underline">
                   İlk kurulum
                 </Link>
                 {" · "}
-                <Link href="/register" className="text-indigo-800 underline">
+                <Link href="/register" className="font-medium text-brand-royal underline">
                   Kurumsal kayıt
                 </Link>
               </p>

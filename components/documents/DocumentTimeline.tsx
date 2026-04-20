@@ -6,6 +6,7 @@ import {
   MissingDocumentsAlert,
   type MissingDoc,
 } from "./MissingDocumentsAlert";
+import { DocumentTimelineItem } from "@/components/ui/DocumentTimelineItem";
 
 export function DocumentTimeline(props: {
   workerId: string;
@@ -41,17 +42,16 @@ export function DocumentTimeline(props: {
   return (
     <div className="space-y-6">
       <MissingDocumentsAlert items={missing} workerId={props.workerId} />
-      <div className="relative border-l-2 border-blue-200 pl-6">
+      <div className="relative border-l-2 border-brand-royal/25 pl-6">
         <ul className="space-y-6">
           {items.map((row) => (
-            <li key={row.document.id} className="relative">
-              <span className="absolute -left-[29px] top-4 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-white" />
+            <DocumentTimelineItem key={row.document.id}>
               <DocumentCard
                 row={row}
                 workerId={props.workerId}
                 onUpdated={() => void load()}
               />
-            </li>
+            </DocumentTimelineItem>
           ))}
         </ul>
         {items.length === 0 ? (

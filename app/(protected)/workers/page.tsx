@@ -41,7 +41,7 @@ export default function WorkersPage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-blue-900">Çalışanlar</h1>
+          <h1 className="text-2xl font-bold text-brand-navy">Çalışanlar</h1>
           <p className="text-slate-600">Sponsorlu çalışan listesi</p>
         </div>
         <Link href="/workers/new">

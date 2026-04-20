@@ -42,11 +42,11 @@ export function escalationLabel(level: EscalationLevel): string {
 export function escalationBadgeClass(level: EscalationLevel): string {
   switch (level) {
     case 1:
-      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      return "border-emerald-200 bg-emerald-50 text-emerald-900";
     case 2:
-      return "bg-amber-100 text-amber-800 border-amber-200";
+      return "border-amber-200 bg-amber-50 text-amber-950";
     case 3:
-      return "bg-red-100 text-red-800 border-red-200";
+      return "border-rose-200 bg-rose-50 text-[#E11D48]";
     default:
       return "bg-slate-100 text-slate-800";
   }

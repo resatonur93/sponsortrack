@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
+import { Logo } from "@/components/branding/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,12 +103,13 @@ export function OrgSignupForm({ mode }: { mode: Mode }): JSX.Element {
   const meta = copy[mode];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="items-center pb-6">
-          <Image src="/logo-full.svg" alt="SponsorTrack Logo" width={160} height={40} className="mb-4" />
-          <CardTitle className="text-2xl text-indigo-900">{meta.title}</CardTitle>
-          <p className="text-sm text-slate-600 text-center mt-1">{meta.subtitle}</p>
+          <Logo size="md" variant="light" className="mb-4" />
+          <p className="text-caption">Compliance Made Clear</p>
+          <CardTitle className="mt-2 text-2xl text-brand-navy">{meta.title}</CardTitle>
+          <p className="mt-1 text-center text-sm text-brand-slate">{meta.subtitle}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
@@ -220,7 +221,7 @@ export function OrgSignupForm({ mode }: { mode: Mode }): JSX.Element {
               {loading ? "Kaydediliyor..." : mode === "setup" ? "Kurulumu tamamla" : "Kayıt ol"}
             </Button>
             <p className="text-center text-sm text-slate-600">
-              <Link href="/login" className="text-indigo-800 underline">
+              <Link href="/login" className="font-medium text-brand-royal underline">
                 Giriş sayfasına dön
               </Link>
             </p>

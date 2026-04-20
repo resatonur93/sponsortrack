@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" fill="none" viewBox="0 0 320 200" aria-hidden="true">
+  <rect width="320" height="200" rx="16" fill="#0F2B5B"/>
+  <path d="M40 120c40-48 88-72 120-72s80 24 120 72" stroke="#1E5BB5" stroke-width="2" opacity=".6"/>
+  <circle cx="160" cy="88" r="36" stroke="#0D9488" stroke-width="3" fill="rgba(13,148,136,.15)"/>
+  <path d="M148 88l8 8 16-16" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="160" y="168" text-anchor="middle" fill="#F8FAFC" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600">Compliance Made Clear</text>
+</svg>

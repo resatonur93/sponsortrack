@@ -74,7 +74,7 @@ export default function DashboardPage(): JSX.Element {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-blue-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-brand-navy">Dashboard</h1>
         <p className="text-slate-600">Özet ve risk görünümü</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -106,7 +106,7 @@ export default function DashboardPage(): JSX.Element {
               <li key={h.workerId}>
                 <Link
                   href={`/workers/${h.workerId}`}
-                  className="font-medium text-blue-900 underline"
+                  className="font-medium text-brand-navy underline"
                 >
                   {h.name}
                 </Link>
@@ -151,7 +151,7 @@ export default function DashboardPage(): JSX.Element {
                   <TableCell>
                     <Link
                       href={`/workers/${row.workerId}`}
-                      className="font-medium text-blue-900 underline"
+                      className="font-medium text-brand-navy underline"
                     >
                       {row.name}
                     </Link>
@@ -186,7 +186,7 @@ export default function DashboardPage(): JSX.Element {
                   <TableCell className="text-right">
                     <Link
                       href={`/workers/${row.workerId}`}
-                      className="text-sm text-blue-900 underline"
+                      className="text-sm text-brand-navy underline"
                     >
                       Aç
                     </Link>

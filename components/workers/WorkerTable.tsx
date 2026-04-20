@@ -59,7 +59,7 @@ export function WorkerTable(props: { workers: Worker[] }): JSX.Element {
             <TableCell className="text-right">
               <Link
                 href={`/workers/${w.id}`}
-                className="text-sm font-medium text-blue-900 hover:underline"
+                className="text-sm font-medium text-brand-navy hover:underline"
               >
                 Detay
               </Link>

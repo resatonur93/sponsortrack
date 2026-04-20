@@ -116,10 +116,10 @@ export default function WorkerDetailPage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link href="/workers" className="text-sm text-blue-900 hover:underline">
+          <Link href="/workers" className="text-sm text-brand-navy hover:underline">
             ← Çalışanlar
           </Link>
-          <h1 className="text-2xl font-bold text-blue-900">
+          <h1 className="text-2xl font-bold text-brand-navy">
             {data.firstName} {data.lastName}{" "}
             <Badge variant={riskBadge}>Risk: {data.riskSnapshot}</Badge>
           </h1>
@@ -438,7 +438,7 @@ export default function WorkerDetailPage(): JSX.Element {
         <TabsContent value="history" className="space-y-6">
           <HistoryForms workerId={id} onDone={() => void load()} />
           <div>
-            <h3 className="mb-2 font-semibold text-blue-900">Değişiklik geçmişi</h3>
+            <h3 className="mb-2 font-semibold text-brand-navy">Değişiklik geçmişi</h3>
             <ul className="space-y-2 text-sm">
               {data.changeLogs.map((c) => (
                 <li key={c.id} className="rounded border border-slate-100 p-3">
@@ -451,7 +451,7 @@ export default function WorkerDetailPage(): JSX.Element {
             </ul>
           </div>
           <div>
-            <h3 className="mb-2 font-semibold text-blue-900">Devamsızlık</h3>
+            <h3 className="mb-2 font-semibold text-brand-navy">Devamsızlık</h3>
             <ul className="space-y-2 text-sm">
               {data.absences.map((a) => (
                 <li key={a.id} className="rounded border border-slate-100 p-3">

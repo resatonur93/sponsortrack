@@ -39,7 +39,7 @@ export function MissingDocumentsAlert(props: {
         ))}
       </ul>
       <p className="mt-2 text-xs text-slate-600">
-        <Link href={`/workers/${props.workerId}`} className="text-blue-900 underline">
+        <Link href={`/workers/${props.workerId}`} className="text-brand-navy underline">
           Çalışan dosyası
         </Link>{" "}
         üzerinden vault’a yükleyin.

@@ -7,7 +7,7 @@ export default function NewWorkerPage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-blue-900">Yeni çalışan</h1>
+          <h1 className="text-2xl font-bold text-brand-navy">Yeni çalışan</h1>
           <p className="text-slate-600">Çok adımlı form</p>
         </div>
         <Link href="/workers">

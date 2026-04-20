@@ -67,7 +67,7 @@ export default function NotificationsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-blue-900">Bildirimler</h1>
+        <h1 className="text-2xl font-bold text-brand-navy">Bildirimler</h1>
         <p className="text-slate-600">Uyum olayları ve tamamlama</p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">

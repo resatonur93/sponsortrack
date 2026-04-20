@@ -76,7 +76,7 @@ export function WorkerForm(): JSX.Element {
             type="button"
             className={`rounded-full px-3 py-1 text-xs ${
               i === step
-                ? "bg-blue-900 text-white"
+                ? "bg-brand-navy text-white"
                 : "bg-slate-200 text-slate-700"
             }`}
             onClick={() => setStep(i)}

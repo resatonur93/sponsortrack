@@ -13,7 +13,7 @@ export function StatsCard(props: {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-blue-900">{props.value}</div>
+        <div className="text-3xl font-bold text-brand-navy">{props.value}</div>
         {props.description ? (
           <p className="mt-1 text-xs text-slate-500">{props.description}</p>
         ) : null}

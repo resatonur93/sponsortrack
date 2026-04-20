@@ -48,14 +48,14 @@ export default function CompliancePage(): JSX.Element {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-blue-900">Uyum &amp; denetim</h1>
+        <h1 className="text-2xl font-bold text-brand-navy">Uyum &amp; denetim</h1>
         <p className="text-slate-600">
           Geciken raporlar, yaklaşan süreler ve denetim izi özeti
         </p>
         <p className="mt-2">
           <Link
             href="/compliance/audit"
-            className="text-sm font-medium text-blue-900 underline"
+            className="text-sm font-medium text-brand-navy underline"
           >
             Audit pack &amp; anomali raporu →
           </Link>
@@ -179,7 +179,7 @@ function Stat(props: {
       ? "text-red-600"
       : props.warn && props.value > 0
         ? "text-amber-600"
-        : "text-blue-900";
+        : "text-brand-navy";
   return (
     <Card>
       <CardContent className="pt-6">

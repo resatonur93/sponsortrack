@@ -6,7 +6,7 @@ export function SetupDbUnavailable({ hint }: { hint?: string }): JSX.Element {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl text-indigo-900">Kurulum şu an yapılamıyor</CardTitle>
+          <CardTitle className="text-xl text-brand-navy">Kurulum şu an yapılamıyor</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-slate-700">
           {hint ? (
@@ -27,7 +27,7 @@ export function SetupDbUnavailable({ hint }: { hint?: string }): JSX.Element {
             değerle (host.docker.internal değil) eşleşmeli.
           </p>
           <p>
-            <Link href="/login" className="text-indigo-800 underline">
+            <Link href="/login" className="font-medium text-brand-royal underline">
               Giriş sayfasına dön
             </Link>
           </p>
@@ -42,7 +42,7 @@ export function RegistrationNotConfigured(): JSX.Element {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl text-indigo-900">Kurumsal kayıt kapalı</CardTitle>
+          <CardTitle className="text-xl text-brand-navy">Kurumsal kayıt kapalı</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-slate-700">
           <p>
@@ -51,7 +51,7 @@ export function RegistrationNotConfigured(): JSX.Element {
             Yönetici panelinden veya hosting ayarlarından uzun rastgele bir değer ekleyin, ardından bu sayfayı yenileyin.
           </p>
           <p>
-            <Link href="/login" className="text-indigo-800 underline">
+            <Link href="/login" className="font-medium text-brand-royal underline">
               Giriş sayfasına dön
             </Link>
           </p>
@@ -66,7 +66,7 @@ export function SetupAlreadyCompleted(): JSX.Element {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl text-indigo-900">İlk kurulum tamamlandı</CardTitle>
+          <CardTitle className="text-xl text-brand-navy">İlk kurulum tamamlandı</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-slate-700">
           <p>
@@ -74,7 +74,7 @@ export function SetupAlreadyCompleted(): JSX.Element {
             tamamlandığı için artık giriş yapmanız gerekir.
           </p>
           <p>
-            <Link href="/login" className="text-indigo-800 underline">
+            <Link href="/login" className="font-medium text-brand-royal underline">
               Giriş sayfasına dön
             </Link>
           </p>

@@ -52,10 +52,10 @@ export default function ComplianceAuditPage(): JSX.Element {
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/compliance" className="text-sm text-blue-900 hover:underline">
+        <Link href="/compliance" className="text-sm text-brand-navy hover:underline">
           ← Uyum özeti
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-blue-900">Audit pack</h1>
+        <h1 className="mt-2 text-2xl font-bold text-brand-navy">Audit pack</h1>
         <p className="text-slate-600">
           Denetim verisi, anomali taraması ve dışa aktarma
         </p>
@@ -64,12 +64,12 @@ export default function ComplianceAuditPage(): JSX.Element {
       <AuditPackDownload />
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold text-blue-900">Anomaliler</h2>
+        <h2 className="mb-2 text-lg font-semibold text-brand-navy">Anomaliler</h2>
         <AnomalyList items={pack.anomalies} />
       </section>
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold text-blue-900">Önizleme — çalışanlar</h2>
+        <h2 className="mb-2 text-lg font-semibold text-brand-navy">Önizleme — çalışanlar</h2>
         <div className="rounded-md border border-slate-200 bg-white">
           <Table>
             <TableHeader>
@@ -93,7 +93,7 @@ export default function ComplianceAuditPage(): JSX.Element {
       </section>
 
       <section>
-        <h2 className="mb-2 text-lg font-semibold text-blue-900">Önizleme — bildirimler</h2>
+        <h2 className="mb-2 text-lg font-semibold text-brand-navy">Önizleme — bildirimler</h2>
         <div className="rounded-md border border-slate-200 bg-white">
           <Table>
             <TableHeader>
