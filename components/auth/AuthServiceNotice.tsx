@@ -60,3 +60,26 @@ export function RegistrationNotConfigured(): JSX.Element {
     </div>
   );
 }
+
+export function SetupAlreadyCompleted(): JSX.Element {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-xl text-blue-900">İlk kurulum tamamlandı</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-slate-700">
+          <p>
+            Bu sayfa sadece ilk yönetici hesabı oluşturulana kadar kullanılabilir. Kurulum
+            tamamlandığı için artık giriş yapmanız gerekir.
+          </p>
+          <p>
+            <Link href="/login" className="text-blue-800 underline">
+              Giriş sayfasına dön
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

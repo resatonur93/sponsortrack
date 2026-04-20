@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation";
 import { prismaBase } from "@/lib/prisma";
-import { SetupDbUnavailable } from "@/components/auth/AuthServiceNotice";
+import {
+  SetupAlreadyCompleted,
+  SetupDbUnavailable,
+} from "@/components/auth/AuthServiceNotice";
 import { OrgSignupForm } from "@/components/auth/OrgSignupForm";
 import { getSetupErrorHint } from "@/lib/prisma-setup-error";
 
@@ -14,7 +16,7 @@ export default async function SetupPage(): Promise<JSX.Element> {
     return <SetupDbUnavailable hint={getSetupErrorHint(e)} />;
   }
   if (count > 0) {
-    redirect("/login");
+    return <SetupAlreadyCompleted />;
   }
   return <OrgSignupForm mode="setup" />;
 }
