@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -37,9 +38,9 @@ export default function LoginPage(): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-blue-900">SponsorTrack</CardTitle>
-          <p className="text-sm text-slate-600">
+        <CardHeader className="items-center pb-6">
+          <Image src="/logo-full.svg" alt="SponsorTrack Logo" width={200} height={50} className="mb-2" />
+          <p className="text-sm text-slate-600 text-center">
             UK sponsor uyum yönetimi — giriş yapın
           </p>
         </CardHeader>
@@ -75,11 +76,11 @@ export default function LoginPage(): JSX.Element {
             </Button>
             <div className="space-y-1 text-center text-sm text-slate-600">
               <p>
-                <Link href="/setup" className="text-blue-800 underline">
+                <Link href="/setup" className="text-indigo-800 underline">
                   İlk kurulum
                 </Link>
                 {" · "}
-                <Link href="/register" className="text-blue-800 underline">
+                <Link href="/register" className="text-indigo-800 underline">
                   Kurumsal kayıt
                 </Link>
               </p>

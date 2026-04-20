@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,9 +105,10 @@ export function OrgSignupForm({ mode }: { mode: Mode }): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-blue-900">{meta.title}</CardTitle>
-          <p className="text-sm text-slate-600">{meta.subtitle}</p>
+        <CardHeader className="items-center pb-6">
+          <Image src="/logo-full.svg" alt="SponsorTrack Logo" width={160} height={40} className="mb-4" />
+          <CardTitle className="text-2xl text-indigo-900">{meta.title}</CardTitle>
+          <p className="text-sm text-slate-600 text-center mt-1">{meta.subtitle}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
@@ -218,7 +220,7 @@ export function OrgSignupForm({ mode }: { mode: Mode }): JSX.Element {
               {loading ? "Kaydediliyor..." : mode === "setup" ? "Kurulumu tamamla" : "Kayıt ol"}
             </Button>
             <p className="text-center text-sm text-slate-600">
-              <Link href="/login" className="text-blue-800 underline">
+              <Link href="/login" className="text-indigo-800 underline">
                 Giriş sayfasına dön
               </Link>
             </p>

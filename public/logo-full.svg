@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 128" fill="none">
+  <!-- Shield Icon -->
+  <path d="M64 12C64 12 32 24 24 40C16 56 20 84 64 116C108 84 112 56 104 40C96 24 64 12 64 12Z" fill="#312E81" />
+  <path d="M64 12V116C108 84 112 56 104 40C96 24 64 12 64 12Z" fill="#1E1B4B" />
+  <path d="M42 68L58 84L86 52" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M58 84L86 52" stroke="#34D399" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Text -->
+  <text x="140" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="72" font-weight="800" fill="#1E1B4B" letter-spacing="-2">
+    Sponsor<tspan fill="#4338CA">Track</tspan>
+  </text>
+</svg>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -26,7 +27,7 @@ export function AppShell({
     <div className="flex min-h-screen">
       <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
         <div className="flex h-16 items-center border-b border-slate-200 px-4">
-          <span className="text-lg font-bold text-blue-900">SponsorTrack</span>
+          <Image src="/logo-full.svg" alt="SponsorTrack Logo" width={140} height={35} />
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {nav.map((item) => {
@@ -39,7 +40,7 @@ export function AppShell({
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
                   active
-                    ? "bg-blue-900 text-white"
+                    ? "bg-indigo-900 text-white"
                     : "text-slate-700 hover:bg-slate-100"
                 )}
               >
@@ -67,7 +68,7 @@ export function AppShell({
       <div className="flex flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white px-4 py-2 md:hidden">
           <div className="flex h-10 items-center justify-between">
-            <span className="font-semibold text-blue-900">SponsorTrack</span>
+            <Image src="/logo-full.svg" alt="SponsorTrack Logo" width={120} height={30} />
           </div>
           <nav className="flex gap-2 overflow-x-auto pb-2 text-sm">
             {nav.map((item) => {
@@ -81,7 +82,7 @@ export function AppShell({
                   href={item.href}
                   className={cn(
                     "flex shrink-0 items-center gap-1 rounded-md px-2 py-1",
-                    active ? "bg-blue-900 text-white" : "bg-slate-100"
+                    active ? "bg-indigo-900 text-white" : "bg-slate-100"
                   )}
                 >
                   <Icon className="h-4 w-4" />
