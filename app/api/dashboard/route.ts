@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { computeRiskScore } from "@/lib/risk-score";
 import { logger } from "@/lib/logger";
 import { evaluateMissingDocuments } from "@/lib/required-documents";
+import { dedupeVisaExpiringByWorker } from "@/lib/recent-notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         }),
         prisma.notificationEvent.findMany({
           orderBy: { createdAt: "desc" },
-          take: 10,
+          take: 40,
           include: {
             worker: {
               select: { firstName: true, lastName: true, id: true },
@@ -121,6 +122,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         return a.name.localeCompare(b.name);
       });
 
+      const recentForDashboard = dedupeVisaExpiringByWorker(recent).slice(0, 10);
+
       return NextResponse.json({
         data: {
           stats: {
@@ -135,7 +138,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           highPriorityMissing: highPriorityMissing.slice(0, 12),
           missingDocumentsTable: missingDocumentsTable.slice(0, 20),
           risk,
-          recentEvents: recent,
+          recentEvents: recentForDashboard,
         },
       });
     });
