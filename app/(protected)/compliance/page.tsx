@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Summary = {
@@ -22,6 +24,11 @@ type Summary = {
 export default function CompliancePage(): JSX.Element {
   const [data, setData] = useState<Summary | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadResult, setUploadResult] = useState<{
+    discrepanciesFound: number;
+  } | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -82,6 +89,79 @@ export default function CompliancePage(): JSX.Element {
               ))
             )}
           </ul>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Maaş CSV yükleme</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-600">
+            Format: <code>email,expectedAnnual,actualAnnual</code>
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="payroll-csv">CSV dosyası</Label>
+            <Input
+              id="payroll-csv"
+              type="file"
+              accept=".csv,text/csv"
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploadError(null);
+                setUploadResult(null);
+                setUploading(true);
+
+                const reader = new FileReader();
+                reader.onload = async () => {
+                  const csv = typeof reader.result === "string" ? reader.result : "";
+                  if (!csv.trim()) {
+                    setUploadError("Dosya boş görünüyor.");
+                    setUploading(false);
+                    return;
+                  }
+                  try {
+                    const res = await fetch("/api/payroll/upload", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ csv }),
+                    });
+                    const json = (await res.json()) as {
+                      error?: string;
+                      data?: { discrepanciesFound?: number };
+                    };
+                    if (!res.ok) {
+                      setUploadError(json.error ?? "Yükleme başarısız.");
+                      return;
+                    }
+                    setUploadResult({
+                      discrepanciesFound: json.data?.discrepanciesFound ?? 0,
+                    });
+                  } catch {
+                    setUploadError("Yükleme sırasında hata oluştu.");
+                  } finally {
+                    setUploading(false);
+                    e.target.value = "";
+                  }
+                };
+                reader.onerror = () => {
+                  setUploadError("Dosya okunamadı.");
+                  setUploading(false);
+                  e.target.value = "";
+                };
+                reader.readAsText(file);
+              }}
+            />
+          </div>
+          {uploadError ? <p className="text-sm text-red-600">{uploadError}</p> : null}
+          {uploadResult ? (
+            <p className="text-sm text-emerald-700">
+              Yükleme tamamlandı. Tespit edilen fark sayısı:{" "}
+              <strong>{uploadResult.discrepanciesFound}</strong>
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </div>
