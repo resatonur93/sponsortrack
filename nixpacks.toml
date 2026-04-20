@@ -1,0 +1,4 @@
+# Coolify / Nixpacks: düşük RAM'li build ortamlarında next build OOM/time-out azaltır
+[variables]
+NODE_OPTIONS = "--max-old-space-size=4096"
+REDUCE_WEBPACK_MEMORY = "1"
