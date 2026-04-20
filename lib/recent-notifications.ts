@@ -1,6 +1,6 @@
 import type { NotificationType } from "@prisma/client";
 
-const VISA_EXPIRING_TYPES: NotificationType[] = [
+export const VISA_EXPIRING_TYPES: NotificationType[] = [
   "VISA_EXPIRING_90_DAYS",
   "VISA_EXPIRING_30_DAYS",
   "VISA_EXPIRING_7_DAYS",
@@ -58,7 +58,7 @@ export function dedupeVisaExpiringByWorker<
   }
 
   const keptVisa: T[] = [];
-  for (const [, group] of visaByWorker) {
+  for (const group of Array.from(visaByWorker.values())) {
     if (group.length === 0) continue;
     const best = group.reduce((a, b) => compareVisaExpiringUrgency(a, b));
     keptVisa.push(best);

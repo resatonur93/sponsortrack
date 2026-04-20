@@ -44,6 +44,7 @@ type DashboardPayload = {
     eventType: NotificationType;
     status: string;
     dueDate: string;
+    createdAt?: string;
     worker: { firstName: string; lastName: string; id: string };
   }[];
 };
@@ -54,7 +55,10 @@ export default function DashboardPage(): JSX.Element {
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch("/api/dashboard", { credentials: "include" });
+      const res = await fetch("/api/dashboard", {
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) {
         setError("Veri yüklenemedi");
         return;

@@ -4,7 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { computeRiskScore } from "@/lib/risk-score";
 import { logger } from "@/lib/logger";
 import { evaluateMissingDocuments } from "@/lib/required-documents";
-import { dedupeVisaExpiringByWorker } from "@/lib/recent-notifications";
+import {
+  VISA_EXPIRING_TYPES,
+  dedupeVisaExpiringByWorker,
+} from "@/lib/recent-notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +29,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         totalWorkers,
         activeWorkers,
         notifications,
-        recent,
+        visaAlertRows,
+        nonVisaRecentRows,
         visa30,
         visa90not30,
       ] = await Promise.all([
@@ -39,8 +43,22 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           select: { status: true },
         }),
         prisma.notificationEvent.findMany({
+          where: {
+            status: { in: ["PENDING", "OVERDUE"] },
+            eventType: { in: VISA_EXPIRING_TYPES },
+          },
+          include: {
+            worker: {
+              select: { firstName: true, lastName: true, id: true },
+            },
+          },
+        }),
+        prisma.notificationEvent.findMany({
+          where: {
+            eventType: { notIn: VISA_EXPIRING_TYPES },
+          },
           orderBy: { createdAt: "desc" },
-          take: 40,
+          take: 15,
           include: {
             worker: {
               select: { firstName: true, lastName: true, id: true },
@@ -122,25 +140,38 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         return a.name.localeCompare(b.name);
       });
 
-      const recentForDashboard = dedupeVisaExpiringByWorker(recent).slice(0, 10);
+      const visaDeduped = dedupeVisaExpiringByWorker(visaAlertRows);
+      const recentForDashboard = [...visaDeduped, ...nonVisaRecentRows]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        .slice(0, 10);
 
-      return NextResponse.json({
-        data: {
-          stats: {
-            totalWorkers,
-            activeSponsorships: activeWorkers,
-            pendingNotifications: notifications.filter((n) => n.status === "PENDING")
-              .length,
-            overdueNotifications: notifications.filter((n) => n.status === "OVERDUE")
-              .length,
-            missingDocumentIssues,
+      return NextResponse.json(
+        {
+          data: {
+            stats: {
+              totalWorkers,
+              activeSponsorships: activeWorkers,
+              pendingNotifications: notifications.filter((n) => n.status === "PENDING")
+                .length,
+              overdueNotifications: notifications.filter((n) => n.status === "OVERDUE")
+                .length,
+              missingDocumentIssues,
+            },
+            highPriorityMissing: highPriorityMissing.slice(0, 12),
+            missingDocumentsTable: missingDocumentsTable.slice(0, 20),
+            risk,
+            recentEvents: recentForDashboard,
           },
-          highPriorityMissing: highPriorityMissing.slice(0, 12),
-          missingDocumentsTable: missingDocumentsTable.slice(0, 20),
-          risk,
-          recentEvents: recentForDashboard,
         },
-      });
+        {
+          headers: {
+            "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+          },
+        }
+      );
     });
   } catch (error) {
     logger.error("GET /api/dashboard failed", error);
