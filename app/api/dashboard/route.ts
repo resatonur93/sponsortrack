@@ -82,6 +82,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         name: string;
         labels: string[];
       }[] = [];
+      const missingDocumentsTable: {
+        workerId: string;
+        name: string;
+        highCount: number;
+        mediumCount: number;
+        lowCount: number;
+        labels: string[];
+      }[] = [];
       for (const w of workersForDocs) {
         const miss = evaluateMissingDocuments(w, w.documents, now).filter(
           (m) => m.reason === "missing" || m.reason === "expired"
@@ -95,7 +103,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             labels: highs.map((h) => h.label),
           });
         }
+        if (miss.length > 0) {
+          missingDocumentsTable.push({
+            workerId: w.id,
+            name: `${w.firstName} ${w.lastName}`,
+            highCount: miss.filter((m) => m.urgency === "HIGH").length,
+            mediumCount: miss.filter((m) => m.urgency === "MEDIUM").length,
+            lowCount: miss.filter((m) => m.urgency === "LOW").length,
+            labels: miss.map((m) => m.label),
+          });
+        }
       }
+      missingDocumentsTable.sort((a, b) => {
+        if (b.highCount !== a.highCount) return b.highCount - a.highCount;
+        if (b.mediumCount !== a.mediumCount) return b.mediumCount - a.mediumCount;
+        if (b.lowCount !== a.lowCount) return b.lowCount - a.lowCount;
+        return a.name.localeCompare(b.name);
+      });
 
       return NextResponse.json({
         data: {
@@ -109,6 +133,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             missingDocumentIssues,
           },
           highPriorityMissing: highPriorityMissing.slice(0, 12),
+          missingDocumentsTable: missingDocumentsTable.slice(0, 20),
           risk,
           recentEvents: recent,
         },
