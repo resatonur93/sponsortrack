@@ -7,14 +7,6 @@ import { normalizeEmail, setupBodySchema } from "@/lib/registration";
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const existing = await prismaBase.user.count();
-    if (existing > 0) {
-      return NextResponse.json(
-        { error: "Kurulum zaten tamamlandı. Giriş yapın." },
-        { status: 403 }
-      );
-    }
-
     const body: unknown = await req.json();
     const parsed = setupBodySchema.safeParse(body);
     if (!parsed.success) {
@@ -30,7 +22,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const dup = await prismaBase.user.findUnique({ where: { email } });
     if (dup) {
       return NextResponse.json(
-        { error: "Bu e-posta zaten kayıtlı." },
+        { error: "Bu e-posta ile zaten bir hesap var. Giriş yapın veya başka e-posta kullanın." },
         { status: 409 }
       );
     }
@@ -40,10 +32,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     try {
       await prismaBase.$transaction(
         async (tx) => {
-          const again = await tx.user.count();
-          if (again > 0) {
-            throw new Error("SETUP_ALREADY_COMPLETED");
-          }
           const tenant = await tx.tenant.create({
             data: {
               companyName: d.companyName,
@@ -65,15 +53,22 @@ export async function POST(req: Request): Promise<NextResponse> {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
       );
     } catch (e) {
-      if (e instanceof Error && e.message === "SETUP_ALREADY_COMPLETED") {
-        return NextResponse.json(
-          { error: "Kurulum zaten tamamlandı. Giriş yapın." },
-          { status: 403 }
-        );
-      }
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        const target = (e.meta?.target as string[] | undefined) ?? [];
+        if (target.some((t) => String(t).includes("licenceNumber"))) {
+          return NextResponse.json(
+            { error: "Bu lisans numarası zaten kullanılıyor." },
+            { status: 409 }
+          );
+        }
+        if (target.some((t) => String(t).includes("email"))) {
+          return NextResponse.json(
+            { error: "Bu e-posta ile zaten bir hesap var." },
+            { status: 409 }
+          );
+        }
         return NextResponse.json(
-          { error: "Bu lisans numarası zaten kullanılıyor." },
+          { error: "Bu bilgilerle kayıt mümkün değil (benzersiz alan çakışması)." },
           { status: 409 }
         );
       }

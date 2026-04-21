@@ -78,7 +78,7 @@ export default function LoginPage(): JSX.Element {
             <div className="space-y-1 text-center text-sm text-brand-slate">
               <p>
                 <Link href="/setup" className="font-medium text-brand-royal underline">
-                  İlk kurulum
+                  Yeni kurum kaydı
                 </Link>
                 {" · "}
                 <Link href="/register" className="font-medium text-brand-royal underline">

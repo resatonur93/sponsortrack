@@ -14,8 +14,8 @@ type Mode = "setup" | "register";
 
 const copy: Record<Mode, { title: string; subtitle: string }> = {
   setup: {
-    title: "İlk kurulum",
-    subtitle: "İlk yönetici hesabını ve şirket kaydını oluşturun.",
+    title: "Yeni kurum kaydı",
+    subtitle: "Yeni bir şirket (tenant) ve yetkili kullanıcı oluşturun. Aynı e-posta ile ikinci kayıt yapılamaz.",
   },
   register: {
     title: "Kurumsal kayıt",
