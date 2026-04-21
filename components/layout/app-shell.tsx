@@ -4,16 +4,29 @@ import Link from "next/link";
 import { Logo } from "@/components/branding/Logo";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { LayoutDashboard, Users, BellRing, LogOut, Shield } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  BellRing,
+  LogOut,
+  Shield,
+  UserCog,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const nav = [
+const navBase = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/workers", label: "Çalışanlar", icon: Users },
   { href: "/notifications", label: "Bildirimler", icon: BellRing },
   { href: "/compliance", label: "Uyum / Audit", icon: Shield },
-];
+] as const;
+
+const adminNavItem = {
+  href: "/admin",
+  label: "Yönetici (üyeler)",
+  icon: UserCog,
+} as const;
 
 export function AppShell({
   children,
@@ -22,6 +35,10 @@ export function AppShell({
 }): JSX.Element {
   const pathname = usePathname();
   const { data } = useSession();
+  const nav =
+    data?.user?.role === "SYSTEM_ADMIN"
+      ? [...navBase, adminNavItem]
+      : [...navBase];
 
   return (
     <div className="flex min-h-screen">

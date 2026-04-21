@@ -5,6 +5,17 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token as { role?: string } | undefined;
     const method = req.method;
+    const path = req.nextUrl.pathname;
+
+    if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
+      if (token?.role !== "SYSTEM_ADMIN") {
+        if (path.startsWith("/api/admin")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+
     if (
       token?.role === "LEVEL_2_USER" &&
       method !== "GET" &&
@@ -26,6 +37,8 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
     "/dashboard/:path*",
     "/workers/:path*",
     "/notifications/:path*",

@@ -38,10 +38,12 @@ model User {
   @@index([tenantId])
 }
 
+// SYSTEM_ADMIN: platform yöneticisi — tüm kiracılardaki kullanıcıları listeler.
 enum Role {
   AUTHORISING_OFFICER
   LEVEL_1_USER
   LEVEL_2_USER
+  SYSTEM_ADMIN
 }
 
 model Worker {

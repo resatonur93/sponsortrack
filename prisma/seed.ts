@@ -55,13 +55,13 @@ async function main(): Promise<void> {
     where: {
       email: "admin@sponsortrack.local",
     },
-    update: { password: passwordHash },
+    update: { password: passwordHash, role: Role.SYSTEM_ADMIN },
     create: {
       email: "admin@sponsortrack.local",
       password: passwordHash,
       firstName: "Admin",
       lastName: "User",
-      role: Role.LEVEL_1_USER,
+      role: Role.SYSTEM_ADMIN,
       tenantId: tenant.id,
     },
   });
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
   console.log("");
   console.log("Kullanıcılar:");
   console.log("  - officer@demo.local      (AUTHORISING_OFFICER)");
-  console.log("  - admin@sponsortrack.local (LEVEL_1_USER)");
+  console.log("  - admin@sponsortrack.local (SYSTEM_ADMIN — /admin üyeler)");
   console.log("  - readonly@demo.local      (LEVEL_2_USER, sadece okuma)");
   console.log("===========================================");
   console.log("");
