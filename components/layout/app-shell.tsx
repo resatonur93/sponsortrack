@@ -14,6 +14,7 @@ import {
   CalendarClock,
   TriangleAlert,
   Building2,
+  LayoutPanelLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const navBase = [
   { href: "/alerts", label: "Uyarılar", icon: TriangleAlert },
   { href: "/notifications", label: "Bildirimler", icon: BellRing },
   { href: "/compliance", label: "Uyum / Audit", icon: Shield },
+  { href: "/audit", label: "Audit Dashboard", icon: LayoutPanelLeft },
   {
     href: "/organisation-changes",
     label: "Organisation changes",
