@@ -2,17 +2,18 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/api-context";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { requireAuthorisingOfficer } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (sessionUser.role !== "AUTHORISING_OFFICER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!requireAuthorisingOfficer(sessionUser)) {
+      return NextResponse.json(
+        { error: sessionUser ? "Forbidden" : "Unauthorized" },
+        { status: sessionUser ? 403 : 401 }
+      );
     }
 
     const users = await prismaBase.user.findMany({

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { normalizeEmail } from "@/lib/registration";
+import { canAccessAdminPanel } from "@/lib/admin-panel-access";
 
 const credentialsSchema = z.object({
   email: z.string().trim().email(),
@@ -59,6 +60,7 @@ export const authOptions: NextAuthOptions = {
         token.tenantId = user.tenantId;
         token.firstName = user.firstName;
         token.lastName = user.lastName;
+        token.email = user.email;
       }
       return token;
     },
@@ -69,6 +71,11 @@ export const authOptions: NextAuthOptions = {
         session.user.tenantId = token.tenantId as string;
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
+        session.user.email = (token.email as string | null | undefined) ?? session.user.email;
+        session.user.canAccessAdminPanel = canAccessAdminPanel(
+          session.user.email,
+          session.user.role
+        );
       }
       return session;
     },

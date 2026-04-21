@@ -9,6 +9,7 @@ declare module "next-auth" {
       tenantId: string;
       firstName: string;
       lastName: string;
+      canAccessAdminPanel: boolean;
     } & DefaultSession["user"];
   }
 
@@ -27,5 +28,6 @@ declare module "next-auth/jwt" {
     tenantId: string;
     firstName: string;
     lastName: string;
+    email?: string | null;
   }
 }

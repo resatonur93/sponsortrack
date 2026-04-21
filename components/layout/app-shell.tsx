@@ -35,10 +35,9 @@ export function AppShell({
 }): JSX.Element {
   const pathname = usePathname();
   const { data } = useSession();
-  const nav =
-    data?.user?.role === "AUTHORISING_OFFICER"
-      ? [...navBase, adminNavItem]
-      : [...navBase];
+  const nav = data?.user?.canAccessAdminPanel
+    ? [...navBase, adminNavItem]
+    : [...navBase];
 
   return (
     <div className="flex min-h-screen">
@@ -75,7 +74,11 @@ export function AppShell({
             variant="outline"
             className="mt-2 w-full"
             type="button"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() =>
+              void signOut({
+                callbackUrl: `${window.location.origin}/login`,
+              })
+            }
           >
             <LogOut className="mr-2 h-4 w-4" />
             Çıkış

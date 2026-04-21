@@ -36,7 +36,11 @@ export function AdminLayout({
               variant="outline"
               size="sm"
               className="border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 hover:text-white"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() =>
+                void signOut({
+                  callbackUrl: `${window.location.origin}/login`,
+                })
+              }
             >
               <LogOut className="mr-1 h-4 w-4" />
               Çıkış

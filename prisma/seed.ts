@@ -31,6 +31,20 @@ async function main(): Promise<void> {
       password: passwordHash,
       firstName: "Authorising",
       lastName: "Officer",
+      role: Role.LEVEL_1_USER,
+      tenantId: tenant.id,
+    },
+  });
+
+  const adminPanelHash = await bcrypt.hash("Password123!", 12);
+  await prisma.user.upsert({
+    where: { email: "resatonurkurt@gmail.com" },
+    update: { role: Role.AUTHORISING_OFFICER },
+    create: {
+      email: "resatonurkurt@gmail.com",
+      password: adminPanelHash,
+      firstName: "Admin",
+      lastName: "Panel",
       role: Role.AUTHORISING_OFFICER,
       tenantId: tenant.id,
     },
@@ -107,8 +121,9 @@ async function main(): Promise<void> {
   console.log("Şifre (hepsi için aynı): Password123!");
   console.log("");
   console.log("Kullanıcılar:");
-  console.log("  - officer@demo.local      (AUTHORISING_OFFICER — /admin panel)");
-  console.log("  - admin@sponsortrack.local (SYSTEM_ADMIN — platform)");
+  console.log("  - officer@demo.local         (LEVEL_1_USER)");
+  console.log("  - resatonurkurt@gmail.com    (AUTHORISING_OFFICER — tek /admin panel)");
+  console.log("  - admin@sponsortrack.local   (SYSTEM_ADMIN — platform)");
   console.log("  - readonly@demo.local      (LEVEL_2_USER, sadece okuma)");
   console.log("===========================================");
   console.log("");

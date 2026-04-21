@@ -33,7 +33,7 @@ export default function AdminTenantsPage(): JSX.Element {
       router.replace("/login");
       return;
     }
-    if (session?.user?.role !== "AUTHORISING_OFFICER") {
+    if (!session?.user?.canAccessAdminPanel) {
       router.replace("/dashboard");
       return;
     }
@@ -49,12 +49,12 @@ export default function AdminTenantsPage(): JSX.Element {
       const json = (await res.json()) as { data: TenantRow[] };
       setRows(json.data);
     })();
-  }, [status, session?.user?.role, router]);
+  }, [status, session?.user?.canAccessAdminPanel, router]);
 
   if (status === "loading" || !session) {
     return <p className="text-slate-400">Yükleniyor...</p>;
   }
-  if (session.user.role !== "AUTHORISING_OFFICER") {
+  if (!session.user.canAccessAdminPanel) {
     return <p className="text-slate-400">Yönlendiriliyor...</p>;
   }
   if (error) {

@@ -79,7 +79,7 @@ export default function AdminLeadDetailPage(): JSX.Element {
       router.replace("/login");
       return;
     }
-    if (session?.user?.role !== "AUTHORISING_OFFICER") {
+    if (!session?.user?.canAccessAdminPanel) {
       router.replace("/dashboard");
       return;
     }
@@ -113,7 +113,7 @@ export default function AdminLeadDetailPage(): JSX.Element {
         );
       }
     })();
-  }, [status, session?.user?.role, router, id]);
+  }, [status, session?.user?.canAccessAdminPanel, router, id]);
 
   async function save(): Promise<void> {
     if (!id) return;
@@ -183,7 +183,7 @@ export default function AdminLeadDetailPage(): JSX.Element {
   if (status === "loading" || !session) {
     return <p className="text-slate-400">Yükleniyor...</p>;
   }
-  if (session.user.role !== "AUTHORISING_OFFICER") {
+  if (!session.user.canAccessAdminPanel) {
     return <p className="text-slate-400">Yönlendiriliyor...</p>;
   }
   if (error && !lead) {

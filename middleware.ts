@@ -1,14 +1,17 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import { canAccessAdminPanel } from "@/lib/admin-panel-access";
 
 export default withAuth(
   function middleware(req) {
-    const token = req.nextauth.token as { role?: string } | undefined;
+    const token = req.nextauth.token as
+      | { role?: string; email?: string | null }
+      | undefined;
     const method = req.method;
     const path = req.nextUrl.pathname;
 
     if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
-      if (token?.role !== "AUTHORISING_OFFICER") {
+      if (!canAccessAdminPanel(token?.email, token?.role)) {
         if (path.startsWith("/api/admin")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }

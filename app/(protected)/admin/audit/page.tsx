@@ -12,13 +12,13 @@ export default function AdminAuditPage(): JSX.Element {
   useEffect(() => {
     if (status === "loading") return;
     if (status === "unauthenticated") router.replace("/login");
-    else if (session?.user?.role !== "AUTHORISING_OFFICER") router.replace("/dashboard");
+    else if (!session?.user?.canAccessAdminPanel) router.replace("/dashboard");
   }, [status, session, router]);
 
   if (status === "loading" || !session) {
     return <p className="text-slate-400">Yükleniyor...</p>;
   }
-  if (session.user.role !== "AUTHORISING_OFFICER") {
+  if (!session.user.canAccessAdminPanel) {
     return <p className="text-slate-400">Yönlendiriliyor...</p>;
   }
 
