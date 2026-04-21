@@ -33,7 +33,12 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ req, token }) => {
+        if (req.nextUrl.pathname.startsWith("/api/cron/")) {
+          return true;
+        }
+        return !!token;
+      },
     },
   }
 );
@@ -52,6 +57,8 @@ export const config = {
     "/compliance/:path*",
     "/audit",
     "/audit/:path*",
+    "/risk-report",
+    "/risk-report/:path*",
     "/organisation-changes",
     "/organisation-changes/:path*",
     "/api/workers",
@@ -65,6 +72,7 @@ export const config = {
     "/api/alerts",
     "/api/alerts/:path*",
     "/api/cron/escalation",
+    "/api/cron/risk-scores",
     "/api/dashboard",
     "/api/documents",
     "/api/documents/:path*",
@@ -77,6 +85,8 @@ export const config = {
     "/api/compliance/:path*",
     "/api/audit",
     "/api/audit/:path*",
+    "/api/risk-scores",
+    "/api/risk-scores/:path*",
     "/api/payroll/:path*",
     "/api/salary",
     "/api/salary/:path*",

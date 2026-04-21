@@ -5,7 +5,12 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RecentEvents } from "@/components/dashboard/RecentEvents";
 import type { RiskResult } from "@/lib/risk-score";
-import type { AlertLevel, AlertType, NotificationType } from "@prisma/client";
+import type {
+  AlertLevel,
+  AlertType,
+  NotificationType,
+  RiskLevel,
+} from "@prisma/client";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AlertLevelDot } from "@/components/layout/AlertCountPill";
@@ -58,9 +63,16 @@ type DashboardPayload = {
   }[];
 };
 
+type RiskEngineSummary = {
+  byLevel: Record<RiskLevel, number>;
+  workerScores: number;
+  lastCalculatedAt: string | null;
+};
+
 export default function DashboardPage(): JSX.Element {
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [riskEngine, setRiskEngine] = useState<RiskEngineSummary | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -74,6 +86,18 @@ export default function DashboardPage(): JSX.Element {
       }
       const json = (await res.json()) as { data: DashboardPayload };
       setData(json.data);
+    })();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await fetch("/api/risk-scores/summary", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const json = (await res.json()) as { data: RiskEngineSummary };
+      setRiskEngine(json.data);
     })();
   }, []);
 
@@ -109,6 +133,52 @@ export default function DashboardPage(): JSX.Element {
           value={data.stats.missingDocumentIssues ?? 0}
         />
       </div>
+
+      {riskEngine ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold text-slate-900">
+              Risk engine
+            </h2>
+            <Link
+              href="/risk-report"
+              className="text-sm font-medium text-brand-navy underline"
+            >
+              Tüm sıralama →
+            </Link>
+          </div>
+          {riskEngine.workerScores === 0 ? (
+            <p className="text-sm text-slate-600">
+              Henüz skor yok — gece cron (
+              <code className="text-xs">/api/cron/risk-scores</code>) veya ilk
+              hesaplamayı tetikleyin.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(
+                ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]
+              ).map((lvl) => (
+                <div
+                  key={lvl}
+                  className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
+                >
+                  <p className="text-xs font-medium text-slate-500">{lvl}</p>
+                  <p className="text-lg font-semibold tabular-nums text-brand-navy">
+                    {riskEngine.byLevel[lvl]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          {riskEngine.lastCalculatedAt ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Son hesaplama:{" "}
+              {new Date(riskEngine.lastCalculatedAt).toLocaleString("tr-TR")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {data.highPriorityMissing && data.highPriorityMissing.length > 0 ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <h2 className="text-sm font-semibold text-red-900">

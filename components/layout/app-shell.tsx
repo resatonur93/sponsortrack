@@ -15,6 +15,7 @@ import {
   TriangleAlert,
   Building2,
   LayoutPanelLeft,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const navBase = [
   { href: "/notifications", label: "Bildirimler", icon: BellRing },
   { href: "/compliance", label: "Uyum / Audit", icon: Shield },
   { href: "/audit", label: "Audit Dashboard", icon: LayoutPanelLeft },
+  { href: "/risk-report", label: "Risk report", icon: Gauge },
   {
     href: "/organisation-changes",
     label: "Organisation changes",

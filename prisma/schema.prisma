@@ -26,6 +26,7 @@ model Tenant {
   orgChanges    OrgChange[]
   roleCompliances RoleCompliance[]
   salaryRecords   SalaryRecord[]
+  riskScores      RiskScore[]
 }
 
 model User {
@@ -165,6 +166,7 @@ model Worker {
   preRegistrationNurse    Boolean  @default(false)
   roleCompliance            RoleCompliance?
   salaryRecords             SalaryRecord[]
+  riskScores                RiskScore[]
 
   @@unique([cosReference, tenantId])
   @@index([visaExpiryDate])
@@ -225,6 +227,14 @@ model SalaryRecord {
 }
 
 enum ComplianceRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// Engine output tier (0–20 LOW … 81+ CRITICAL)
+enum RiskLevel {
   LOW
   MEDIUM
   HIGH
@@ -678,6 +688,25 @@ enum OrgChangeStatus {
   COMPLETED
   REPORTED
   OVERDUE
+}
+
+model RiskScore {
+  id                 String    @id @default(cuid())
+  workerId           String?
+  worker             Worker?   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  /// Organisation-only snapshot (no worker); mutually exclusive with workerId
+  isTenantAggregate  Boolean   @default(false)
+  score              Int
+  level              RiskLevel
+  factors            Json
+  calculatedAt       DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, level])
+  @@index([tenantId, isTenantAggregate])
+  @@index([workerId])
 }
 
 model AuditLog {

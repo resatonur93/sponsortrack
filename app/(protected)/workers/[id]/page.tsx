@@ -10,6 +10,7 @@ import type {
   EmploymentStatus,
   NotificationEvent,
   RightToWorkCheck,
+  RiskLevel,
   Worker,
   WorkerChangeLog,
 } from "@prisma/client";
@@ -55,6 +56,14 @@ type TenantUserOption = {
   email: string;
 };
 
+type EngineRiskRow = {
+  id: string;
+  score: number;
+  level: RiskLevel;
+  calculatedAt: string;
+  factors: unknown;
+};
+
 export default function WorkerDetailPage(): JSX.Element {
   const params = useParams();
   const id = params.id as string;
@@ -65,6 +74,9 @@ export default function WorkerDetailPage(): JSX.Element {
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tenantUsers, setTenantUsers] = useState<TenantUserOption[]>([]);
+  const [engineRisk, setEngineRisk] = useState<EngineRiskRow | null | undefined>(
+    undefined
+  );
 
   const [editPersonalEmail, setEditPersonalEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -90,6 +102,19 @@ export default function WorkerDetailPage(): JSX.Element {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await fetch(`/api/workers/${id}/risk-score`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const json = (await res.json()) as {
+        data: EngineRiskRow | null;
+      };
+      setEngineRisk(json.data ?? null);
+    })();
+  }, [id, load]);
 
   useEffect(() => {
     if (!editOpen) return;
@@ -202,6 +227,14 @@ export default function WorkerDetailPage(): JSX.Element {
         ? "warning"
         : "success";
 
+  const engineVariant =
+    engineRisk &&
+    (engineRisk.level === "CRITICAL" || engineRisk.level === "HIGH")
+      ? "danger"
+      : engineRisk && engineRisk.level === "MEDIUM"
+        ? "warning"
+        : "success";
+
   const statusVariant = employmentStatusVariant(data.employmentStatus);
   const initials =
     `${data.firstName?.[0] ?? ""}${data.lastName?.[0] ?? ""}`.toUpperCase() ||
@@ -256,7 +289,38 @@ export default function WorkerDetailPage(): JSX.Element {
                     <Badge variant="outline">
                       Kayıtlı: {data.complianceRiskLevel}
                     </Badge>
+                    {engineRisk ? (
+                      <Badge variant={engineVariant}>
+                        Engine: {engineRisk.level} · {engineRisk.score} pts
+                      </Badge>
+                    ) : engineRisk === null ? (
+                      <Badge variant="outline">Engine: henüz yok</Badge>
+                    ) : null}
                   </div>
+                  {engineRisk &&
+                  Array.isArray(engineRisk.factors) &&
+                  engineRisk.factors.length > 0 ? (
+                    <details className="mt-2 text-xs text-slate-600">
+                      <summary className="cursor-pointer text-brand-navy">
+                        Risk faktörleri ({engineRisk.factors.length})
+                      </summary>
+                      <ul className="mt-2 list-inside list-disc space-y-1">
+                        {engineRisk.factors.map((raw, idx) => {
+                          const f = raw as {
+                            factor: string;
+                            points: number;
+                            description: string;
+                          };
+                          return (
+                            <li key={`${f.factor}-${idx}`}>
+                              <span className="font-medium">{f.factor}</span>{" "}
+                              (+{f.points}): {f.description}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  ) : null}
                 </div>
               </div>
             </CardContent>
