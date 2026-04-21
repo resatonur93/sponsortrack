@@ -70,5 +70,7 @@ export const config = {
     "/api/payroll/:path*",
     "/api/salary",
     "/api/salary/:path*",
+    "/api/absences",
+    "/api/absences/:path*",
   ],
 };

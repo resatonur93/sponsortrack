@@ -10,11 +10,7 @@ export function longestUnauthorisedWorkingDayStreak(
   absences: AbsenceRecord[],
   now: Date = new Date()
 ): number {
-  const unauthorised = absences.filter(
-    (a) =>
-      a.absenceType === "UNAUTHORISED" ||
-      (a.absenceType == null && !a.isAuthorised)
-  );
+  const unauthorised = absences.filter((a) => a.type === "UNAUTHORISED");
   if (unauthorised.length === 0) return 0;
 
   const dates = new Set<string>();

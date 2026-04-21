@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { absenceCreateSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
-import { AbsenceType } from "@prisma/client";
-import { longestUnauthorisedWorkingDayStreak } from "@/lib/absence-streak";
-import { buildComplianceEventData } from "@/lib/compliance-event-factory";
-import { getReportDeadlineForEvent } from "@/lib/deadline-rules";
+import { AbsenceStatus } from "@prisma/client";
+import {
+  computeAbsenceWorkingDayMetrics,
+  deriveIsAuthorised,
+} from "@/lib/absence-record-compute";
+import { triggerUnauthorisedAbsence10DayIfNeeded } from "@/lib/absence-notification-trigger";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +26,14 @@ export async function GET(
     }
 
     return await withTenant(user, req, async () => {
+      const worker = await prisma.worker.findFirst({
+        where: { id: params.id },
+        select: { id: true },
+      });
+      if (!worker) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
       const rows = await prisma.absenceRecord.findMany({
         where: { workerId: params.id },
         orderBy: { startDate: "desc" },
@@ -58,72 +69,54 @@ export async function POST(
     const d = parsed.data;
 
     return await withTenant(user, req, async () => {
-      const worker = await prisma.worker.findUnique({
+      const worker = await prisma.worker.findFirst({
         where: { id: params.id },
+        select: { id: true },
       });
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
-      const absenceType: AbsenceType =
-        d.absenceType ??
-        (d.isAuthorised ? "AUTHORISED" : "UNAUTHORISED");
-      const isAuthorised =
-        absenceType === "AUTHORISED" || absenceType === "SICK";
+      const startDate = new Date(d.startDate);
+      const endDate = d.endDate ? new Date(d.endDate) : null;
+      if (endDate && endDate.getTime() < startDate.getTime()) {
+        return NextResponse.json(
+          { error: "endDate must be on or after startDate" },
+          { status: 400 }
+        );
+      }
+
+      const isAuthorised = d.isAuthorised ?? deriveIsAuthorised(d.type);
+      const { consecutiveWorkingDays, isReportable } =
+        computeAbsenceWorkingDayMetrics(startDate, endDate, d.type);
 
       const row = await prisma.absenceRecord.create({
         data: {
           workerId: params.id,
           tenantId: user.tenantId,
-          startDate: new Date(d.startDate),
-          endDate: d.endDate ? new Date(d.endDate) : undefined,
-          absenceType,
+          startDate,
+          endDate: endDate ?? undefined,
+          type: d.type,
+          status: d.status ?? AbsenceStatus.ACTIVE,
           isAuthorised,
-          consecutiveWorkingDays: d.consecutiveWorkingDays ?? undefined,
-          notes: d.notes ?? undefined,
-          contactAttemptsLog: d.contactAttemptsLog ?? undefined,
           approvedBy: d.approvedBy ?? undefined,
-          createdByUserId: user.id,
+          reason: d.reason ?? undefined,
+          notes: d.notes ?? undefined,
+          contactAttempts: (d.contactAttempts ??
+            []) as unknown as Prisma.InputJsonValue,
+          returnToWorkDate: d.returnToWorkDate
+            ? new Date(d.returnToWorkDate)
+            : undefined,
+          returnToWorkNotes: d.returnToWorkNotes ?? undefined,
+          consecutiveWorkingDays,
+          isReportable,
         },
       });
 
-      const allAbs = await prisma.absenceRecord.findMany({
-        where: { workerId: params.id },
+      await triggerUnauthorisedAbsence10DayIfNeeded({
+        workerId: params.id,
+        tenantId: user.tenantId,
       });
-      const streak = longestUnauthorisedWorkingDayStreak(allAbs);
-      if (streak >= 10) {
-        const week = isoWeekKey(new Date());
-        const key = `${params.id}-UNAUTH-10WD-${week}`;
-        const occurred = new Date();
-        const deadline = getReportDeadlineForEvent(
-          "UNAUTHORISED_ABSENCE",
-          occurred
-        );
-        try {
-          const payload = buildComplianceEventData({
-            workerId: params.id,
-            tenantId: user.tenantId,
-            eventType: "UNAUTHORISED_ABSENCE",
-            idempotencyKey: key,
-            dueDate: deadline,
-            reportDeadlineAt: deadline,
-            occurredAt: occurred,
-            workerName: `${worker.firstName} ${worker.lastName}`,
-            cosReference: worker.cosReference,
-            metadata: { consecutiveWorkingDays: streak },
-          });
-          await prisma.notificationEvent.upsert({
-            where: { idempotencyKey: key },
-            create: {
-              ...payload,
-              metadata: payload.metadata as object,
-            },
-            update: {},
-          });
-        } catch (e) {
-          logger.error("unauth absence streak notification failed", e);
-        }
-      }
 
       return NextResponse.json({ data: row }, { status: 201 });
     });
@@ -134,18 +127,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
-
-function isoWeekKey(d: Date): string {
-  const t = new Date(
-    Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
-  );
-  const day = t.getUTCDay() || 7;
-  t.setUTCDate(t.getUTCDate() + 4 - day);
-  const y = t.getUTCFullYear();
-  const z = new Date(Date.UTC(y, 0, 1));
-  const w = Math.ceil(
-    ((t.getTime() - z.getTime()) / 86400000 + 1) / 7
-  );
-  return `${y}-W${String(w).padStart(2, "0")}`;
 }

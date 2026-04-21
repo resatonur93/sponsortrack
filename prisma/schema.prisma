@@ -549,29 +549,44 @@ enum ChangeCategory {
 }
 
 model AbsenceRecord {
-  id              String   @id @default(cuid())
-  workerId        String
-  worker          Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  startDate       DateTime
-  endDate         DateTime?
-  absenceType     AbsenceType @default(UNAUTHORISED)
-  isAuthorised    Boolean  @default(false)
+  id                   String         @id @default(cuid())
+  workerId             String
+  worker               Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  startDate            DateTime
+  endDate              DateTime?
+  type                 AbsenceType    @default(UNAUTHORISED)
+  status               AbsenceStatus  @default(ACTIVE)
+  isAuthorised         Boolean
+  approvedBy           String?
+  reason               String?
+  notes                String?        @db.Text
+  contactAttempts      Json?
+  returnToWorkDate     DateTime?
+  returnToWorkNotes    String?
   consecutiveWorkingDays Int?
-  notes           String?  @db.Text
-  contactAttemptsLog String? @db.Text
-  approvedBy      String?
-  tenantId        String
-  createdByUserId String
-  createdAt       DateTime @default(now())
+  isReportable         Boolean        @default(false)
+  tenantId             String
+  createdAt            DateTime       @default(now())
 
   @@index([workerId])
   @@index([tenantId])
+  @@index([isReportable])
 }
 
 enum AbsenceType {
   SICK
+  ANNUAL_LEAVE
   UNAUTHORISED
-  AUTHORISED
+  SUSPENDED
+  MATERNITY_PATERNITY
+  OTHER
+}
+
+enum AbsenceStatus {
+  ACTIVE
+  RETURNED
+  TERMINATED
+  CONVERTED_TO_LEAVE
 }
 
 model SalaryHistory {

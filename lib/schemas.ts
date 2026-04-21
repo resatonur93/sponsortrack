@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  AbsenceStatus,
   AbsenceType,
   ChangeCategory,
   ComplianceRiskLevel,
@@ -151,16 +152,53 @@ export const documentVaultUpdateSchema = z.object({
   retentionUntil: optionalIsoDate,
 });
 
-export const absenceCreateSchema = z.object({
-  startDate: dateInput,
-  endDate: optionalDateInput,
-  absenceType: z.nativeEnum(AbsenceType).optional(),
-  isAuthorised: z.boolean().optional(),
-  consecutiveWorkingDays: z.number().int().nonnegative().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  contactAttemptsLog: z.string().optional().nullable(),
-  approvedBy: z.string().optional().nullable(),
+export const contactAttemptSchema = z.object({
+  date: dateInput,
+  method: z.string().min(1),
+  result: z.string().min(1),
 });
+
+export const absenceCreateSchema = z
+  .object({
+    startDate: dateInput,
+    endDate: optionalDateInput,
+    type: z.nativeEnum(AbsenceType),
+    status: z.nativeEnum(AbsenceStatus).optional(),
+    isAuthorised: z.boolean().optional(),
+    approvedBy: z.string().optional().nullable(),
+    reason: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    contactAttempts: z.array(contactAttemptSchema).optional().default([]),
+    returnToWorkDate: optionalDateInput,
+    returnToWorkNotes: z.string().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === AbsenceType.UNAUTHORISED) {
+      if (!data.contactAttempts?.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "At least one contact attempt is required for unauthorised absence",
+          path: ["contactAttempts"],
+        });
+      }
+    }
+  });
+
+export const absenceUpdateSchema = z.object({
+  endDate: optionalDateInput,
+  type: z.nativeEnum(AbsenceType).optional(),
+  status: z.nativeEnum(AbsenceStatus).optional(),
+  isAuthorised: z.boolean().optional(),
+  approvedBy: z.string().optional().nullable(),
+  reason: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  contactAttempts: z.array(contactAttemptSchema).optional(),
+  returnToWorkDate: optionalDateInput,
+  returnToWorkNotes: z.string().optional().nullable(),
+});
+
+export const absenceContactAttemptSchema = contactAttemptSchema;
 
 export const changeLogCreateSchema = z.object({
   changeCategory: z.nativeEnum(ChangeCategory),

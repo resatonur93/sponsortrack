@@ -29,6 +29,7 @@ import {
 import { DocumentTimeline } from "@/components/documents/DocumentTimeline";
 import { RoleComplianceCard } from "@/components/workers/RoleComplianceCard";
 import { SalaryVerificationCard } from "@/components/workers/SalaryVerificationCard";
+import { AbsenceTrackerPanel } from "@/components/workers/AbsenceTrackerPanel";
 
 type LineManagerBrief = {
   id: string;
@@ -577,42 +578,43 @@ export default function WorkerDetailPage(): JSX.Element {
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6">
-          <HistoryForms workerId={id} onDone={() => void load()} />
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Unified timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <UnifiedTimeline data={data} />
-            </CardContent>
-          </Card>
-          <div>
-            <h3 className="mb-2 font-semibold text-brand-navy">Change log</h3>
-            <ul className="space-y-2 text-sm">
-              {data.changeLogs.map((c) => (
-                <li key={c.id} className="rounded border border-slate-100 p-3">
-                  <strong>{c.changeCategory}</strong> — {c.summary}
-                  <div className="text-xs text-slate-500">
-                    {new Date(c.createdAt).toLocaleString("en-GB")}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="mb-2 font-semibold text-brand-navy">Absences</h3>
-            <ul className="space-y-2 text-sm">
-              {data.absences.map((a) => (
-                <li key={a.id} className="rounded border border-slate-100 p-3">
-                  {fmt(a.startDate)} — {a.endDate ? fmt(a.endDate) : "ongoing"}{" "}
-                  · {a.absenceType ?? (a.isAuthorised ? "AUTHORISED" : "UNAUTHORISED")}
-                  {a.consecutiveWorkingDays != null
-                    ? ` · consecutive days: ${a.consecutiveWorkingDays}`
-                    : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Tabs defaultValue="summary" className="w-full space-y-4">
+            <TabsList className="grid h-auto w-full max-w-md grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+              <TabsTrigger value="summary" className="text-sm">
+                Summary
+              </TabsTrigger>
+              <TabsTrigger value="absence" className="text-sm">
+                Absence
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="summary" className="space-y-6">
+              <HistoryForms workerId={id} onDone={() => void load()} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Unified timeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <UnifiedTimeline data={data} />
+                </CardContent>
+              </Card>
+              <div>
+                <h3 className="mb-2 font-semibold text-brand-navy">Change log</h3>
+                <ul className="space-y-2 text-sm">
+                  {data.changeLogs.map((c) => (
+                    <li key={c.id} className="rounded border border-slate-100 p-3">
+                      <strong>{c.changeCategory}</strong> — {c.summary}
+                      <div className="text-xs text-slate-500">
+                        {new Date(c.createdAt).toLocaleString("en-GB")}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </TabsContent>
+            <TabsContent value="absence">
+              <AbsenceTrackerPanel workerId={id} onChanged={() => void load()} />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="compliance" className="space-y-6">
@@ -712,9 +714,9 @@ function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
     rows.push({
       t: new Date(a.startDate).getTime(),
       title:
-        a.absenceType === "UNAUTHORISED" || (!a.absenceType && !a.isAuthorised)
+        a.type === "UNAUTHORISED"
           ? "Absence (unauthorised)"
-          : `Absence (${a.absenceType ?? "—"})`,
+          : `Absence (${a.type.replace(/_/g, " ")})`,
       detail:
         a.notes ??
         `${fmt(a.startDate)} – ${a.endDate ? fmt(a.endDate) : "…"}`,
@@ -863,82 +865,36 @@ function HistoryForms(props: {
     props.onDone();
   }
 
-  async function addAbsence(e: React.FormEvent<HTMLFormElement>): Promise<void> {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    await fetch(`/api/workers/${props.workerId}/absences`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        startDate: fd.get("startDate"),
-        endDate: fd.get("endDate") || null,
-        absenceType: fd.get("absenceType"),
-        notes: fd.get("notes") || null,
-        approvedBy: fd.get("approvedBy") || null,
-      }),
-    });
-    e.currentTarget.reset();
-    props.onDone();
-  }
-
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Add change log</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={addChange} className="space-y-2 text-sm">
-            <select
-              name="changeCategory"
-              required
-              className="w-full rounded border border-slate-300 p-2"
-            >
-              <option value="ADDRESS">ADDRESS</option>
-              <option value="PHONE_EMAIL">PHONE_EMAIL</option>
-              <option value="SALARY">SALARY</option>
-              <option value="WORK_LOCATION">WORK_LOCATION</option>
-              <option value="ROLE_TITLE">ROLE_TITLE</option>
-              <option value="PROMOTION">PROMOTION</option>
-              <option value="ABSENCE">ABSENCE</option>
-              <option value="OTHER">OTHER</option>
-            </select>
-            <Input name="summary" placeholder="Summary" required />
-            <Input name="previousValue" placeholder="Previous (optional)" />
-            <Input name="newValue" placeholder="New (optional)" />
-            <Button type="submit" size="sm">
-              Save
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Absence record</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={addAbsence} className="space-y-2 text-sm">
-            <Input name="startDate" type="date" required />
-            <Input name="endDate" type="date" />
-            <select
-              name="absenceType"
-              className="w-full rounded border border-slate-300 p-2"
-              defaultValue="UNAUTHORISED"
-            >
-              <option value="SICK">Sick</option>
-              <option value="AUTHORISED">Authorised</option>
-              <option value="UNAUTHORISED">Unauthorised</option>
-            </select>
-            <Input name="approvedBy" placeholder="Approved by (optional)" />
-            <Input name="notes" placeholder="Notes" />
-            <Button type="submit" size="sm">
-              Save
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Add change log</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={addChange} className="space-y-2 text-sm">
+          <select
+            name="changeCategory"
+            required
+            className="w-full rounded border border-slate-300 p-2"
+          >
+            <option value="ADDRESS">ADDRESS</option>
+            <option value="PHONE_EMAIL">PHONE_EMAIL</option>
+            <option value="SALARY">SALARY</option>
+            <option value="WORK_LOCATION">WORK_LOCATION</option>
+            <option value="ROLE_TITLE">ROLE_TITLE</option>
+            <option value="PROMOTION">PROMOTION</option>
+            <option value="ABSENCE">ABSENCE</option>
+            <option value="OTHER">OTHER</option>
+          </select>
+          <Input name="summary" placeholder="Summary" required />
+          <Input name="previousValue" placeholder="Previous (optional)" />
+          <Input name="newValue" placeholder="New (optional)" />
+          <Button type="submit" size="sm">
+            Save
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
