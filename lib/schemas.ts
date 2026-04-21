@@ -213,3 +213,16 @@ export const roleComplianceReviewSchema = z.object({
   actualDuties: z.string().optional().nullable(),
   internalJobDesc: z.string().optional().nullable(),
 });
+
+export const salaryRecordCreateSchema = z.object({
+  periodStart: dateInput,
+  periodEnd: dateInput,
+  contractedSalary: z.number().int(),
+  actualPaid: z.number().int(),
+  currency: z.string().min(1).optional().default("GBP"),
+  hoursWorked: z.number().int().optional().nullable(),
+  overtime: z.number().int().optional().nullable(),
+  deductions: z.record(z.unknown()).optional().nullable(),
+  evidenceUrl: z.string().optional().nullable(),
+  approvedBy: z.string().optional().nullable(),
+});

@@ -24,6 +24,7 @@ model Tenant {
   auditLogs     AuditLog[]
   orgChanges    OrganisationChange[]
   roleCompliances RoleCompliance[]
+  salaryRecords   SalaryRecord[]
 }
 
 model User {
@@ -162,6 +163,7 @@ model Worker {
   requiresAtasCertificate   Boolean  @default(false)
   preRegistrationNurse    Boolean  @default(false)
   roleCompliance            RoleCompliance?
+  salaryRecords             SalaryRecord[]
 
   @@unique([cosReference, tenantId])
   @@index([visaExpiryDate])
@@ -192,6 +194,33 @@ model RoleCompliance {
   updatedAt               DateTime @updatedAt
 
   @@index([tenantId])
+}
+
+model SalaryRecord {
+  id                  String   @id @default(cuid())
+  workerId            String
+  worker              Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  periodStart         DateTime
+  periodEnd           DateTime
+  contractedSalary    Int
+  actualPaid          Int
+  currency            String   @default("GBP")
+  hoursWorked         Int?
+  overtime            Int?
+  deductions          Json?
+  isCompliant         Boolean
+  discrepancyReason   String?
+  evidenceUrl         String?
+  approvedBy          String?
+  tenantId            String
+  tenant              Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt           DateTime @default(now())
+
+  @@index([workerId])
+  @@index([tenantId])
+  @@index([periodEnd])
+  @@index([isCompliant])
+  @@index([tenantId, isCompliant])
 }
 
 enum ComplianceRiskLevel {

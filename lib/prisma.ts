@@ -34,6 +34,7 @@ const TENANT_MODELS = new Set([
   "RightToWorkCheck",
   "SalaryHistory",
   "RoleCompliance",
+  "SalaryRecord",
 ]);
 
 function toDelegateKey(model: string): keyof PrismaClient {

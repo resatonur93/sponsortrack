@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { DocumentTimeline } from "@/components/documents/DocumentTimeline";
 import { RoleComplianceCard } from "@/components/workers/RoleComplianceCard";
+import { SalaryVerificationCard } from "@/components/workers/SalaryVerificationCard";
 
 type LineManagerBrief = {
   id: string;
@@ -261,6 +262,8 @@ export default function WorkerDetailPage(): JSX.Element {
           </Card>
 
           <RoleComplianceCard workerId={id} />
+
+          <SalaryVerificationCard workerId={id} />
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>

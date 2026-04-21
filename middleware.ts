@@ -68,5 +68,7 @@ export const config = {
     "/api/compliance",
     "/api/compliance/:path*",
     "/api/payroll/:path*",
+    "/api/salary",
+    "/api/salary/:path*",
   ],
 };
