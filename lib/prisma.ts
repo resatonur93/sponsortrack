@@ -38,6 +38,7 @@ const TENANT_MODELS = new Set([
   "SmsReportDraft",
   "RiskScore",
   "WorkflowStep",
+  "UkLawCheck",
 ]);
 
 function toDelegateKey(model: string): keyof PrismaClient {

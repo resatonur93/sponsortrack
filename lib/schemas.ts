@@ -323,3 +323,20 @@ export const salaryRecordCreateSchema = z.object({
   evidenceUrl: z.string().optional().nullable(),
   approvedBy: z.string().optional().nullable(),
 });
+
+const decimalish = z.union([z.number(), z.string()]);
+
+export const ukLawCheckUpdateSchema = z.object({
+  nmwCompliant: z.boolean().optional().nullable(),
+  hourlyRate: decimalish.optional().nullable(),
+  hoursPerWeek: decimalish.optional().nullable(),
+  weeklyHours: decimalish.optional().nullable(),
+  maxWeeklyHours: decimalish.optional(),
+  optOutSigned: z.boolean().optional(),
+  annualEntitlement: decimalish.optional(),
+  daysTaken: decimalish.optional().nullable(),
+  daysRemaining: decimalish.optional().nullable(),
+  contractIssued: optionalDateInput,
+  contractType: z.string().min(1).optional(),
+  flags: z.array(z.string()).optional(),
+});

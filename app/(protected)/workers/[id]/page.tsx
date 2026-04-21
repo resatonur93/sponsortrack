@@ -31,6 +31,7 @@ import { DocumentTimeline } from "@/components/documents/DocumentTimeline";
 import { RoleComplianceCard } from "@/components/workers/RoleComplianceCard";
 import { SalaryVerificationCard } from "@/components/workers/SalaryVerificationCard";
 import { AbsenceTrackerPanel } from "@/components/workers/AbsenceTrackerPanel";
+import { UkLawComplianceTab } from "@/components/workers/UkLawComplianceTab";
 
 type LineManagerBrief = {
   id: string;
@@ -254,7 +255,7 @@ export default function WorkerDetailPage(): JSX.Element {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 sm:grid-cols-4">
+        <TabsList className="flex h-auto w-full flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
           <TabsTrigger value="overview" className="text-sm">
             Overview
           </TabsTrigger>
@@ -266,6 +267,9 @@ export default function WorkerDetailPage(): JSX.Element {
           </TabsTrigger>
           <TabsTrigger value="compliance" className="text-sm">
             Compliance
+          </TabsTrigger>
+          <TabsTrigger value="uk-law" className="text-sm">
+            UK Law
           </TabsTrigger>
         </TabsList>
 
@@ -731,6 +735,10 @@ export default function WorkerDetailPage(): JSX.Element {
               ))}
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="uk-law" className="space-y-6">
+          <UkLawComplianceTab workerId={id} defaultAnnualSalary={data.salary} />
         </TabsContent>
       </Tabs>
     </div>

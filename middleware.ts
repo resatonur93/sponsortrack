@@ -94,5 +94,7 @@ export const config = {
     "/api/salary/:path*",
     "/api/absences",
     "/api/absences/:path*",
+    "/api/uk-law",
+    "/api/uk-law/:path*",
   ],
 };
