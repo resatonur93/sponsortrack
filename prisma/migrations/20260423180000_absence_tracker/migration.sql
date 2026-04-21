@@ -39,7 +39,7 @@ UPDATE "AbsenceRecord"
 SET "contactAttempts" = '[]'::jsonb
 WHERE "contactAttempts" IS NULL;
 
--- Switch enum on absenceType → type
+-- Switch enum on absenceType (keep column name absenceType for Prisma @map)
 ALTER TABLE "AbsenceRecord" ALTER COLUMN "absenceType" DROP DEFAULT;
 ALTER TABLE "AbsenceRecord" ALTER COLUMN "absenceType" TYPE "AbsenceType_new" USING (
   CASE "absenceType"::text
@@ -50,17 +50,15 @@ ALTER TABLE "AbsenceRecord" ALTER COLUMN "absenceType" TYPE "AbsenceType_new" US
   END
 );
 
-ALTER TABLE "AbsenceRecord" RENAME COLUMN "absenceType" TO "type";
-
 ALTER TYPE "AbsenceType" RENAME TO "AbsenceType_old";
 ALTER TYPE "AbsenceType_new" RENAME TO "AbsenceType";
 DROP TYPE "AbsenceType_old";
 
-ALTER TABLE "AbsenceRecord" ALTER COLUMN "type" SET DEFAULT 'UNAUTHORISED'::"AbsenceType";
+ALTER TABLE "AbsenceRecord" ALTER COLUMN "absenceType" SET DEFAULT 'UNAUTHORISED'::"AbsenceType";
 
--- Align isAuthorised with type
-UPDATE "AbsenceRecord" SET "isAuthorised" = false WHERE "type" = 'UNAUTHORISED'::"AbsenceType";
-UPDATE "AbsenceRecord" SET "isAuthorised" = true WHERE "type" <> 'UNAUTHORISED'::"AbsenceType";
+-- Align isAuthorised with absence type
+UPDATE "AbsenceRecord" SET "isAuthorised" = false WHERE "absenceType" = 'UNAUTHORISED'::"AbsenceType";
+UPDATE "AbsenceRecord" SET "isAuthorised" = true WHERE "absenceType" <> 'UNAUTHORISED'::"AbsenceType";
 
 -- Drop legacy columns
 ALTER TABLE "AbsenceRecord" DROP COLUMN "contactAttemptsLog";
