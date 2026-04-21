@@ -11,7 +11,7 @@ export async function GET(): Promise<NextResponse> {
     if (!sessionUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (sessionUser.role !== "SYSTEM_ADMIN") {
+    if (sessionUser.role !== "AUTHORISING_OFFICER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

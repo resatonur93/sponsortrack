@@ -8,7 +8,7 @@ export default withAuth(
     const path = req.nextUrl.pathname;
 
     if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
-      if (token?.role !== "SYSTEM_ADMIN") {
+      if (token?.role !== "AUTHORISING_OFFICER") {
         if (path.startsWith("/api/admin")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }

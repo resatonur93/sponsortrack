@@ -3,39 +3,39 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import type { Role } from "@prisma/client";
+import Link from "next/link";
+import type { LeadStatus } from "@prisma/client";
+import { AdminStatsCard } from "@/components/admin/AdminStatsCard";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+  AdminLeadStatusPie,
+  AdminLeadsTrendChart,
+} from "@/components/admin/AdminCharts";
+import { LeadStatusBadge } from "@/components/admin/LeadStatusBadge";
+import { Button } from "@/components/ui/button";
 
-type AdminUserRow = {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: Role;
-  isActive: boolean;
-  createdAt: string;
-  tenant: {
+type StatsPayload = {
+  totalLeads: number;
+  newLeadsToday: number;
+  conversionRate: number;
+  leadsByStatus: { status: LeadStatus; count: number }[];
+  leadsBySource: { source: string; count: number }[];
+  leadsByDay: { date: string; count: number }[];
+  recentActivity: {
     id: string;
-    companyName: string;
-    licenceNumber: string;
-    isActive: boolean;
-  };
+    email: string;
+    companyName: string | null;
+    name: string | null;
+    status: LeadStatus;
+    source: string;
+    createdAt: string;
+  }[];
 };
 
-export default function AdminUsersPage(): JSX.Element {
+export default function AdminDashboardPage(): JSX.Element {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [rows, setRows] = useState<AdminUserRow[]>([]);
+  const [stats, setStats] = useState<StatsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -43,95 +43,107 @@ export default function AdminUsersPage(): JSX.Element {
       router.replace("/login");
       return;
     }
-    if (session?.user?.role !== "SYSTEM_ADMIN") {
+    if (session?.user?.role !== "AUTHORISING_OFFICER") {
       router.replace("/dashboard");
       return;
     }
     void (async () => {
-      const res = await fetch("/api/admin/users", {
+      const res = await fetch("/api/admin/stats", {
         credentials: "include",
         cache: "no-store",
       });
       if (!res.ok) {
-        setError(res.status === 403 ? "Bu sayfaya erişim yetkiniz yok." : "Veri alınamadı.");
-        setLoading(false);
+        setError("İstatistikler yüklenemedi.");
         return;
       }
-      const json = (await res.json()) as { data: AdminUserRow[] };
-      setRows(json.data);
-      setLoading(false);
+      const json = (await res.json()) as { data: StatsPayload };
+      setStats(json.data);
     })();
   }, [status, session?.user?.role, router]);
 
-  if (status === "loading" || loading) {
-    return <p className="text-slate-600">Yükleniyor...</p>;
+  if (status === "loading" || !session) {
+    return <p className="text-slate-400">Yükleniyor...</p>;
   }
-  if (session?.user?.role !== "SYSTEM_ADMIN") {
-    return <p className="text-slate-600">Yönlendiriliyor...</p>;
+  if (session.user.role !== "AUTHORISING_OFFICER") {
+    return <p className="text-slate-400">Yönlendiriliyor...</p>;
   }
   if (error) {
-    return <p className="text-red-600">{error}</p>;
+    return <p className="text-rose-400">{error}</p>;
+  }
+  if (!stats) {
+    return <p className="text-slate-400">Yükleniyor...</p>;
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-navy">Yönetici — Üyeler</h1>
-        <p className="text-slate-600">
-          Sistemde kayıtlı tüm kullanıcı hesapları (SYSTEM_ADMIN rolü).
-        </p>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-50">Admin dashboard</h1>
+          <p className="text-sm text-slate-400">Lead özetleri ve son hareketler</p>
+        </div>
+        <Button asChild className="bg-[#1E5BB5] hover:bg-[#1a4fa0]">
+          <Link href="/admin/leads">Tüm leadler</Link>
+        </Button>
       </div>
-      <div className="rounded-lg border border-slate-200 bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Ad</TableHead>
-              <TableHead>E-posta</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Şirket</TableHead>
-              <TableHead>Lisans</TableHead>
-              <TableHead>Durum</TableHead>
-              <TableHead>Kayıt</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-slate-500">
-                  Henüz kullanıcı yok.
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">
-                    {u.firstName} {u.lastName}
-                  </TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={u.role === "SYSTEM_ADMIN" ? "default" : "outline"}>
-                      {u.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{u.tenant.companyName}</TableCell>
-                  <TableCell className="text-xs text-slate-600">
-                    {u.tenant.licenceNumber}
-                  </TableCell>
-                  <TableCell>
-                    {u.isActive && u.tenant.isActive ? (
-                      <span className="text-emerald-700">Aktif</span>
-                    ) : (
-                      <span className="text-amber-700">Pasif / kiracı</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs text-slate-600">
-                    {new Date(u.createdAt).toLocaleString("en-GB")}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminStatsCard title="Toplam lead" value={stats.totalLeads} />
+        <AdminStatsCard title="Bugün yeni" value={stats.newLeadsToday} />
+        <AdminStatsCard
+          title="Dönüşüm oranı"
+          value={`${stats.conversionRate}%`}
+          hint="CONVERTED / toplam"
+        />
+        <AdminStatsCard
+          title="Kaynak çeşidi"
+          value={stats.leadsBySource.length}
+          hint="Farklı source"
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <AdminLeadsTrendChart data={stats.leadsByDay} />
+        <AdminLeadStatusPie
+          data={stats.leadsByStatus.map((s) => ({
+            status: s.status,
+            count: s.count,
+          }))}
+        />
+      </div>
+
+      <div className="rounded-lg border border-slate-700 bg-[#1E293B]">
+        <div className="border-b border-slate-700 px-4 py-3">
+          <h2 className="text-sm font-semibold text-slate-200">Son 10 lead</h2>
+        </div>
+        <ul className="divide-y divide-slate-700">
+          {stats.recentActivity.length === 0 ? (
+            <li className="px-4 py-6 text-sm text-slate-500">Kayıt yok</li>
+          ) : (
+            stats.recentActivity.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+              >
+                <div>
+                  <Link
+                    href={`/admin/leads/${r.id}`}
+                    className="font-medium text-[#60A5FA] hover:underline"
+                  >
+                    {r.email}
+                  </Link>
+                  <span className="text-slate-500">
+                    {" "}
+                    · {r.companyName ?? "—"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <LeadStatusBadge status={r.status} />
+                  <span className="text-xs text-slate-500">{r.source}</span>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
       </div>
     </div>
   );

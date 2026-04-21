@@ -34,8 +34,60 @@ model User {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
 
+  assignedLeads  Lead[]         @relation("LeadAssignee")
+  leadActivities LeadActivity[]
+
   @@unique([email])
   @@index([tenantId])
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  DEMO_SCHEDULED
+  CONVERTED
+  LOST
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  email       String
+  companyName String?
+  name        String?
+  phone       String?
+  message     String?    @db.Text
+  source      String
+  status      LeadStatus @default(NEW)
+  assignedTo  String?
+  assignee    User?      @relation("LeadAssignee", fields: [assignedTo], references: [id])
+  notes       String?    @db.Text
+  isDeleted   Boolean    @default(false)
+  deletedAt   DateTime?
+  submitterIp String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  activities  LeadActivity[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+  @@index([isDeleted])
+  @@index([submitterIp, createdAt])
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String
+  message   String?  @db.Text
+  metadata  Json?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 // SYSTEM_ADMIN: platform yöneticisi — tüm kiracılardaki kullanıcıları listeler.

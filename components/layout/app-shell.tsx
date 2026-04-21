@@ -24,7 +24,7 @@ const navBase = [
 
 const adminNavItem = {
   href: "/admin",
-  label: "Yönetici (üyeler)",
+  label: "Admin panel",
   icon: UserCog,
 } as const;
 
@@ -36,7 +36,7 @@ export function AppShell({
   const pathname = usePathname();
   const { data } = useSession();
   const nav =
-    data?.user?.role === "SYSTEM_ADMIN"
+    data?.user?.role === "AUTHORISING_OFFICER"
       ? [...navBase, adminNavItem]
       : [...navBase];
 

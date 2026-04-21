@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import { resolve } from "path";
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, LeadStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 config({ path: resolve(process.cwd(), ".env.local") });
@@ -66,14 +66,49 @@ async function main(): Promise<void> {
     },
   });
 
+  const sampleLeads: Array<{
+    email: string;
+    companyName: string;
+    name?: string;
+    status: LeadStatus;
+    source: string;
+    phone?: string;
+  }> = [
+    { email: "john@techcorp.com", companyName: "TechCorp", name: "John", status: LeadStatus.NEW, source: "homepage" },
+    { email: "sarah@global.uk", companyName: "Global UK", name: "Sarah", status: LeadStatus.CONTACTED, source: "contact_form" },
+    { email: "mike@restaurant.co.uk", companyName: "London Bistro", name: "Mike", status: LeadStatus.DEMO_SCHEDULED, source: "demo_request" },
+    { email: "emma@finance.io", companyName: "Finance IO", status: LeadStatus.QUALIFIED, source: "homepage" },
+    { email: "alex@healthcare.uk", companyName: "Care UK Ltd", status: LeadStatus.NEW, source: "demo_request" },
+    { email: "lisa@retail.co.uk", companyName: "Retail Chain", status: LeadStatus.LOST, source: "contact_form" },
+    { email: "tom@startup.io", companyName: "Startup IO", status: LeadStatus.CONTACTED, source: "homepage", phone: "+44 7700 900123" },
+  ];
+
+  for (const l of sampleLeads) {
+    const existing = await prisma.lead.findFirst({
+      where: { email: l.email, isDeleted: false },
+    });
+    if (!existing) {
+      await prisma.lead.create({
+        data: {
+          email: l.email,
+          companyName: l.companyName,
+          name: l.name,
+          phone: l.phone,
+          source: l.source,
+          status: l.status,
+        },
+      });
+    }
+  }
+
   console.log("");
   console.log("========== SponsorTrack seed OK ==========");
   console.log("Giriş: e-posta + şifre (Tenant ID gerekmez).");
   console.log("Şifre (hepsi için aynı): Password123!");
   console.log("");
   console.log("Kullanıcılar:");
-  console.log("  - officer@demo.local      (AUTHORISING_OFFICER)");
-  console.log("  - admin@sponsortrack.local (SYSTEM_ADMIN — /admin üyeler)");
+  console.log("  - officer@demo.local      (AUTHORISING_OFFICER — /admin panel)");
+  console.log("  - admin@sponsortrack.local (SYSTEM_ADMIN — platform)");
   console.log("  - readonly@demo.local      (LEVEL_2_USER, sadece okuma)");
   console.log("===========================================");
   console.log("");
