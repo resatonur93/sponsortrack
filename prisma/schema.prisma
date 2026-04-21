@@ -17,6 +17,7 @@ model Tenant {
   users         User[]
   workers       Worker[]
   notifications NotificationEvent[]
+  complianceEvents ComplianceEvent[]
   documents     Document[]
   auditLogs     AuditLog[]
   orgChanges    OrganisationChange[]
@@ -138,6 +139,7 @@ model Worker {
   tenantId                  String
   tenant                    Tenant   @relation(fields: [tenantId], references: [id])
   notifications             NotificationEvent[]
+  complianceEvents          ComplianceEvent[]
   documents                 Document[]
   changeLogs                WorkerChangeLog[]
   absences                  AbsenceRecord[]
@@ -167,6 +169,53 @@ enum EmploymentStatus {
   ACTIVE
   SUSPENDED
   TERMINATED
+}
+
+model ComplianceEvent {
+  id               String      @id @default(cuid())
+  workerId         String
+  worker           Worker      @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  eventType        EventType
+  eventDate        DateTime
+  reportDeadline   DateTime
+  status           EventStatus @default(PENDING)
+  evidenceRequired String[]    @default([])
+  smsDraft         String?     @db.Text
+  approvedBy       String?
+  reportedDate     DateTime?
+  notes            String?     @db.Text
+  tenantId         String
+  tenant           Tenant      @relation(fields: [tenantId], references: [id])
+  createdAt        DateTime    @default(now())
+
+  @@index([status, reportDeadline])
+  @@index([workerId])
+  @@index([tenantId])
+}
+
+enum EventType {
+  NO_SHOW_28_DAYS
+  UNAUTHORISED_ABSENCE_10_DAYS
+  REDUCED_PAY_ABSENCE
+  SALARY_REDUCTION
+  ROLE_CHANGE
+  PROMOTION_SAME_CODE
+  WORK_LOCATION_CHANGE
+  SPONSORSHIP_ENDED
+  OFFSHORE_ARRIVAL
+  OFFSHORE_DEPARTURE
+  ADDRESS_CHANGE
+  PHONE_CHANGE
+  EMAIL_CHANGE
+}
+
+enum EventStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REPORTED
+  OVERDUE
+  CANCELLED
 }
 
 model NotificationEvent {

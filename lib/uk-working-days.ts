@@ -1,6 +1,6 @@
 /**
  * UK (England & Wales) bank holidays + working day helpers.
- * Static lists aligned with gov.uk published dates (2024–2026).
+ * Statik liste: 2024–2025 (ve 2026) — gov.uk ile uyumlu.
  */
 
 const UK_BANK_HOLIDAYS = new Set<string>([

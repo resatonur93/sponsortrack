@@ -23,6 +23,7 @@ const TENANT_MODELS = new Set([
   "User",
   "Worker",
   "NotificationEvent",
+  "ComplianceEvent",
   "Document",
   "AuditLog",
   "WorkerChangeLog",
