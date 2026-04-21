@@ -30,7 +30,7 @@ const TENANT_MODELS = new Set([
   "AuditLog",
   "WorkerChangeLog",
   "AbsenceRecord",
-  "OrganisationChange",
+  "OrgChange",
   "RightToWorkCheck",
   "SalaryHistory",
   "RoleCompliance",

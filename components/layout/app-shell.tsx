@@ -13,6 +13,7 @@ import {
   UserCog,
   CalendarClock,
   TriangleAlert,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,11 @@ const navBase = [
   { href: "/alerts", label: "Uyarılar", icon: TriangleAlert },
   { href: "/notifications", label: "Bildirimler", icon: BellRing },
   { href: "/compliance", label: "Uyum / Audit", icon: Shield },
+  {
+    href: "/organisation-changes",
+    label: "Organisation changes",
+    icon: Building2,
+  },
 ] as const;
 
 const adminNavItem = {

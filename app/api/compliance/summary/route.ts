@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { OrgChangeStatus } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -43,8 +44,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             expiryDate: { lte: in30, gte: now },
           },
         }),
-        prisma.organisationChange.count({
-          where: { status: "OPEN" },
+        prisma.orgChange.count({
+          where: {
+            status: {
+              in: [
+                OrgChangeStatus.PENDING,
+                OrgChangeStatus.IN_PROGRESS,
+                OrgChangeStatus.OVERDUE,
+              ],
+            },
+          },
         }),
         prisma.auditLog.findMany({
           orderBy: { createdAt: "desc" },

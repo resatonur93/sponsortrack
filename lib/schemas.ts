@@ -10,6 +10,8 @@ import {
   EmploymentStatus,
   EventStatus,
   EventType,
+  OrgChangeStatus,
+  OrgChangeType,
   RtwCheckMethod,
 } from "@prisma/client";
 
@@ -218,11 +220,34 @@ export const rtwCheckCreateSchema = z.object({
   nextCheckDueAt: optionalDateInput,
 });
 
-export const organisationChangeSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().optional().nullable(),
-  occurredAt: optionalDateInput,
-  reportDeadlineAt: optionalDateInput,
+export const orgChangeCreateSchema = z.object({
+  changeType: z.nativeEnum(OrgChangeType),
+  description: z.string().min(1),
+  effectiveDate: dateInput,
+  hoReportDeadline: dateInput,
+  status: z.nativeEnum(OrgChangeStatus).optional(),
+  reportedToHO: z.boolean().optional(),
+  hoReportDate: optionalDateInput,
+  evidenceDocuments: z.array(z.string()).optional(),
+  approvedBy: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export const orgChangeUpdateSchema = z.object({
+  changeType: z.nativeEnum(OrgChangeType).optional(),
+  description: z.string().min(1).optional(),
+  effectiveDate: dateInput.optional(),
+  hoReportDeadline: dateInput.optional(),
+  status: z.nativeEnum(OrgChangeStatus).optional(),
+  reportedToHO: z.boolean().optional(),
+  hoReportDate: optionalDateInput,
+  evidenceDocuments: z.array(z.string()).optional(),
+  approvedBy: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export const orgChangeReportToHoSchema = z.object({
+  hoReportDate: optionalDateInput,
 });
 
 export const complianceEventCreateSchema = z.object({

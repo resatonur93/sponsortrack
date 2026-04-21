@@ -232,11 +232,16 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
       }
     }
 
-    const orgChanges = await prismaBase.organisationChange.findMany({
-      where: { tenantId, status: "OPEN" },
+    const orgChanges = await prismaBase.orgChange.findMany({
+      where: {
+        tenantId,
+        status: {
+          in: ["PENDING", "IN_PROGRESS", "OVERDUE"],
+        },
+      },
     });
     for (const oc of orgChanges) {
-      const ref = oc.reportDeadlineAt ?? oc.createdAt;
+      const ref = oc.hoReportDeadline;
       const days = calendarDaysUntil(ref, now);
       const level: AlertLevel =
         days < 0 ? "CRITICAL" : days <= 3 ? "HIGH" : days <= 14 ? "MEDIUM" : "LOW";
@@ -246,7 +251,7 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
         dedupeKey: `org:${oc.id}`,
         alertType: "ORG_CHANGE_PENDING",
         level,
-        message: `Organisation change open: ${oc.title}${days < 0 ? " (overdue)" : ` (${days}d to deadline)`}.`,
+        message: `Organisation change (${oc.changeType.replace(/_/g, " ")})${days < 0 ? " (overdue)" : ` (${days}d to HO deadline)`}.`,
         forceUnreadOnEscalate: true,
       });
       upserts += 1;
