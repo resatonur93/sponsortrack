@@ -34,7 +34,11 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ req, token }) => {
-        if (req.nextUrl.pathname.startsWith("/api/cron/")) {
+        const p = req.nextUrl.pathname;
+        if (p.startsWith("/api/cron/")) {
+          return true;
+        }
+        if (p.startsWith("/self-service") || p.startsWith("/api/self-service")) {
           return true;
         }
         return !!token;
@@ -45,6 +49,8 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    "/self-service/:path*",
+    "/api/self-service/:path*",
     "/admin/:path*",
     "/api/admin/:path*",
     "/dashboard/:path*",

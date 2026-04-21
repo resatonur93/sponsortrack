@@ -326,6 +326,33 @@ export const salaryRecordCreateSchema = z.object({
 
 const decimalish = z.union([z.number(), z.string()]);
 
+export const selfServiceLoginSchema = z
+  .object({
+    email: z.string().trim().email().optional(),
+    dateOfBirth: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+    portalToken: z.string().min(1).optional(),
+  })
+  .refine(
+    (v) =>
+      (v.email && v.dateOfBirth) || v.portalToken,
+    "Provide email and date of birth, or portalToken"
+  );
+
+export const selfServiceProfileUpdateSchema = z.object({
+  currentAddress: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  personalEmail: z.preprocess(
+    (v) => (v === "" || v === null ? null : v),
+    z.union([z.string().email(), z.null()]).optional()
+  ),
+  emergencyContact: z.string().optional().nullable(),
+  emergencyPhone: z.string().optional().nullable(),
+});
+
 export const ukLawCheckUpdateSchema = z.object({
   nmwCompliant: z.boolean().optional().nullable(),
   hourlyRate: decimalish.optional().nullable(),
