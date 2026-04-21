@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DocumentTimeline } from "@/components/documents/DocumentTimeline";
+import { WorkerDocumentChecklist } from "@/components/workers/WorkerDocumentChecklist";
 import { RoleComplianceCard } from "@/components/workers/RoleComplianceCard";
 import { SalaryVerificationCard } from "@/components/workers/SalaryVerificationCard";
 import { AbsenceTrackerPanel } from "@/components/workers/AbsenceTrackerPanel";
@@ -521,61 +522,43 @@ export default function WorkerDetailPage(): JSX.Element {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
+          <WorkerDocumentChecklist workerId={id} refreshKey={docRefresh} />
+
           <Card className="border-brand-navy/15 bg-slate-50/60">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-              <p className="text-sm text-slate-600">
-                Folder-based vault with retention tracking and version history.
-              </p>
+              <div>
+                <p className="text-sm font-medium text-slate-800">
+                  Tüm klasörler ve sürüm geçmişi
+                </p>
+                <p className="text-xs text-slate-600">
+                  Vault’ta saklanan tüm belgeler; yükleme buradan da yapılabilir.
+                </p>
+              </div>
               <Button size="sm" asChild>
-                <Link href={`/workers/${id}/documents`}>Document Vault</Link>
+                <Link href={`/workers/${id}/documents`}>Belge kasasına git</Link>
               </Button>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">
-                Identity &amp; immigration documents
-              </CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Yeni belge yükle</CardTitle>
+              <p className="text-xs text-slate-600">
+                Dosya adı ve türü seçin. Üstteki listede <strong>eksik</strong> görünen
+                türlerden birini seçmeniz yeterli.
+              </p>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm">
-                {data.documents
-                  .filter((d) =>
-                    ["PASSPORT", "BRP", "EVISA", "SHARE_CODE", "VISA"].includes(
-                      d.documentType
-                    )
-                  )
-                  .map((d) => (
-                    <li key={d.id} className="rounded border border-slate-100 p-2">
-                      <strong>{d.documentType}</strong> · {d.fileName} ·{" "}
-                      {new Date(d.uploadDate).toLocaleDateString("en-GB")}
-                      {d.expiryDate
-                        ? ` · expires ${new Date(d.expiryDate).toLocaleDateString("en-GB")}`
-                        : ""}
-                    </li>
-                  ))}
-                {data.documents.filter((d) =>
-                  ["PASSPORT", "BRP", "EVISA", "SHARE_CODE", "VISA"].includes(
-                    d.documentType
-                  )
-                ).length === 0 ? (
-                  <li className="text-slate-500">No documents in this category.</li>
-                ) : null}
-              </ul>
-            </CardContent>
-          </Card>
-
           <form
             onSubmit={onUpload}
-            className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 lg:grid-cols-2"
+            className="grid gap-3 lg:grid-cols-2"
           >
             <div>
-              <Label>File name</Label>
-              <Input name="fileName" required placeholder="passport.pdf" />
+              <Label>Dosya adı</Label>
+              <Input name="fileName" required placeholder="ornek-pasaport.pdf" />
             </div>
             <div>
-              <Label>Document type</Label>
+              <Label>Belge türü</Label>
               <select
                 name="documentType"
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
@@ -602,7 +585,7 @@ export default function WorkerDetailPage(): JSX.Element {
               </select>
             </div>
             <div>
-              <Label>Vault folder</Label>
+              <Label>Kasa klasörü</Label>
               <select
                 name="vaultFolder"
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
@@ -629,7 +612,7 @@ export default function WorkerDetailPage(): JSX.Element {
               </select>
             </div>
             <div className="lg:col-span-2">
-              <Label>Metadata (JSON, optional)</Label>
+              <Label>Metadata (JSON, isteğe bağlı)</Label>
               <textarea
                 name="metadataJson"
                 className="min-h-[72px] w-full rounded-md border border-slate-300 p-2 font-mono text-xs"
@@ -638,10 +621,12 @@ export default function WorkerDetailPage(): JSX.Element {
             </div>
             <div className="flex items-end lg:col-span-2">
               <Button type="submit" disabled={uploading}>
-                Upload
+                {uploading ? "Yükleniyor…" : "Yükle"}
               </Button>
             </div>
           </form>
+            </CardContent>
+          </Card>
           <DocumentTimeline key={docRefresh} workerId={id} />
         </TabsContent>
 

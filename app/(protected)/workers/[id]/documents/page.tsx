@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { WorkerDocumentChecklist } from "@/components/workers/WorkerDocumentChecklist";
 
 const FOLDER_LABELS: Record<DocumentFolder, string> = {
   IDENTITY_IMMIGRATION: "Identity & Immigration",
@@ -134,6 +135,11 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
   const [versionTarget, setVersionTarget] = useState<DocumentVault | null>(null);
   const [versionFile, setVersionFile] = useState<File | null>(null);
   const [versionSaving, setVersionSaving] = useState(false);
+  const [checklistRev, setChecklistRev] = useState(0);
+
+  const bumpChecklist = useCallback((): void => {
+    setChecklistRev((r) => r + 1);
+  }, []);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -197,6 +203,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
         }
       }
       await load();
+      bumpChecklist();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -234,6 +241,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       return;
     }
     await load();
+    bumpChecklist();
   }
 
   async function submitNewVersion(): Promise<void> {
@@ -256,6 +264,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       setVersionTarget(null);
       setVersionFile(null);
       await load();
+      bumpChecklist();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Update failed");
     } finally {
@@ -282,7 +291,8 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
             {workerName || "Worker"}
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Folder-based compliance documents with retention and version history.
+            Klasör bazlı saklama ve sürüm geçmişi. Aşağıda zorunlu belge durumu özeti
+            var.
           </p>
         </div>
         <Button variant="secondary" asChild>
@@ -295,6 +305,8 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
           {error}
         </div>
       ) : null}
+
+      <WorkerDocumentChecklist workerId={workerId} refreshKey={checklistRev} />
 
       <div className="space-y-10">
         {(vault?.folders ?? []).map((folder) => {

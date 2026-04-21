@@ -82,44 +82,93 @@ export type MissingDocumentItem = {
   reason: "missing" | "expired" | "expiring_soon";
 };
 
-export function evaluateMissingDocuments(
+export type DocumentChecklistItem = {
+  documentType: DocumentType;
+  label: string;
+  status: "ok" | "missing" | "expired" | "expiring_soon";
+  urgency: MissingDocUrgency | null;
+  latest: {
+    id: string;
+    fileName: string;
+    uploadDate: string;
+    expiryDate: string | null;
+  } | null;
+};
+
+/** Full required-document matrix: OK, missing, expired, or expiring soon. */
+export function buildDocumentChecklist(
   worker: Worker,
   documents: Document[],
   now: Date = new Date()
-): MissingDocumentItem[] {
+): DocumentChecklistItem[] {
   const required = getRequiredDocumentsForWorker(worker);
-  const missing: MissingDocumentItem[] = [];
+  const items: DocumentChecklistItem[] = [];
 
   for (const r of required) {
     const candidates = documents.filter((d) => docCoversType(d, r.documentType));
     if (candidates.length === 0) {
-      missing.push({
+      items.push({
         documentType: r.documentType,
         label: r.label,
+        status: "missing",
         urgency: "LOW",
-        reason: "missing",
+        latest: null,
       });
       continue;
     }
     const latest = candidates.sort(
       (a, b) => b.uploadDate.getTime() - a.uploadDate.getTime()
     )[0];
+    const latestPayload = {
+      id: latest.id,
+      fileName: latest.fileName,
+      uploadDate: latest.uploadDate.toISOString(),
+      expiryDate: latest.expiryDate ? latest.expiryDate.toISOString() : null,
+    };
     if (isExpired(latest, now)) {
-      missing.push({
+      items.push({
         documentType: r.documentType,
         label: r.label,
+        status: "expired",
         urgency: "HIGH",
-        reason: "expired",
+        latest: latestPayload,
       });
     } else if (expiresWithinDays(latest, now, 30)) {
-      missing.push({
+      items.push({
         documentType: r.documentType,
         label: r.label,
+        status: "expiring_soon",
         urgency: "MEDIUM",
-        reason: "expiring_soon",
+        latest: latestPayload,
+      });
+    } else {
+      items.push({
+        documentType: r.documentType,
+        label: r.label,
+        status: "ok",
+        urgency: null,
+        latest: latestPayload,
       });
     }
   }
 
-  return missing;
+  return items;
+}
+
+export function evaluateMissingDocuments(
+  worker: Worker,
+  documents: Document[],
+  now: Date = new Date()
+): MissingDocumentItem[] {
+  return buildDocumentChecklist(worker, documents, now)
+    .filter(
+      (i): i is DocumentChecklistItem & { status: "missing" | "expired" | "expiring_soon" } =>
+        i.status !== "ok"
+    )
+    .map((i) => ({
+      documentType: i.documentType,
+      label: i.label,
+      urgency: (i.urgency ?? "LOW") as MissingDocUrgency,
+      reason: i.status,
+    }));
 }

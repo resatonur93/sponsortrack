@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { evaluateMissingDocuments } from "@/lib/required-documents";
+import {
+  buildDocumentChecklist,
+  evaluateMissingDocuments,
+} from "@/lib/required-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +31,10 @@ export async function GET(
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
-      const missing = evaluateMissingDocuments(
-        worker,
-        worker.documents,
-        new Date()
-      );
-      return NextResponse.json({ data: { missing } });
+      const now = new Date();
+      const missing = evaluateMissingDocuments(worker, worker.documents, now);
+      const checklist = buildDocumentChecklist(worker, worker.documents, now);
+      return NextResponse.json({ data: { missing, checklist } });
     });
   } catch (error) {
     logger.error("GET missing-documents failed", error);
