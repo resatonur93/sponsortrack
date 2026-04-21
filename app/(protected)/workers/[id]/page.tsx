@@ -446,6 +446,17 @@ export default function WorkerDetailPage(): JSX.Element {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
+          <Card className="border-brand-navy/15 bg-slate-50/60">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+              <p className="text-sm text-slate-600">
+                Folder-based vault with retention tracking and version history.
+              </p>
+              <Button size="sm" asChild>
+                <Link href={`/workers/${id}/documents`}>Document Vault</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">

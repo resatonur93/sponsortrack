@@ -18,7 +18,9 @@ model Tenant {
   workers       Worker[]
   notifications NotificationEvent[]
   complianceEvents ComplianceEvent[]
+  alerts        Alert[]
   documents     Document[]
+  documentVaults DocumentVault[]
   auditLogs     AuditLog[]
   orgChanges    OrganisationChange[]
 }
@@ -146,7 +148,9 @@ model Worker {
   tenant                    Tenant   @relation(fields: [tenantId], references: [id])
   notifications             NotificationEvent[]
   complianceEvents          ComplianceEvent[]
+  alerts                    Alert[]
   documents                 Document[]
+  documentVaults            DocumentVault[]
   changeLogs                WorkerChangeLog[]
   absences                  AbsenceRecord[]
   rtwChecks                 RightToWorkCheck[]
@@ -223,6 +227,43 @@ enum EventStatus {
   REPORTED
   OVERDUE
   CANCELLED
+}
+
+model Alert {
+  id          String     @id @default(cuid())
+  workerId    String?
+  worker      Worker?    @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  alertType   AlertType
+  level       AlertLevel
+  message     String
+  dedupeKey   String
+  isRead      Boolean    @default(false)
+  dismissedAt DateTime?
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime   @default(now())
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, level, isRead])
+  @@index([workerId])
+}
+
+enum AlertType {
+  DEADLINE_APPROACHING
+  DEADLINE_OVERDUE
+  MISSING_DOCUMENT
+  SALARY_MISMATCH
+  VISA_EXPIRING
+  ROLE_CODE_MISMATCH
+  UNEXPLAINED_ABSENCE
+  ORG_CHANGE_PENDING
+}
+
+enum AlertLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 model NotificationEvent {
@@ -322,6 +363,45 @@ model Document {
   @@index([tenantId])
   @@index([vaultFolder])
   @@index([complianceEventId])
+}
+
+model DocumentVault {
+  id               String         @id @default(cuid())
+  workerId         String
+  worker           Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  folder           DocumentFolder
+  fileName         String
+  fileUrl          String
+  fileData         String?        @db.Text
+  version          Int            @default(1)
+  previousVersions Json?
+  uploadedBy       String
+  expiryDate       DateTime?
+  retentionUntil   DateTime?
+  isDeleted        Boolean        @default(false)
+  tenantId         String
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([workerId])
+  @@index([tenantId])
+  @@index([folder])
+  @@index([isDeleted])
+}
+
+enum DocumentFolder {
+  IDENTITY_IMMIGRATION
+  RIGHT_TO_WORK
+  COS_APPLICATION
+  EMPLOYMENT_CONTRACT
+  PAYROLL_SALARY
+  ABSENCE_LEAVE
+  ADDRESS_CONTACT
+  ROLE_DUTIES
+  RECRUITMENT_VACANCY
+  REPORTING_SUBMISSIONS
+  COMPLIANCE_VISIT_PACK
 }
 
 enum DocumentVaultFolder {

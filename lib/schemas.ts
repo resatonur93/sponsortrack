@@ -3,6 +3,7 @@ import {
   AbsenceType,
   ChangeCategory,
   ComplianceRiskLevel,
+  DocumentFolder,
   DocumentType,
   DocumentVaultFolder,
   EmploymentStatus,
@@ -123,6 +124,31 @@ export const documentUploadSchema = z.object({
   complianceEventId: z.string().optional().nullable(),
   metadata: z.record(z.unknown()).optional().nullable(),
   replacesDocumentId: z.string().optional().nullable(),
+});
+
+export const documentVaultCreateSchema = z.object({
+  folder: z.nativeEnum(DocumentFolder),
+  fileName: z.string().min(1),
+  fileUrl: z.string().min(1),
+  fileData: z.string().optional().nullable(),
+  expiryDate: optionalDateInput,
+});
+
+const optionalIsoDate = z
+  .string()
+  .optional()
+  .refine(
+    (s) => s === undefined || s === "" || !Number.isNaN(Date.parse(s)),
+    "Invalid date"
+  );
+
+export const documentVaultUpdateSchema = z.object({
+  fileName: z.string().min(1),
+  fileUrl: z.string().min(1),
+  fileData: z.string().optional().nullable(),
+  /** Omit to leave unchanged; empty string clears */
+  expiryDate: optionalIsoDate,
+  retentionUntil: optionalIsoDate,
 });
 
 export const absenceCreateSchema = z.object({

@@ -33,6 +33,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         nonVisaRecentRows,
         visa30,
         visa90not30,
+        recentAlerts,
       ] = await Promise.all([
         prisma.worker.count(),
         prisma.worker.count({ where: { employmentStatus: "ACTIVE" } }),
@@ -79,6 +80,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
               lte: in90,
             },
             employmentStatus: { not: "TERMINATED" },
+          },
+        }),
+        prisma.alert.findMany({
+          where: { dismissedAt: null },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          include: {
+            worker: {
+              select: { id: true, firstName: true, lastName: true },
+            },
           },
         }),
       ]);
@@ -164,6 +175,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             missingDocumentsTable: missingDocumentsTable.slice(0, 20),
             risk,
             recentEvents: recentForDashboard,
+            recentAlerts,
           },
         },
         {

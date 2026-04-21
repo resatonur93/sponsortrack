@@ -12,14 +12,17 @@ import {
   Shield,
   UserCog,
   CalendarClock,
+  TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { AlertCountPill } from "@/components/layout/AlertCountPill";
 
 const navBase = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/workers", label: "Çalışanlar", icon: Users },
   { href: "/events", label: "Olaylar", icon: CalendarClock },
+  { href: "/alerts", label: "Uyarılar", icon: TriangleAlert },
   { href: "/notifications", label: "Bildirimler", icon: BellRing },
   { href: "/compliance", label: "Uyum / Audit", icon: Shield },
 ] as const;
@@ -62,8 +65,11 @@ export function AppShell({
                     : "text-slate-700 hover:bg-slate-100"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <span className="truncate">{item.label}</span>
+                  {item.href === "/alerts" ? <AlertCountPill /> : null}
+                </span>
               </Link>
             );
           })}
@@ -107,8 +113,11 @@ export function AppShell({
                     active ? "bg-brand-navy text-white" : "bg-slate-100"
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="flex items-center gap-1">
+                    {item.label}
+                    {item.href === "/alerts" ? <AlertCountPill /> : null}
+                  </span>
                 </Link>
               );
             })}

@@ -5,9 +5,10 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RecentEvents } from "@/components/dashboard/RecentEvents";
 import type { RiskResult } from "@/lib/risk-score";
-import type { NotificationType } from "@prisma/client";
+import type { AlertLevel, AlertType, NotificationType } from "@prisma/client";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { AlertLevelDot } from "@/components/layout/AlertCountPill";
 import {
   Table,
   TableBody,
@@ -46,6 +47,14 @@ type DashboardPayload = {
     dueDate: string;
     createdAt?: string;
     worker: { firstName: string; lastName: string; id: string };
+  }[];
+  recentAlerts: {
+    id: string;
+    level: AlertLevel;
+    alertType: AlertType;
+    message: string;
+    isRead: boolean;
+    worker: { id: string; firstName: string; lastName: string } | null;
   }[];
 };
 
@@ -125,6 +134,48 @@ export default function DashboardPage(): JSX.Element {
           <h2 className="text-sm font-medium text-slate-600">Risk skoru</h2>
           <RiskBadge level={data.risk.level} score={data.risk.score} />
         </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-900">Uyarılar</h2>
+          <Link href="/alerts" className="text-sm text-brand-navy underline">
+            Tümü
+          </Link>
+        </div>
+        {!data.recentAlerts?.length ? (
+          <p className="text-sm text-slate-500">Aktif uyarı yok.</p>
+        ) : (
+          <ul className="space-y-2">
+            {data.recentAlerts.map((a) => (
+              <li
+                key={a.id}
+                className="flex gap-2 text-sm text-slate-800"
+              >
+                <AlertLevelDot level={a.level} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {a.alertType}
+                    </Badge>
+                    {a.worker ? (
+                      <Link
+                        href={`/workers/${a.worker.id}`}
+                        className="font-medium text-brand-navy underline"
+                      >
+                        {a.worker.firstName} {a.worker.lastName}
+                      </Link>
+                    ) : null}
+                    {!a.isRead ? (
+                      <span className="text-xs font-medium text-red-600">Yeni</span>
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-slate-600">{a.message}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
