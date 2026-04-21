@@ -23,6 +23,7 @@ model Tenant {
   documentVaults DocumentVault[]
   auditLogs     AuditLog[]
   orgChanges    OrganisationChange[]
+  roleCompliances RoleCompliance[]
 }
 
 model User {
@@ -160,12 +161,37 @@ model Worker {
 
   requiresAtasCertificate   Boolean  @default(false)
   preRegistrationNurse    Boolean  @default(false)
+  roleCompliance            RoleCompliance?
 
   @@unique([cosReference, tenantId])
   @@index([visaExpiryDate])
   @@index([employmentStatus])
   @@index([tenantId])
   @@index([lineManagerId])
+}
+
+model RoleCompliance {
+  id                      String   @id @default(cuid())
+  workerId                String   @unique
+  worker                  Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  cosJobDescription       String   @db.Text
+  cosOccupationCode       String
+  contractDuties          String   @db.Text
+  internalJobDesc         String?  @db.Text
+  actualDuties            String?  @db.Text
+  lastReviewed            DateTime?
+  reviewedBy              String?
+
+  mismatchFlags           String[] @default([])
+  needsChangeOfEmployment Boolean  @default(false)
+
+  tenantId                String
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 enum ComplianceRiskLevel {

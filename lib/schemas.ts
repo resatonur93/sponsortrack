@@ -199,3 +199,17 @@ export const complianceEventUpdateSchema = z.object({
   notes: z.string().optional().nullable(),
   approvedBy: z.string().optional().nullable(),
 });
+
+export const roleComplianceUpdateSchema = z.object({
+  cosJobDescription: z.string().optional(),
+  cosOccupationCode: z.string().optional(),
+  contractDuties: z.string().optional(),
+  internalJobDesc: z.string().optional().nullable(),
+  actualDuties: z.string().optional().nullable(),
+  needsChangeOfEmployment: z.boolean().optional(),
+});
+
+export const roleComplianceReviewSchema = z.object({
+  actualDuties: z.string().optional().nullable(),
+  internalJobDesc: z.string().optional().nullable(),
+});
