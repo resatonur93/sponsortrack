@@ -1,8 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { NotificationEvent, NotificationStatus, NotificationType } from "@prisma/client";
+import Link from "next/link";
+import type {
+  EventType,
+  EventWorkflowState,
+  EventStatus,
+  NotificationEvent,
+  NotificationStatus,
+  NotificationType,
+  WorkflowStepStatus,
+  WorkflowStepType,
+} from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -20,9 +32,30 @@ import {
 } from "@/components/ui/table";
 import { EscalationBadge } from "@/components/notifications/EscalationBadge";
 import { formatDeadlineWindowLabel } from "@/lib/deadline-display";
+import { workflowStateLabel } from "@/lib/event-workflow-service";
 
 type Row = NotificationEvent & {
   worker: { firstName: string; lastName: string; email: string };
+};
+
+type WorkflowAssignmentRow = {
+  id: string;
+  step: WorkflowStepType;
+  status: WorkflowStepStatus;
+  createdAt: string;
+  event: {
+    id: string;
+    eventType: EventType;
+    workflowState: EventWorkflowState;
+    status: EventStatus;
+    reportDeadline: string;
+    worker: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  };
 };
 
 export default function NotificationsPage(): JSX.Element {
@@ -30,6 +63,24 @@ export default function NotificationsPage(): JSX.Element {
   const [status, setStatus] = useState<string>("all");
   const [type, setType] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [workflowRows, setWorkflowRows] = useState<WorkflowAssignmentRow[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState(true);
+
+  useEffect(() => {
+    void (async () => {
+      setWorkflowLoading(true);
+      const res = await fetch("/api/workflow/my-assignments", {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { data: WorkflowAssignmentRow[] };
+        setWorkflowRows(json.data);
+      } else {
+        setWorkflowRows([]);
+      }
+      setWorkflowLoading(false);
+    })();
+  }, []);
 
   useEffect(() => {
     const q = new URLSearchParams();
@@ -70,6 +121,67 @@ export default function NotificationsPage(): JSX.Element {
         <h1 className="text-2xl font-bold text-brand-navy">Bildirimler</h1>
         <p className="text-slate-600">Uyum olayları ve tamamlama</p>
       </div>
+
+      <Card className="border-brand-navy/20">
+        <CardHeader>
+          <CardTitle className="text-base">Onay akışı — size atanan adımlar</CardTitle>
+          <p className="text-sm text-slate-600">
+            Bekleyen veya üzerinde çalıştığınız workflow adımları. Olayı açmak için Events
+            sayfasına gidin.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {workflowLoading ? (
+            <p className="text-sm text-slate-500">Yükleniyor…</p>
+          ) : workflowRows.length === 0 ? (
+            <p className="text-sm text-slate-500">Atanan inceleme yok.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border border-slate-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Adım</TableHead>
+                    <TableHead>Durum</TableHead>
+                    <TableHead>Olay</TableHead>
+                    <TableHead>Çalışan</TableHead>
+                    <TableHead>Workflow</TableHead>
+                    <TableHead>Son tarih</TableHead>
+                    <TableHead className="text-right">İşlem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {workflowRows.map((w) => (
+                    <TableRow key={w.id}>
+                      <TableCell className="text-xs font-medium">{w.step}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{w.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">{w.event.eventType}</TableCell>
+                      <TableCell className="text-sm">
+                        {w.event.worker.firstName} {w.event.worker.lastName}
+                      </TableCell>
+                      <TableCell className="max-w-[140px]">
+                        <Badge variant="outline" className="whitespace-normal text-[10px]">
+                          {workflowStateLabel(w.event.workflowState)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {new Date(w.event.reportDeadline).toLocaleDateString("en-GB")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button type="button" size="sm" variant="secondary" asChild>
+                          <Link href={`/events#event-${w.event.id}`}>Olaya git (Events)</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="w-full sm:w-48">
           <label className="text-sm text-slate-600">Durum</label>

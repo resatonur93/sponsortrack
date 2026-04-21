@@ -186,6 +186,15 @@ export default function EventsPage(): JSX.Element {
   }, [load]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || rows.length === 0) return;
+    const hash = window.location.hash.replace(/^#/, "");
+    const m = /^event-(.+)$/.exec(hash);
+    if (!m?.[1]) return;
+    const row = rows.find((r) => r.id === m[1]);
+    if (row) setDetail(row);
+  }, [rows]);
+
+  useEffect(() => {
     if (!detail) {
       setDetailFull(null);
       return;
@@ -220,9 +229,28 @@ export default function EventsPage(): JSX.Element {
     }
     void load();
     if (detail?.id === id) {
-      setDetail({ ...detail, workflowState: "REPORTED", status: "APPROVED" });
+      const res2 = await fetch(`/api/events/${id}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (res2.ok) {
+        const json = (await res2.json()) as { data: EventDetailFull };
+        setDetailFull(json.data);
+        setDetail({
+          id: json.data.id,
+          eventType: json.data.eventType,
+          eventDate: json.data.eventDate,
+          reportDeadline: json.data.reportDeadline,
+          status: json.data.status,
+          workflowState: json.data.workflowState,
+          workflowStepCount: json.data.workflowSteps?.length,
+          evidenceRequired: json.data.evidenceRequired,
+          smsDraft: json.data.smsDraft,
+          notes: json.data.notes,
+          worker: json.data.worker,
+        });
+      }
     }
-    setDetail(null);
   }
 
   async function report(id: string): Promise<void> {
@@ -643,7 +671,7 @@ export default function EventsPage(): JSX.Element {
               </TableRow>
             ) : (
               rows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow key={r.id} id={`event-${r.id}`}>
                   <TableCell className="max-w-[200px] truncate text-xs font-medium">
                     {r.eventType}
                   </TableCell>
@@ -700,7 +728,7 @@ export default function EventsPage(): JSX.Element {
                             r.workflowState === "AO_APPROVAL" ||
                             ((r.workflowStepCount ?? 0) === 0 &&
                               me?.role === "AUTHORISING_OFFICER" &&
-                              r.workflowState !== "DRAFT"))
+                              r.workflowState !== "DRAFT")
                           )
                         }
                         onClick={() => void approve(r.id)}
@@ -735,7 +763,24 @@ export default function EventsPage(): JSX.Element {
         <Card className="border-brand-navy/30">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Event detail</CardTitle>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setDetail(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (typeof window !== "undefined" && detail) {
+                  const h = window.location.hash.replace(/^#/, "");
+                  if (h === `event-${detail.id}`) {
+                    window.history.replaceState(
+                      null,
+                      "",
+                      window.location.pathname + window.location.search
+                    );
+                  }
+                }
+                setDetail(null);
+              }}
+            >
               Close
             </Button>
           </CardHeader>
@@ -862,7 +907,7 @@ export default function EventsPage(): JSX.Element {
                   <Button
                     type="button"
                     size="sm"
-                    variant="destructive"
+                    variant="danger"
                     onClick={() => void rejectWorkflow()}
                   >
                     Reject
