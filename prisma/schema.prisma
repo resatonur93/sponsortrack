@@ -29,6 +29,8 @@ model Tenant {
   riskScores      RiskScore[]
   workflowSteps   WorkflowStep[]
   ukLawChecks     UkLawCheck[]
+  policies        Policy[]
+  acknowledgements Acknowledgement[]
 }
 
 model User {
@@ -48,9 +50,51 @@ model User {
   managedWorkers Worker[]       @relation("LineManager")
   workflowStepsAssigned WorkflowStep[] @relation("WorkflowStepAssignee")
   workflowStepsActioned WorkflowStep[] @relation("WorkflowStepActionedBy")
+  policyAcknowledgements Acknowledgement[]
 
   @@unique([email])
   @@index([tenantId])
+}
+
+enum PolicyCategory {
+  SPONSOR_DUTIES
+  IMMIGRATION_RULES
+  COMPLIANCE_GUIDANCE
+  DATA_PROTECTION
+  EMPLOYMENT_LAW
+  TRAINING_MATERIAL
+}
+
+model Policy {
+  id                        String         @id @default(cuid())
+  title                     String
+  content                   String         @db.Text
+  version                   String
+  effectiveDate             DateTime
+  category                  PolicyCategory
+  isAcknowledgementRequired Boolean        @default(false)
+  tenantId                  String
+  tenant                    Tenant         @relation(fields: [tenantId], references: [id])
+  acknowledgements          Acknowledgement[]
+  createdAt                 DateTime       @default(now())
+
+  @@index([tenantId])
+  @@index([category])
+}
+
+model Acknowledgement {
+  id             String   @id @default(cuid())
+  policyId       String
+  policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime @default(now())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([policyId, userId])
+  @@index([tenantId])
+  @@index([userId])
 }
 
 enum LeadStatus {
