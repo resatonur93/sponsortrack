@@ -47,6 +47,14 @@ export async function GET(
       const worker = await prisma.worker.findUnique({
         where: { id },
         include: {
+          lineManager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
           documents: { where: { isDeleted: false }, orderBy: { uploadDate: "desc" } },
           notifications: { orderBy: { dueDate: "desc" }, take: 150 },
           changeLogs: { orderBy: { createdAt: "desc" }, take: 100 },
@@ -101,6 +109,22 @@ export async function PUT(
       }
 
       const d = parsed.data;
+
+      if (d.lineManagerId !== undefined && d.lineManagerId) {
+        const mgr = await prisma.user.findFirst({
+          where: {
+            id: d.lineManagerId,
+            tenantId: existing.tenantId,
+            isActive: true,
+          },
+        });
+        if (!mgr) {
+          return NextResponse.json(
+            { error: "Line manager bulunamadı veya bu kuruma ait değil." },
+            { status: 400 }
+          );
+        }
+      }
 
       if (
         d.salary !== undefined &&
@@ -173,8 +197,12 @@ export async function PUT(
         "employmentStartDate",
         d.employmentStartDate ? new Date(d.employmentStartDate) : undefined
       );
+      set("lineManagerId", d.lineManagerId);
       set("lineManagerName", d.lineManagerName ?? undefined);
       set("lineManagerEmail", d.lineManagerEmail ?? undefined);
+      set("currentAddress", d.currentAddress ?? undefined);
+      set("emergencyContact", d.emergencyContact ?? undefined);
+      set("emergencyPhone", d.emergencyPhone ?? undefined);
       set(
         "rightToWorkLastCheckedAt",
         d.rightToWorkLastCheckedAt
@@ -334,6 +362,14 @@ export async function PUT(
       const fresh = await prisma.worker.findUnique({
         where: { id },
         include: {
+          lineManager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
           documents: { where: { isDeleted: false } },
           notifications: { orderBy: { dueDate: "desc" }, take: 150 },
           changeLogs: { orderBy: { createdAt: "desc" }, take: 100 },

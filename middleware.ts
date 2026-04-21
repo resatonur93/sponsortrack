@@ -55,6 +55,7 @@ export const config = {
     "/api/documents/:path*",
     "/api/organisation",
     "/api/organisation/:path*",
+    "/api/tenant-users",
     "/api/compliance",
     "/api/compliance/:path*",
     "/api/payroll/:path*",

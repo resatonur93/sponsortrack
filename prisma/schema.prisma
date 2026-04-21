@@ -36,6 +36,7 @@ model User {
 
   assignedLeads  Lead[]         @relation("LeadAssignee")
   leadActivities LeadActivity[]
+  managedWorkers Worker[]       @relation("LineManager")
 
   @@unique([email])
   @@index([tenantId])
@@ -127,8 +128,13 @@ model Worker {
   workLocation              String
   employmentStatus          EmploymentStatus @default(PENDING_START)
   employmentStartDate       DateTime?
+  lineManagerId             String?
+  lineManager               User?    @relation("LineManager", fields: [lineManagerId], references: [id])
   lineManagerName           String?
   lineManagerEmail          String?
+  currentAddress            String?  @db.Text
+  emergencyContact          String?
+  emergencyPhone            String?
   rightToWorkLastCheckedAt  DateTime?
   isOffshoreWorker          Boolean  @default(false)
   vesselName                String?
@@ -153,6 +159,7 @@ model Worker {
   @@index([visaExpiryDate])
   @@index([employmentStatus])
   @@index([tenantId])
+  @@index([lineManagerId])
 }
 
 enum ComplianceRiskLevel {

@@ -19,15 +19,37 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DocumentTimeline } from "@/components/documents/DocumentTimeline";
 
+type LineManagerBrief = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+} | null;
+
 type WorkerDetail = Worker & {
+  lineManager: LineManagerBrief;
   documents: Document[];
   notifications: NotificationEvent[];
   changeLogs: WorkerChangeLog[];
   absences: AbsenceRecord[];
   rtwChecks: RightToWorkCheck[];
   riskSnapshot: ComplianceRiskLevel;
+};
+
+type TenantUserOption = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
 };
 
 export default function WorkerDetailPage(): JSX.Element {
@@ -37,6 +59,19 @@ export default function WorkerDetailPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [tenantUsers, setTenantUsers] = useState<TenantUserOption[]>([]);
+
+  const [editPersonalEmail, setEditPersonalEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editWorkPhone, setEditWorkPhone] = useState("");
+  const [editCurrentAddress, setEditCurrentAddress] = useState("");
+  const [editEmergencyContact, setEditEmergencyContact] = useState("");
+  const [editEmergencyPhone, setEditEmergencyPhone] = useState("");
+  const [editLineManagerName, setEditLineManagerName] = useState("");
+  const [editLineManagerEmail, setEditLineManagerEmail] = useState("");
+  const [editLineManagerId, setEditLineManagerId] = useState<string>("none");
 
   const load = useCallback(async (): Promise<void> => {
     const res = await fetch(`/api/workers/${id}`, { credentials: "include" });
@@ -46,11 +81,65 @@ export default function WorkerDetailPage(): JSX.Element {
     }
     const json = (await res.json()) as { data: WorkerDetail };
     setData(json.data);
+    setError(null);
   }, [id]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!editOpen) return;
+    void (async () => {
+      const res = await fetch("/api/tenant-users", { credentials: "include" });
+      if (res.ok) {
+        const j = (await res.json()) as { data: TenantUserOption[] };
+        setTenantUsers(j.data);
+      }
+    })();
+  }, [editOpen]);
+
+  useEffect(() => {
+    if (!data || !editOpen) return;
+    setEditPersonalEmail(data.personalEmail ?? "");
+    setEditPhone(data.phone ?? "");
+    setEditWorkPhone(data.workPhone ?? "");
+    setEditCurrentAddress(data.currentAddress ?? "");
+    setEditEmergencyContact(data.emergencyContact ?? "");
+    setEditEmergencyPhone(data.emergencyPhone ?? "");
+    setEditLineManagerName(data.lineManagerName ?? "");
+    setEditLineManagerEmail(data.lineManagerEmail ?? "");
+    setEditLineManagerId(data.lineManagerId ?? "none");
+  }, [data, editOpen]);
+
+  async function saveProfileEdit(): Promise<void> {
+    if (!data) return;
+    setSaving(true);
+    const res = await fetch(`/api/workers/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        personalEmail: editPersonalEmail.trim() || null,
+        phone: editPhone.trim() || null,
+        workPhone: editWorkPhone.trim() || null,
+        currentAddress: editCurrentAddress.trim() || null,
+        emergencyContact: editEmergencyContact.trim() || null,
+        emergencyPhone: editEmergencyPhone.trim() || null,
+        lineManagerName: editLineManagerName.trim() || null,
+        lineManagerEmail: editLineManagerEmail.trim() || null,
+        lineManagerId:
+          editLineManagerId === "none" ? null : editLineManagerId,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      alert("Kaydedilemedi.");
+      return;
+    }
+    setEditOpen(false);
+    void load();
+  }
 
   async function terminate(): Promise<void> {
     if (!confirm("Sponsorluğu sonlandırmak istiyor musunuz?")) return;
@@ -103,135 +192,264 @@ export default function WorkerDetailPage(): JSX.Element {
     return <p className="text-slate-600">{error ?? "Yükleniyor..."}</p>;
   }
 
-  const riskBadge =
-    data.riskSnapshot === "CRITICAL"
+  const riskVariant =
+    data.riskSnapshot === "CRITICAL" || data.riskSnapshot === "HIGH"
       ? "danger"
-      : data.riskSnapshot === "HIGH"
-        ? "danger"
-        : data.riskSnapshot === "MEDIUM"
-          ? "warning"
-          : "success";
+      : data.riskSnapshot === "MEDIUM"
+        ? "warning"
+        : "success";
+
+  const statusVariant = employmentStatusVariant(data.employmentStatus);
+  const initials =
+    `${data.firstName?.[0] ?? ""}${data.lastName?.[0] ?? ""}`.toUpperCase() ||
+    "?";
+
+  const managerName = data.lineManager
+    ? `${data.lineManager.firstName} ${data.lineManager.lastName}`
+    : (data.lineManagerName ?? "—");
+  const managerEmail = data.lineManager?.email ?? data.lineManagerEmail ?? "—";
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link href="/workers" className="text-sm text-brand-navy hover:underline">
-            ← Çalışanlar
-          </Link>
-          <h1 className="text-2xl font-bold text-brand-navy">
-            {data.firstName} {data.lastName}{" "}
-            <Badge variant={riskBadge}>Risk: {data.riskSnapshot}</Badge>
-          </h1>
-          <p className="text-slate-600">
-            {data.email}
-            {data.personalEmail ? ` · ${data.personalEmail}` : ""}
-          </p>
-        </div>
-        <Button variant="danger" type="button" onClick={() => void terminate()}>
-          Sponsorluğu sonlandır
-        </Button>
+      <div>
+        <Link href="/workers" className="text-sm text-brand-navy hover:underline">
+          ← Çalışanlar
+        </Link>
       </div>
 
-      <Tabs defaultValue="master">
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="master">Ana dosya</TabsTrigger>
-          <TabsTrigger value="identity">Kimlik &amp; RTW</TabsTrigger>
-          <TabsTrigger value="duties">İş tanımı / SOC</TabsTrigger>
-          <TabsTrigger value="documents">Belge kasası</TabsTrigger>
-          <TabsTrigger value="reporting">Raporlama (SMS)</TabsTrigger>
-          <TabsTrigger value="timeline">Zaman çizelgesi</TabsTrigger>
-          <TabsTrigger value="history">Geçmiş &amp; devamsızlık</TabsTrigger>
-          <TabsTrigger value="compliance">Uyum</TabsTrigger>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 sm:grid-cols-4">
+          <TabsTrigger value="overview" className="text-sm">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="text-sm">
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-sm">
+            History
+          </TabsTrigger>
+          <TabsTrigger value="compliance" className="text-sm">
+            Compliance
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="master" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">CoS</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
-                <Row label="Referans" value={data.cosReference} />
-                <Row
-                  label="Atama"
-                  value={fmt(data.cosAssignDate)}
-                />
-                <Row label="CoS bitiş" value={fmt(data.cosExpiryDate)} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Vize</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
-                <Row label="Tip" value={data.visaType} />
-                <Row label="Başlangıç" value={fmt(data.visaStartDate)} />
-                <Row label="Bitiş" value={fmt(data.visaExpiryDate)} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">İstihdam</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
-                <Row label="Ünvan" value={data.jobTitle} />
-                <Row label="SOC kodu" value={data.occupationCode} />
-                <Row label="Maaş (GBP/yıl)" value={String(data.salary)} />
-                <Row label="Çalışma yeri" value={data.workLocation} />
-                <Row label="İşe başlama" value={fmt(data.employmentStartDate)} />
-                <Row label="Sponsorluk başlangıç" value={fmt(data.sponsorshipStartDate)} />
+        <TabsContent value="overview" className="space-y-6">
+          <Card className="overflow-hidden border-slate-200">
+            <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-200 text-lg font-semibold text-slate-700">
+                  {initials}
+                </div>
                 <div>
-                  <p className="text-xs text-slate-500">Durum</p>
-                  <Badge>{data.employmentStatus}</Badge>
+                  <h1 className="text-xl font-bold text-brand-navy sm:text-2xl">
+                    {data.firstName} {data.lastName}
+                  </h1>
+                  <p className="text-sm text-slate-600">{data.email}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant={statusVariant}>
+                      {employmentStatusLabel(data.employmentStatus)}
+                    </Badge>
+                    <Badge variant={riskVariant}>Risk: {data.riskSnapshot}</Badge>
+                    <Badge variant="outline">
+                      Kayıtlı: {data.complianceRiskLevel}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Certificate of Sponsorship</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                <Row label="CoS reference" value={data.cosReference} />
+                <Row label="Assign date" value={fmt(data.cosAssignDate)} />
+                <Row label="Expiry date" value={fmt(data.cosExpiryDate)} />
+                <Row label="Visa type" value={data.visaType} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Employment</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                <Row label="Job title" value={data.jobTitle} />
+                <Row label="Occupation code (SOC)" value={data.occupationCode} />
+                <Row label="Salary (GBP/year)" value={String(data.salary)} />
+                <Row label="Work location" value={data.workLocation} />
+                <Row label="Start date" value={fmt(data.employmentStartDate)} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Line manager</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                <Row label="Name" value={managerName} />
+                <Row label="Contact email" value={managerEmail} />
+                <Row
+                  label="Phone"
+                  value="—"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Contact</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                <Row label="Work email" value={data.email} />
+                <Row label="Phone" value={data.phone ?? "—"} />
+                <Row label="Personal email" value={data.personalEmail ?? "—"} />
+                <Row label="Current address" value={data.currentAddress ?? "—"} />
+                {data.emergencyContact || data.emergencyPhone ? (
+                  <>
+                    <Row
+                      label="Emergency contact"
+                      value={data.emergencyContact ?? "—"}
+                    />
+                    <Row
+                      label="Emergency phone"
+                      value={data.emergencyPhone ?? "—"}
+                    />
+                  </>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quick actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditOpen((v) => !v)}
+              >
+                {editOpen ? "Close edit" : "Edit"}
+              </Button>
+              <Button type="button" variant="danger" onClick={() => void terminate()}>
+                Terminate
+              </Button>
+              <Button type="button" variant="outline" onClick={() => window.print()}>
+                Generate report
+              </Button>
+              <Button type="button" variant="outline" asChild>
+                <Link href="/compliance/audit">View audit log</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {editOpen ? (
+            <Card className="border-brand-navy/30">
+              <CardHeader>
+                <CardTitle className="text-base">Edit profile</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label>Line manager (tenant user)</Label>
+                  <Select value={editLineManagerId} onValueChange={setEditLineManagerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Yok</SelectItem>
+                      {tenantUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.firstName} {u.lastName} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Line manager name (serbest metin)</Label>
+                  <Input
+                    value={editLineManagerName}
+                    onChange={(e) => setEditLineManagerName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Line manager email</Label>
+                  <Input
+                    value={editLineManagerEmail}
+                    onChange={(e) => setEditLineManagerEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Personal email</Label>
+                  <Input
+                    value={editPersonalEmail}
+                    onChange={(e) => setEditPersonalEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Phone</Label>
+                  <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Work phone</Label>
+                  <Input
+                    value={editWorkPhone}
+                    onChange={(e) => setEditWorkPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label>Current address</Label>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={editCurrentAddress}
+                    onChange={(e) => setEditCurrentAddress(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Emergency contact</Label>
+                  <Input
+                    value={editEmergencyContact}
+                    onChange={(e) => setEditEmergencyContact(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Emergency phone</Label>
+                  <Input
+                    value={editEmergencyPhone}
+                    onChange={(e) => setEditEmergencyPhone(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 sm:col-span-2">
+                  <Button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void saveProfileEdit()}
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Yönetici &amp; iletişim</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
-                <Row label="Line manager" value={data.lineManagerName ?? "—"} />
-                <Row label="Manager e-posta" value={data.lineManagerEmail ?? "—"} />
-                <Row label="İş e-posta" value={data.email} />
-                <Row label="Kişisel e-posta" value={data.personalEmail ?? "—"} />
-                <Row label="İş telefonu" value={data.workPhone ?? data.phone ?? "—"} />
-                <Row
-                  label="RTW son kontrol (özet)"
-                  value={fmt(data.rightToWorkLastCheckedAt)}
-                />
-              </CardContent>
-            </Card>
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Kimlik &amp; göç (kayıtlı numaralar)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-                <Row
-                  label="Pasaport No"
-                  value={data.passportNumber ?? "—"}
-                />
-                <Row label="BRP No" value={data.brpNumber ?? "—"} />
-                <Row label="NI numarası" value={data.nationalInsuranceNumber ?? "—"} />
-                <Row label="Uyruk" value={data.nationality} />
-              </CardContent>
-              <p className="border-t border-slate-100 px-6 pb-4 text-xs text-slate-500">
-                eVisa / share code geçmişi için &quot;Kimlik &amp; RTW&quot; sekmesindeki
-                belge listesi ve RTW kontrol kayıtlarına bakın.
-              </p>
-            </Card>
-          </div>
+          ) : null}
         </TabsContent>
 
-        <TabsContent value="identity" className="space-y-6">
-          <RtwSection workerId={id} data={data} onDone={() => void load()} />
+        <TabsContent value="documents" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">
-                Pasaport / BRP / eVisa / share code belgeleri
+                Identity &amp; immigration documents
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -247,7 +465,7 @@ export default function WorkerDetailPage(): JSX.Element {
                       <strong>{d.documentType}</strong> · {d.fileName} ·{" "}
                       {new Date(d.uploadDate).toLocaleDateString("en-GB")}
                       {d.expiryDate
-                        ? ` · bitiş ${new Date(d.expiryDate).toLocaleDateString("en-GB")}`
+                        ? ` · expires ${new Date(d.expiryDate).toLocaleDateString("en-GB")}`
                         : ""}
                     </li>
                   ))}
@@ -256,67 +474,22 @@ export default function WorkerDetailPage(): JSX.Element {
                     d.documentType
                   )
                 ).length === 0 ? (
-                  <li className="text-slate-500">Bu kategoride belge yok.</li>
+                  <li className="text-slate-500">No documents in this category.</li>
                 ) : null}
               </ul>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="duties" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">CoS / sözleşme iş tanımı</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-sm text-slate-700">
-                {data.jobDescription ?? data.contractJobDescription ?? "—"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Sözleşme görevleri (ayrı)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-sm text-slate-700">
-                {data.contractJobDescription ?? "—"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Fiili günlük görevler</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-sm text-slate-700">
-                {data.actualDayToDayDuties ?? "—"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">SOC gerekçesi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-sm text-slate-700">
-                {data.occupationCodeJustification ?? "—"}
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="documents" className="space-y-6">
           <form
             onSubmit={onUpload}
             className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 lg:grid-cols-2"
           >
             <div>
-              <Label>Belge adı</Label>
+              <Label>File name</Label>
               <Input name="fileName" required placeholder="passport.pdf" />
             </div>
             <div>
-              <Label>Belge tipi</Label>
+              <Label>Document type</Label>
               <select
                 name="documentType"
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
@@ -343,7 +516,7 @@ export default function WorkerDetailPage(): JSX.Element {
               </select>
             </div>
             <div>
-              <Label>Klasör (vault)</Label>
+              <Label>Vault folder</Label>
               <select
                 name="vaultFolder"
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
@@ -370,7 +543,7 @@ export default function WorkerDetailPage(): JSX.Element {
               </select>
             </div>
             <div className="lg:col-span-2">
-              <Label>Metadata (JSON, isteğe bağlı)</Label>
+              <Label>Metadata (JSON, optional)</Label>
               <textarea
                 name="metadataJson"
                 className="min-h-[72px] w-full rounded-md border border-slate-300 p-2 font-mono text-xs"
@@ -379,66 +552,25 @@ export default function WorkerDetailPage(): JSX.Element {
             </div>
             <div className="flex items-end lg:col-span-2">
               <Button type="submit" disabled={uploading}>
-                Yükle
+                Upload
               </Button>
             </div>
           </form>
           <DocumentTimeline key={docRefresh} workerId={id} />
         </TabsContent>
 
-        <TabsContent value="reporting" className="space-y-3">
-          <p className="text-sm text-slate-600">
-            Her olay için rapor son tarihi, kanıt beklentisi ve SMS taslağı. Son hukuki
-            kontrol kullanıcıya aittir.
-          </p>
-          {data.notifications.map((n) => (
-            <Card key={n.id}>
-              <CardHeader className="py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="text-sm font-semibold">
-                    {n.eventType}
-                  </CardTitle>
-                  <Badge variant={n.status === "OVERDUE" ? "danger" : "outline"}>
-                    {n.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-slate-700">
-                <p>
-                  <strong>Olay / rapor:</strong>{" "}
-                  {fmt(n.occurredAt)} → son tarih:{" "}
-                  {fmt(n.reportDeadlineAt ?? n.dueDate)}
-                </p>
-                {n.evidenceRequired ? (
-                  <p>
-                    <strong>Kanıt:</strong> {n.evidenceRequired}
-                  </p>
-                ) : null}
-                {n.smsDraft ? (
-                  <div className="rounded bg-slate-50 p-3 font-mono text-xs">
-                    {n.smsDraft}
-                  </div>
-                ) : null}
-                {n.internalApprovalNote ? (
-                  <p className="text-xs text-slate-500">{n.internalApprovalNote}</p>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="timeline" className="space-y-4">
-          <p className="text-sm text-slate-600">
-            Adres, maaş, rol, devamsızlık, belge yüklemeleri ve RTW kontrolleri tek
-            kronolojide (en yeni üstte).
-          </p>
-          <UnifiedTimeline data={data} />
-        </TabsContent>
-
         <TabsContent value="history" className="space-y-6">
           <HistoryForms workerId={id} onDone={() => void load()} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Unified timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UnifiedTimeline data={data} />
+            </CardContent>
+          </Card>
           <div>
-            <h3 className="mb-2 font-semibold text-brand-navy">Değişiklik geçmişi</h3>
+            <h3 className="mb-2 font-semibold text-brand-navy">Change log</h3>
             <ul className="space-y-2 text-sm">
               {data.changeLogs.map((c) => (
                 <li key={c.id} className="rounded border border-slate-100 p-3">
@@ -451,14 +583,14 @@ export default function WorkerDetailPage(): JSX.Element {
             </ul>
           </div>
           <div>
-            <h3 className="mb-2 font-semibold text-brand-navy">Devamsızlık</h3>
+            <h3 className="mb-2 font-semibold text-brand-navy">Absences</h3>
             <ul className="space-y-2 text-sm">
               {data.absences.map((a) => (
                 <li key={a.id} className="rounded border border-slate-100 p-3">
-                  {fmt(a.startDate)} — {a.endDate ? fmt(a.endDate) : "devam"}{" "}
+                  {fmt(a.startDate)} — {a.endDate ? fmt(a.endDate) : "ongoing"}{" "}
                   · {a.absenceType ?? (a.isAuthorised ? "AUTHORISED" : "UNAUTHORISED")}
                   {a.consecutiveWorkingDays != null
-                    ? ` · ardışık iş günü: ${a.consecutiveWorkingDays}`
+                    ? ` · consecutive days: ${a.consecutiveWorkingDays}`
                     : ""}
                 </li>
               ))}
@@ -466,12 +598,73 @@ export default function WorkerDetailPage(): JSX.Element {
           </div>
         </TabsContent>
 
-        <TabsContent value="compliance">
-          <ComplianceChecklist status={data.employmentStatus} />
+        <TabsContent value="compliance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Checklist</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ComplianceChecklist status={data.employmentStatus} />
+            </CardContent>
+          </Card>
+          <RtwSection workerId={id} data={data} onDone={() => void load()} />
+          <div>
+            <h3 className="mb-2 font-semibold text-brand-navy">Notifications &amp; reporting</h3>
+            <p className="mb-3 text-sm text-slate-600">
+              Report deadlines and SMS drafts per event. Final legal check is your
+              responsibility.
+            </p>
+            <div className="space-y-3">
+              {data.notifications.map((n) => (
+                <Card key={n.id}>
+                  <CardHeader className="py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <CardTitle className="text-sm font-semibold">
+                        {n.eventType}
+                      </CardTitle>
+                      <Badge variant={n.status === "OVERDUE" ? "danger" : "outline"}>
+                        {n.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-slate-700">
+                    <p>
+                      <strong>Event / report:</strong>{" "}
+                      {fmt(n.occurredAt)} → deadline:{" "}
+                      {fmt(n.reportDeadlineAt ?? n.dueDate)}
+                    </p>
+                    {n.evidenceRequired ? (
+                      <p>
+                        <strong>Evidence:</strong> {n.evidenceRequired}
+                      </p>
+                    ) : null}
+                    {n.smsDraft ? (
+                      <div className="rounded bg-slate-50 p-3 font-mono text-xs">
+                        {n.smsDraft}
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
   );
+}
+
+function employmentStatusVariant(
+  s: EmploymentStatus
+): "success" | "warning" | "danger" {
+  if (s === "ACTIVE") return "success";
+  if (s === "TERMINATED") return "danger";
+  return "warning";
+}
+
+function employmentStatusLabel(s: EmploymentStatus): string {
+  if (s === "PENDING_START") return "PENDING";
+  return s;
 }
 
 function fmt(d: Date | string | null | undefined): string {
@@ -494,7 +687,7 @@ function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
   for (const c of props.data.changeLogs) {
     rows.push({
       t: new Date(c.createdAt).getTime(),
-      title: `Değişiklik · ${c.changeCategory}`,
+      title: `Change · ${c.changeCategory}`,
       detail: c.summary,
     });
   }
@@ -503,8 +696,8 @@ function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
       t: new Date(a.startDate).getTime(),
       title:
         a.absenceType === "UNAUTHORISED" || (!a.absenceType && !a.isAuthorised)
-          ? "Devamsızlık (izinsiz)"
-          : `Devamsızlık (${a.absenceType ?? "—"})`,
+          ? "Absence (unauthorised)"
+          : `Absence (${a.absenceType ?? "—"})`,
       detail:
         a.notes ??
         `${fmt(a.startDate)} – ${a.endDate ? fmt(a.endDate) : "…"}`,
@@ -513,7 +706,7 @@ function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
   for (const doc of props.data.documents) {
     rows.push({
       t: new Date(doc.uploadDate).getTime(),
-      title: `Belge · ${doc.documentType}`,
+      title: `Document · ${doc.documentType}`,
       detail: doc.fileName,
     });
   }
@@ -539,7 +732,7 @@ function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
         </li>
       ))}
       {rows.length === 0 ? (
-        <li className="text-slate-500">Henüz kayıt yok.</li>
+        <li className="text-slate-500">No entries yet.</li>
       ) : null}
     </ol>
   );
@@ -573,7 +766,7 @@ function RtwSection(props: {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Right to work kontrol kayıtları</CardTitle>
+        <CardTitle className="text-base">Right to work checks</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <ul className="space-y-3 text-sm">
@@ -592,17 +785,17 @@ function RtwSection(props: {
               ) : null}
               {r.nextCheckDueAt ? (
                 <div className="text-xs text-slate-500">
-                  Sonraki: {fmt(r.nextCheckDueAt)}
+                  Next: {fmt(r.nextCheckDueAt)}
                 </div>
               ) : null}
             </li>
           ))}
           {(props.data.rtwChecks ?? []).length === 0 ? (
-            <li className="text-slate-500">Henüz RTW kaydı yok.</li>
+            <li className="text-slate-500">No RTW records yet.</li>
           ) : null}
         </ul>
         <form onSubmit={submitRtw} className="grid gap-2 border-t border-slate-100 pt-4 text-sm">
-          <Label>Yöntem</Label>
+          <Label>Method</Label>
           <select
             name="checkMethod"
             required
@@ -610,20 +803,20 @@ function RtwSection(props: {
             defaultValue="ONLINE_SHARE_CODE"
           >
             <option value="ONLINE_SHARE_CODE">Online share code</option>
-            <option value="MANUAL_DOCUMENT_CHECK">Manuel belge</option>
-            <option value="EMPLOYER_PORTAL">İşveren portalı</option>
-            <option value="RE_VERIFICATION">Yeniden doğrulama</option>
-            <option value="OTHER">Diğer</option>
+            <option value="MANUAL_DOCUMENT_CHECK">Manual document</option>
+            <option value="EMPLOYER_PORTAL">Employer portal</option>
+            <option value="RE_VERIFICATION">Re-verification</option>
+            <option value="OTHER">Other</option>
           </select>
-          <Input name="shareCodeUsed" placeholder="Share code (varsa)" />
-          <Input name="outcomeSummary" placeholder="Sonuç özeti" />
-          <Input name="notes" placeholder="Not" />
+          <Input name="shareCodeUsed" placeholder="Share code (if any)" />
+          <Input name="outcomeSummary" placeholder="Outcome summary" />
+          <Input name="notes" placeholder="Notes" />
           <div>
-            <Label>Sonraki kontrol (tarih)</Label>
+            <Label>Next check due</Label>
             <Input name="nextCheckDueAt" type="date" />
           </div>
           <Button type="submit" size="sm">
-            RTW kaydı ekle
+            Add RTW record
           </Button>
         </form>
       </CardContent>
@@ -676,7 +869,7 @@ function HistoryForms(props: {
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Değişiklik kaydı ekle</CardTitle>
+          <CardTitle className="text-sm">Add change log</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={addChange} className="space-y-2 text-sm">
@@ -694,18 +887,18 @@ function HistoryForms(props: {
               <option value="ABSENCE">ABSENCE</option>
               <option value="OTHER">OTHER</option>
             </select>
-            <Input name="summary" placeholder="Özet" required />
-            <Input name="previousValue" placeholder="Eski (opsiyonel)" />
-            <Input name="newValue" placeholder="Yeni (opsiyonel)" />
+            <Input name="summary" placeholder="Summary" required />
+            <Input name="previousValue" placeholder="Previous (optional)" />
+            <Input name="newValue" placeholder="New (optional)" />
             <Button type="submit" size="sm">
-              Kaydet
+              Save
             </Button>
           </form>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Devamsızlık kaydı</CardTitle>
+          <CardTitle className="text-sm">Absence record</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={addAbsence} className="space-y-2 text-sm">
@@ -716,14 +909,14 @@ function HistoryForms(props: {
               className="w-full rounded border border-slate-300 p-2"
               defaultValue="UNAUTHORISED"
             >
-              <option value="SICK">Hastalık</option>
-              <option value="AUTHORISED">İzinli</option>
-              <option value="UNAUTHORISED">İzinsiz</option>
+              <option value="SICK">Sick</option>
+              <option value="AUTHORISED">Authorised</option>
+              <option value="UNAUTHORISED">Unauthorised</option>
             </select>
-            <Input name="approvedBy" placeholder="Onaylayan (opsiyonel)" />
-            <Input name="notes" placeholder="Not" />
+            <Input name="approvedBy" placeholder="Approved by (optional)" />
+            <Input name="notes" placeholder="Notes" />
             <Button type="submit" size="sm">
-              Kaydet
+              Save
             </Button>
           </form>
         </CardContent>
@@ -736,9 +929,9 @@ function ComplianceChecklist(props: {
   status: EmploymentStatus;
 }): JSX.Element {
   const items = [
-    { ok: props.status === "ACTIVE", label: "İşe başlama / ACTIVE durumu" },
-    { ok: true, label: "CoS ve vize tarihleri kayıtlı" },
-    { ok: true, label: "Maaş ve SOC kodu tanımlı" },
+    { ok: props.status === "ACTIVE", label: "Start / ACTIVE status" },
+    { ok: true, label: "CoS and visa dates on file" },
+    { ok: true, label: "Salary and SOC code defined" },
   ];
   return (
     <ul className="space-y-2">

@@ -70,6 +70,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const d = parsed.data;
 
     return await withTenant(user, req, async () => {
+      if (d.lineManagerId) {
+        const mgr = await prisma.user.findFirst({
+          where: {
+            id: d.lineManagerId,
+            tenantId: user.tenantId,
+            isActive: true,
+          },
+        });
+        if (!mgr) {
+          return NextResponse.json(
+            { error: "Line manager bulunamadı veya bu kuruma ait değil." },
+            { status: 400 }
+          );
+        }
+      }
+
       const worker = await prisma.worker.create({
         data: {
           tenantId: user.tenantId,
@@ -107,8 +123,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           employmentStartDate: d.employmentStartDate
             ? new Date(d.employmentStartDate)
             : undefined,
+          lineManagerId: d.lineManagerId ?? undefined,
           lineManagerName: d.lineManagerName ?? undefined,
           lineManagerEmail: d.lineManagerEmail ?? undefined,
+          currentAddress: d.currentAddress ?? undefined,
+          emergencyContact: d.emergencyContact ?? undefined,
+          emergencyPhone: d.emergencyPhone ?? undefined,
           rightToWorkLastCheckedAt: d.rightToWorkLastCheckedAt
             ? new Date(d.rightToWorkLastCheckedAt)
             : undefined,
