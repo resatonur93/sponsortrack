@@ -6,6 +6,8 @@ import {
   DocumentType,
   DocumentVaultFolder,
   EmploymentStatus,
+  EventStatus,
+  EventType,
   RtwCheckMethod,
 } from "@prisma/client";
 
@@ -157,4 +159,17 @@ export const organisationChangeSchema = z.object({
   description: z.string().optional().nullable(),
   occurredAt: optionalDateInput,
   reportDeadlineAt: optionalDateInput,
+});
+
+export const complianceEventCreateSchema = z.object({
+  workerId: z.string().min(1),
+  eventType: z.nativeEnum(EventType),
+  eventDate: optionalDateInput,
+  notes: z.string().optional().nullable(),
+});
+
+export const complianceEventUpdateSchema = z.object({
+  status: z.nativeEnum(EventStatus).optional(),
+  notes: z.string().optional().nullable(),
+  approvedBy: z.string().optional().nullable(),
 });

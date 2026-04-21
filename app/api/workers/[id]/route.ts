@@ -10,6 +10,8 @@ import {
   type ComplianceRiskLevel,
   type NotificationStatus,
 } from "@prisma/client";
+import { createComplianceReportingEvent } from "@/lib/compliance-reporting-engine";
+import { normalizeEmail } from "@/lib/registration";
 
 export const dynamic = "force-dynamic";
 
@@ -268,6 +270,15 @@ export async function PUT(
             },
           }),
         });
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "SALARY_REDUCTION",
+          eventDate: occurred,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: d.salaryReductionJustification ?? null,
+        });
       }
 
       if (
@@ -297,6 +308,15 @@ export async function PUT(
             },
           }),
         });
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "WORK_LOCATION_CHANGE",
+          eventDate: occurred,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: `Location: ${existing.workLocation} → ${d.workLocation}`,
+        });
       }
 
       if (d.employmentStatus === "ACTIVE" && existing.employmentStatus !== "ACTIVE") {
@@ -304,6 +324,14 @@ export async function PUT(
           where: {
             workerId: id,
             eventType: "NO_SHOW",
+            status: "PENDING",
+          },
+          data: { status: "CANCELLED" },
+        });
+        await prisma.complianceEvent.updateMany({
+          where: {
+            workerId: id,
+            eventType: "NO_SHOW_28_DAYS",
             status: "PENDING",
           },
           data: { status: "CANCELLED" },
@@ -331,6 +359,100 @@ export async function PUT(
             cosReference: updated.cosReference,
             metadata: { endedAt: end.toISOString() },
           }),
+        });
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "SPONSORSHIP_ENDED",
+          eventDate: occurred,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: `Sponsorship ended at ${end.toISOString()}`,
+        });
+      }
+
+      const occurredContact = new Date();
+      if (
+        d.email !== undefined &&
+        normalizeEmail(d.email) !== normalizeEmail(existing.email)
+      ) {
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "EMAIL_CHANGE",
+          eventDate: occurredContact,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: `Work email: ${existing.email} → ${d.email}`,
+        });
+      }
+      if (
+        d.personalEmail !== undefined &&
+        (existing.personalEmail ?? "") !== (d.personalEmail ?? "")
+      ) {
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "EMAIL_CHANGE",
+          eventDate: occurredContact,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: "Personal email updated",
+        });
+      }
+      if (
+        (d.phone !== undefined && d.phone !== existing.phone) ||
+        (d.workPhone !== undefined && d.workPhone !== existing.workPhone)
+      ) {
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "PHONE_CHANGE",
+          eventDate: occurredContact,
+          workerName: wName,
+          cosReference: updated.cosReference,
+        });
+      }
+      if (
+        d.occupationCode !== undefined &&
+        d.occupationCode !== existing.occupationCode
+      ) {
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "ROLE_CHANGE",
+          eventDate: occurredContact,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: `SOC: ${existing.occupationCode} → ${d.occupationCode}`,
+        });
+      } else if (
+        d.jobTitle !== undefined &&
+        d.jobTitle !== existing.jobTitle
+      ) {
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: "PROMOTION_SAME_CODE",
+          eventDate: occurredContact,
+          workerName: wName,
+          cosReference: updated.cosReference,
+          notes: `Title: ${existing.jobTitle} → ${d.jobTitle}`,
+        });
+      }
+      if (
+        d.isOffshoreWorker !== undefined &&
+        d.isOffshoreWorker !== existing.isOffshoreWorker
+      ) {
+        await createComplianceReportingEvent({
+          tenantId: user.tenantId,
+          workerId: id,
+          eventType: d.isOffshoreWorker
+            ? "OFFSHORE_ARRIVAL"
+            : "OFFSHORE_DEPARTURE",
+          eventDate: occurredContact,
+          workerName: wName,
+          cosReference: updated.cosReference,
         });
       }
 
@@ -440,6 +562,15 @@ export async function DELETE(
           cosReference: updated.cosReference,
           metadata: { reason: "DELETE", endedAt: end.toISOString() },
         }),
+      });
+      await createComplianceReportingEvent({
+        tenantId: user.tenantId,
+        workerId: id,
+        eventType: "SPONSORSHIP_ENDED",
+        eventDate: occurred,
+        workerName: wName,
+        cosReference: updated.cosReference,
+        notes: "Termination via DELETE",
       });
       logger.info("worker terminated via DELETE", { workerId: id });
       return NextResponse.json({ data: updated });
