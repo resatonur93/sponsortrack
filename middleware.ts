@@ -19,10 +19,14 @@ export default withAuth(
       }
     }
 
+    const isPolicyAcknowledgePost =
+      method === "POST" &&
+      /^\/api\/policies\/[^/]+\/acknowledge\/?$/.test(path);
     if (
       token?.role === "LEVEL_2_USER" &&
       method !== "GET" &&
-      method !== "HEAD"
+      method !== "HEAD" &&
+      !isPolicyAcknowledgePost
     ) {
       return NextResponse.json(
         { error: "Forbidden: read-only role" },
@@ -102,5 +106,9 @@ export const config = {
     "/api/absences/:path*",
     "/api/uk-law",
     "/api/uk-law/:path*",
+    "/policies",
+    "/policies/:path*",
+    "/api/policies",
+    "/api/policies/:path*",
   ],
 };
