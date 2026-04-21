@@ -263,6 +263,24 @@ export const complianceEventUpdateSchema = z.object({
   approvedBy: z.string().optional().nullable(),
 });
 
+const smsDraftOverridesSchema = z
+  .object({
+    oldSalary: z.number().int().optional(),
+    newSalary: z.number().int().optional(),
+    oldWorkLocation: z.string().optional().nullable(),
+    newWorkLocation: z.string().optional().nullable(),
+  })
+  .optional();
+
+export const smsDraftGenerateBodySchema = z.object({
+  internalNotes: z.string().optional().nullable(),
+  overrides: smsDraftOverridesSchema,
+});
+
+export const smsDraftMarkSentSchema = z.object({
+  sentAt: optionalDateInput,
+});
+
 export const roleComplianceUpdateSchema = z.object({
   cosJobDescription: z.string().optional(),
   cosOccupationCode: z.string().optional(),

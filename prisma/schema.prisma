@@ -18,6 +18,7 @@ model Tenant {
   workers       Worker[]
   notifications NotificationEvent[]
   complianceEvents ComplianceEvent[]
+  smsReportDrafts SmsReportDraft[]
   alerts        Alert[]
   documents     Document[]
   documentVaults DocumentVault[]
@@ -253,10 +254,33 @@ model ComplianceEvent {
   tenantId         String
   tenant           Tenant      @relation(fields: [tenantId], references: [id])
   createdAt        DateTime    @default(now())
+  smsReportDrafts  SmsReportDraft[]
 
   @@index([status, reportDeadline])
   @@index([workerId])
   @@index([tenantId])
+}
+
+model SmsReportDraft {
+  id                  String          @id @default(cuid())
+  eventId             String
+  event               ComplianceEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  smsText             String          @db.Text
+  evidenceChecklist   String[]        @default([])
+  deadline            DateTime
+  internalNotes       String?         @db.Text
+  generatedBy         String
+  approvedBy          String?
+  approvedAt          DateTime?
+  sentToHO            Boolean         @default(false)
+  sentAt              DateTime?
+  tenantId            String
+  tenant              Tenant          @relation(fields: [tenantId], references: [id])
+  createdAt           DateTime        @default(now())
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([createdAt])
 }
 
 enum EventType {

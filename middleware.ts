@@ -58,6 +58,8 @@ export const config = {
     "/api/notifications/:path*",
     "/api/events",
     "/api/events/:path*",
+    "/api/sms-drafts",
+    "/api/sms-drafts/:path*",
     "/api/alerts",
     "/api/alerts/:path*",
     "/api/cron/escalation",

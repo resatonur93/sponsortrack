@@ -23,6 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const EVENT_TYPES: EventType[] = [
   "NO_SHOW_28_DAYS",
@@ -67,6 +73,29 @@ type EventRow = {
   };
 };
 
+type HoSmsDraft = {
+  id: string;
+  smsText: string;
+  evidenceChecklist: string[];
+  deadline: string;
+  internalNotes: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  sentToHO: boolean;
+  sentAt: string | null;
+  createdAt: string;
+  event: {
+    id: string;
+    eventType: EventType;
+    worker: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      cosReference: string;
+    };
+  };
+};
+
 export default function EventsPage(): JSX.Element {
   const [rows, setRows] = useState<EventRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +110,15 @@ export default function EventsPage(): JSX.Element {
   const [manualWorkerId, setManualWorkerId] = useState("");
   const [manualType, setManualType] = useState<EventType>("SALARY_REDUCTION");
   const [manualSubmitting, setManualSubmitting] = useState(false);
+
+  const [hoSmsEvent, setHoSmsEvent] = useState<EventRow | null>(null);
+  const [hoSmsDraft, setHoSmsDraft] = useState<HoSmsDraft | null>(null);
+  const [hoSmsPhase, setHoSmsPhase] = useState<"prepare" | "loading" | "review">(
+    "prepare"
+  );
+  const [hoSmsNotes, setHoSmsNotes] = useState("");
+  const [hoSmsBusy, setHoSmsBusy] = useState(false);
+  const [hoSmsError, setHoSmsError] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -128,6 +166,102 @@ export default function EventsPage(): JSX.Element {
     }
     void load();
     setDetail(null);
+  }
+
+  function openHoSmsModal(row: EventRow): void {
+    setHoSmsEvent(row);
+    setHoSmsDraft(null);
+    setHoSmsPhase("prepare");
+    setHoSmsNotes("");
+    setHoSmsError(null);
+  }
+
+  function closeHoSmsModal(): void {
+    setHoSmsEvent(null);
+    setHoSmsDraft(null);
+    setHoSmsPhase("prepare");
+    setHoSmsNotes("");
+    setHoSmsError(null);
+  }
+
+  async function generateHoSmsDraft(): Promise<void> {
+    if (!hoSmsEvent) return;
+    setHoSmsPhase("loading");
+    setHoSmsError(null);
+    try {
+      const res = await fetch(`/api/events/${hoSmsEvent.id}/generate-sms`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          internalNotes: hoSmsNotes.trim() || null,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: HoSmsDraft;
+        error?: string;
+      };
+      if (!res.ok) {
+        setHoSmsError(json.error ?? "Could not generate SMS draft");
+        setHoSmsPhase("prepare");
+        return;
+      }
+      if (json.data) {
+        setHoSmsDraft(json.data);
+        setHoSmsPhase("review");
+        void load();
+      }
+    } finally {
+      /* phase set above */
+    }
+  }
+
+  async function approveHoSmsDraft(): Promise<void> {
+    if (!hoSmsDraft) return;
+    setHoSmsBusy(true);
+    setHoSmsError(null);
+    try {
+      const res = await fetch(`/api/sms-drafts/${hoSmsDraft.id}/approve`, {
+        method: "PUT",
+        credentials: "include",
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: HoSmsDraft;
+        error?: string;
+      };
+      if (!res.ok) {
+        setHoSmsError(json.error ?? "Approve failed");
+        return;
+      }
+      if (json.data) setHoSmsDraft(json.data);
+    } finally {
+      setHoSmsBusy(false);
+    }
+  }
+
+  async function markHoSmsSent(): Promise<void> {
+    if (!hoSmsDraft) return;
+    setHoSmsBusy(true);
+    setHoSmsError(null);
+    try {
+      const res = await fetch(`/api/sms-drafts/${hoSmsDraft.id}/mark-sent`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: HoSmsDraft;
+        error?: string;
+      };
+      if (!res.ok) {
+        setHoSmsError(json.error ?? "Update failed");
+        return;
+      }
+      if (json.data) setHoSmsDraft(json.data);
+    } finally {
+      setHoSmsBusy(false);
+    }
   }
 
   async function submitManual(): Promise<void> {
@@ -332,6 +466,14 @@ export default function EventsPage(): JSX.Element {
                       <Button
                         type="button"
                         size="sm"
+                        variant="secondary"
+                        onClick={() => openHoSmsModal(r)}
+                      >
+                        Generate SMS
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
                         variant="outline"
                         disabled={
                           r.status === "CANCELLED" ||
@@ -404,6 +546,120 @@ export default function EventsPage(): JSX.Element {
           </CardContent>
         </Card>
       ) : null}
+
+      <Dialog
+        open={hoSmsEvent !== null}
+        onOpenChange={(open) => {
+          if (!open) closeHoSmsModal();
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>HO SMS draft</DialogTitle>
+          </DialogHeader>
+          {hoSmsEvent ? (
+            <div className="space-y-4 text-sm">
+              <p className="text-slate-600">
+                <span className="font-medium text-slate-800">Event:</span>{" "}
+                {hoSmsEvent.eventType} · {hoSmsEvent.worker.firstName}{" "}
+                {hoSmsEvent.worker.lastName} ({hoSmsEvent.worker.cosReference})
+              </p>
+              {hoSmsError ? (
+                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-800">
+                  {hoSmsError}
+                </p>
+              ) : null}
+
+              {hoSmsPhase === "prepare" ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>Internal notes (optional)</Label>
+                    <textarea
+                      value={hoSmsNotes}
+                      onChange={(e) => setHoSmsNotes(e.target.value)}
+                      placeholder="Context for approvers only — not sent to HO"
+                      className="min-h-[80px] w-full rounded-md border border-slate-300 p-2 text-sm"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => void generateHoSmsDraft()}
+                  >
+                    Generate draft
+                  </Button>
+                </div>
+              ) : null}
+
+              {hoSmsPhase === "loading" ? (
+                <p className="text-slate-500">Generating…</p>
+              ) : null}
+
+              {hoSmsPhase === "review" && hoSmsDraft ? (
+                <div className="space-y-4 border-t border-slate-100 pt-4">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Review — SMS text
+                    </p>
+                    <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900">
+                      {hoSmsDraft.smsText}
+                    </pre>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Evidence checklist
+                    </p>
+                    <ul className="mt-2 list-inside list-disc text-slate-700">
+                      {hoSmsDraft.evidenceChecklist.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">
+                      Deadline: {fmtDate(hoSmsDraft.deadline)}
+                    </Badge>
+                    {hoSmsDraft.approvedAt ? (
+                      <Badge variant="success">Approved</Badge>
+                    ) : (
+                      <Badge variant="warning">Awaiting approval</Badge>
+                    )}
+                    {hoSmsDraft.sentToHO ? (
+                      <Badge variant="success">Sent to HO</Badge>
+                    ) : null}
+                  </div>
+                  {hoSmsDraft.internalNotes ? (
+                    <p className="text-xs text-slate-600">
+                      <span className="font-medium">Internal notes:</span>{" "}
+                      {hoSmsDraft.internalNotes}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {!hoSmsDraft.approvedAt ? (
+                      <Button
+                        type="button"
+                        disabled={hoSmsBusy}
+                        onClick={() => void approveHoSmsDraft()}
+                      >
+                        Approve draft
+                      </Button>
+                    ) : null}
+                    {hoSmsDraft.approvedAt && !hoSmsDraft.sentToHO ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={hoSmsBusy}
+                        onClick={() => void markHoSmsSent()}
+                      >
+                        Mark sent to HO
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
