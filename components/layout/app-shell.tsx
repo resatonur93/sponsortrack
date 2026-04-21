@@ -21,27 +21,29 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AlertCountPill } from "@/components/layout/AlertCountPill";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 const navBase = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/workers", label: "Çalışanlar", icon: Users },
-  { href: "/events", label: "Olaylar", icon: CalendarClock },
-  { href: "/alerts", label: "Uyarılar", icon: TriangleAlert },
-  { href: "/notifications", label: "Bildirimler", icon: BellRing },
-  { href: "/policies", label: "Policy Hub", icon: BookOpen },
-  { href: "/compliance", label: "Uyum / Audit", icon: Shield },
-  { href: "/audit", label: "Audit Dashboard", icon: LayoutPanelLeft },
-  { href: "/risk-report", label: "Risk report", icon: Gauge },
+  { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/workers", labelKey: "nav.workers", icon: Users },
+  { href: "/events", labelKey: "nav.events", icon: CalendarClock },
+  { href: "/alerts", labelKey: "nav.alerts", icon: TriangleAlert },
+  { href: "/notifications", labelKey: "nav.notifications", icon: BellRing },
+  { href: "/policies", labelKey: "nav.policies", icon: BookOpen },
+  { href: "/compliance", labelKey: "nav.compliance", icon: Shield },
+  { href: "/audit", labelKey: "nav.audit", icon: LayoutPanelLeft },
+  { href: "/risk-report", labelKey: "nav.riskReport", icon: Gauge },
   {
     href: "/organisation-changes",
-    label: "Organisation changes",
+    labelKey: "nav.orgChanges",
     icon: Building2,
   },
 ] as const;
 
 const adminNavItem = {
   href: "/admin",
-  label: "Admin panel",
+  labelKey: "nav.admin",
   icon: UserCog,
 } as const;
 
@@ -52,6 +54,7 @@ export function AppShell({
 }): JSX.Element {
   const pathname = usePathname();
   const { data } = useSession();
+  const { t } = useTranslation();
   const nav = data?.user?.canAccessAdminPanel
     ? [...navBase, adminNavItem]
     : [...navBase];
@@ -79,7 +82,7 @@ export function AppShell({
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                  <span className="truncate">{item.label}</span>
+                  <span className="truncate">{t(item.labelKey)}</span>
                   {item.href === "/alerts" ? <AlertCountPill /> : null}
                 </span>
               </Link>
@@ -101,14 +104,15 @@ export function AppShell({
             }
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Çıkış
+            {t("shell.logout")}
           </Button>
         </div>
       </aside>
       <div className="flex flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white px-4 py-2 md:hidden">
-          <div className="flex h-10 items-center justify-between">
+          <div className="flex h-10 items-center justify-between gap-2">
             <Logo href="/dashboard" size="sm" variant="light" />
+            <LanguageSwitcher />
           </div>
           <nav className="flex gap-2 overflow-x-auto pb-2 text-sm">
             {nav.map((item) => {
@@ -127,7 +131,7 @@ export function AppShell({
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="flex items-center gap-1">
-                    {item.label}
+                    {t(item.labelKey)}
                     {item.href === "/alerts" ? <AlertCountPill /> : null}
                   </span>
                 </Link>
@@ -135,6 +139,9 @@ export function AppShell({
             })}
           </nav>
         </header>
+        <div className="hidden items-center justify-end border-b border-slate-200 bg-white px-4 py-2 md:flex">
+          <LanguageSwitcher />
+        </div>
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

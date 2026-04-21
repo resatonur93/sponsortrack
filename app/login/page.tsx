@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +31,7 @@ export default function LoginPage(): JSX.Element {
     });
     setLoading(false);
     if (res?.error) {
-      setError("Giriş başarısız. Bilgileri kontrol edin.");
+      setError(t("login.error"));
       return;
     }
     router.push("/dashboard");
@@ -36,19 +39,22 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="items-center pb-6">
           <Logo size="lg" variant="light" />
-          <p className="text-caption mt-3 text-center">Compliance Made Clear</p>
+          <p className="text-caption mt-3 text-center">{t("login.tagline")}</p>
           <p className="mt-1 text-center text-sm text-brand-slate">
-            UK sponsor uyum yönetimi — giriş yapın
+            {t("login.subtitle")}
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-posta</Label>
+              <Label htmlFor="email">{t("login.email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -58,7 +64,7 @@ export default function LoginPage(): JSX.Element {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Şifre</Label>
+              <Label htmlFor="password">{t("login.password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -73,21 +79,21 @@ export default function LoginPage(): JSX.Element {
               </p>
             ) : null}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Giriş..." : "Giriş"}
+              {loading ? t("login.submitting") : t("login.submit")}
             </Button>
             <div className="space-y-1 text-center text-sm text-brand-slate">
               <p>
                 <Link href="/demo" className="font-medium text-brand-royal underline">
-                  Demo talep et
+                  {t("login.demo")}
                 </Link>
               </p>
               <p>
                 <Link href="/setup" className="font-medium text-brand-royal underline">
-                  Yeni kurum kaydı
+                  {t("login.setup")}
                 </Link>
                 {" · "}
                 <Link href="/register" className="font-medium text-brand-royal underline">
-                  Kurumsal kayıt
+                  {t("login.register")}
                 </Link>
               </p>
             </div>

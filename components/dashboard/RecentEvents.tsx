@@ -1,6 +1,9 @@
+"use client";
+
 import type { NotificationType } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dedupeVisaExpiringByWorker } from "@/lib/recent-notifications";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type EventRow = {
   id: string;
@@ -12,6 +15,8 @@ type EventRow = {
 };
 
 export function RecentEvents(props: { events: EventRow[] }): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
   const mapped = props.events.map((e) => ({
     id: e.id,
     workerId: e.worker.id,
@@ -41,12 +46,12 @@ export function RecentEvents(props: { events: EventRow[] }): JSX.Element {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Son bildirimler</CardTitle>
+        <CardTitle>{t("dashboard.recentNotifications")}</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">
           {events.length === 0 ? (
-            <li className="text-sm text-slate-500">Kayıt yok</li>
+            <li className="text-sm text-slate-500">{t("common.noRecords")}</li>
           ) : (
             events.map((e) => (
               <li
@@ -58,7 +63,7 @@ export function RecentEvents(props: { events: EventRow[] }): JSX.Element {
                 </span>
                 <span className="text-slate-600">{e.eventType}</span>
                 <span className="text-xs text-slate-500">
-                  {new Date(e.dueDate).toLocaleDateString("en-GB")} · {e.status}
+                  {new Date(e.dueDate).toLocaleDateString(localeTag)} · {e.status}
                 </span>
               </li>
             ))

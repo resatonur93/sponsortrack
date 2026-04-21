@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 const statusVariant = (s: EmploymentStatus): "default" | "success" | "warning" | "danger" | "outline" => {
   switch (s) {
@@ -28,15 +29,17 @@ const statusVariant = (s: EmploymentStatus): "default" | "success" | "warning" |
 };
 
 export function WorkerTable(props: { workers: Worker[] }): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>İsim</TableHead>
-          <TableHead>E-posta</TableHead>
-          <TableHead>Vize bitiş</TableHead>
-          <TableHead>Durum</TableHead>
-          <TableHead className="text-right">Aksiyon</TableHead>
+          <TableHead>{t("common.name")}</TableHead>
+          <TableHead>{t("common.email")}</TableHead>
+          <TableHead>{t("workers.visaExpiry")}</TableHead>
+          <TableHead>{t("common.status")}</TableHead>
+          <TableHead className="text-right">{t("common.action")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -48,7 +51,7 @@ export function WorkerTable(props: { workers: Worker[] }): JSX.Element {
             <TableCell>{w.email}</TableCell>
             <TableCell>
               {w.visaExpiryDate
-                ? new Date(w.visaExpiryDate).toLocaleDateString("en-GB")
+                ? new Date(w.visaExpiryDate).toLocaleDateString(localeTag)
                 : "—"}
             </TableCell>
             <TableCell>
@@ -61,7 +64,7 @@ export function WorkerTable(props: { workers: Worker[] }): JSX.Element {
                 href={`/workers/${w.id}`}
                 className="text-sm font-medium text-brand-navy hover:underline"
               >
-                Detay
+                {t("workerTable.detail")}
               </Link>
             </TableCell>
           </TableRow>

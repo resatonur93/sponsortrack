@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type PolicyRow = {
   id: string;
@@ -24,16 +25,9 @@ type PolicyRow = {
   status: "Pending" | "Acknowledged";
 };
 
-const CATEGORY_LABEL: Record<PolicyCategory, string> = {
-  SPONSOR_DUTIES: "Sponsor duties",
-  IMMIGRATION_RULES: "Immigration rules",
-  COMPLIANCE_GUIDANCE: "Compliance guidance",
-  DATA_PROTECTION: "Data protection",
-  EMPLOYMENT_LAW: "Employment law",
-  TRAINING_MATERIAL: "Training material",
-};
-
 export default function PoliciesPage(): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
   const [rows, setRows] = useState<PolicyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,13 +54,13 @@ export default function PoliciesPage(): JSX.Element {
     const res = await fetch("/api/policies", { credentials: "include" });
     setLoading(false);
     if (!res.ok) {
-      setError("Policies could not be loaded.");
+      setError(t("policies.loadError"));
       return;
     }
     const json = (await res.json()) as { data: PolicyRow[] };
     setRows(json.data);
     setError(null);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -80,9 +74,9 @@ export default function PoliciesPage(): JSX.Element {
       m.set(r.category, list);
     }
     return Array.from(m.entries()).sort((a, b) =>
-      CATEGORY_LABEL[a[0]].localeCompare(CATEGORY_LABEL[b[0]])
+      t(`policies.cat.${a[0]}`).localeCompare(t(`policies.cat.${b[0]}`))
     );
-  }, [rows]);
+  }, [rows, t]);
 
   async function openDetail(id: string): Promise<void> {
     setDetailId(id);
@@ -118,7 +112,7 @@ export default function PoliciesPage(): JSX.Element {
     });
     setAckBusy(null);
     if (!res.ok) {
-      alert("Could not record acknowledgement.");
+      alert(t("policies.ackFailed"));
       return;
     }
     await load();
@@ -144,7 +138,7 @@ export default function PoliciesPage(): JSX.Element {
   }
 
   if (loading) {
-    return <p className="text-slate-600">Loading…</p>;
+    return <p className="text-slate-600">{t("common.loading")}</p>;
   }
   if (error) {
     return <p className="text-brand-rose">{error}</p>;
@@ -153,17 +147,14 @@ export default function PoliciesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-brand-navy">Policy Hub</h1>
-        <p className="text-slate-600">
-          Sponsor guidance and training materials. Acknowledgements are tracked
-          per user.
-        </p>
+        <h1 className="text-2xl font-bold text-brand-navy">{t("policies.title")}</h1>
+        <p className="text-slate-600">{t("policies.subtitle")}</p>
       </div>
 
       {grouped.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-sm text-slate-500">
-            No policies published yet for your organisation.
+            {t("policies.empty")}
           </CardContent>
         </Card>
       ) : (
@@ -171,7 +162,7 @@ export default function PoliciesPage(): JSX.Element {
           <Card key={category}>
             <CardHeader>
               <CardTitle className="text-base">
-                {CATEGORY_LABEL[category]}
+                {t(`policies.cat.${category}`)}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -189,9 +180,11 @@ export default function PoliciesPage(): JSX.Element {
                       {p.title}
                     </button>
                     <p className="text-xs text-slate-500">
-                      v{p.version} · Effective{" "}
-                      {new Date(p.effectiveDate).toLocaleDateString("en-GB")}
-                      {p.isAcknowledgementRequired ? " · Acknowledgement required" : ""}
+                      v{p.version} · {t("policies.effectiveLabel")}{" "}
+                      {new Date(p.effectiveDate).toLocaleDateString(localeTag)}
+                      {p.isAcknowledgementRequired
+                        ? ` · ${t("policies.ackRequiredChip")}`
+                        : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -203,8 +196,8 @@ export default function PoliciesPage(): JSX.Element {
                       }
                     >
                       {p.status === "Pending" && p.isAcknowledgementRequired
-                        ? "Pending"
-                        : "Acknowledged"}
+                        ? t("policies.pending")
+                        : t("policies.acknowledged")}
                     </Badge>
                     <Button
                       type="button"
@@ -212,7 +205,7 @@ export default function PoliciesPage(): JSX.Element {
                       variant="outline"
                       onClick={() => void openWho(p.id)}
                     >
-                      Who acknowledged?
+                      {t("policies.whoAck")}
                     </Button>
                     {!p.myAcknowledgedAt ? (
                       <Button
@@ -222,8 +215,8 @@ export default function PoliciesPage(): JSX.Element {
                         onClick={() => void acknowledge(p.id)}
                       >
                         {p.isAcknowledgementRequired
-                          ? "Acknowledge"
-                          : "Mark as read"}
+                          ? t("policies.acknowledge")
+                          : t("policies.markRead")}
                       </Button>
                     ) : null}
                   </div>
@@ -245,16 +238,17 @@ export default function PoliciesPage(): JSX.Element {
       >
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{detail?.title ?? "Policy"}</DialogTitle>
+            <DialogTitle>{detail?.title ?? t("policies.dialogFallback")}</DialogTitle>
           </DialogHeader>
           {detailLoading ? (
-            <p className="text-sm text-slate-500">Loading…</p>
+            <p className="text-sm text-slate-500">{t("common.loading")}</p>
           ) : detail ? (
             <div className="space-y-3 text-sm">
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">v{detail.version}</Badge>
                 <Badge variant="outline">
-                  Effective {new Date(detail.effectiveDate).toLocaleDateString("en-GB")}
+                  {t("policies.effectiveLabel")}{" "}
+                  {new Date(detail.effectiveDate).toLocaleDateString(localeTag)}
                 </Badge>
                 <Badge
                   variant={
@@ -264,8 +258,8 @@ export default function PoliciesPage(): JSX.Element {
                   }
                 >
                   {detail.status === "Pending" && detail.isAcknowledgementRequired
-                    ? "Pending"
-                    : "Acknowledged"}
+                    ? t("policies.pending")
+                    : t("policies.acknowledged")}
                 </Badge>
               </div>
               <div className="prose prose-sm max-w-none whitespace-pre-wrap text-slate-800">
@@ -278,13 +272,13 @@ export default function PoliciesPage(): JSX.Element {
                   disabled={ackBusy !== null}
                 >
                   {detail.isAcknowledgementRequired
-                    ? "Acknowledge policy"
-                    : "Mark as read"}
+                    ? t("policies.acknowledgePolicy")
+                    : t("policies.markRead")}
                 </Button>
               ) : (
                 <p className="text-xs text-slate-500">
-                  You acknowledged this on{" "}
-                  {new Date(detail.myAcknowledgedAt).toLocaleString("en-GB")}.
+                  {t("policies.youAckedOn")}{" "}
+                  {new Date(detail.myAcknowledgedAt).toLocaleString(localeTag)}.
                 </p>
               )}
             </div>
@@ -303,12 +297,12 @@ export default function PoliciesPage(): JSX.Element {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Acknowledgements</DialogTitle>
+            <DialogTitle>{t("policies.ackDialogTitle")}</DialogTitle>
           </DialogHeader>
           {whoLoading ? (
-            <p className="text-sm text-slate-500">Loading…</p>
+            <p className="text-sm text-slate-500">{t("common.loading")}</p>
           ) : whoRows.length === 0 ? (
-            <p className="text-sm text-slate-500">No acknowledgements yet.</p>
+            <p className="text-sm text-slate-500">{t("policies.noAckYet")}</p>
           ) : (
             <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
               {whoRows.map((r) => (
@@ -321,7 +315,7 @@ export default function PoliciesPage(): JSX.Element {
                   </span>{" "}
                   <span className="text-slate-500">({r.user.email})</span>
                   <div className="text-xs text-slate-500">
-                    {new Date(r.acknowledgedAt).toLocaleString("en-GB")}
+                    {new Date(r.acknowledgedAt).toLocaleString(localeTag)}
                   </div>
                 </li>
               ))}

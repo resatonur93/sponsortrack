@@ -5,6 +5,7 @@ import type { DocumentType } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type ChecklistItem = {
   documentType: DocumentType;
@@ -17,13 +18,6 @@ type ChecklistItem = {
     uploadDate: string;
     expiryDate: string | null;
   } | null;
-};
-
-const STATUS_LABEL: Record<ChecklistItem["status"], string> = {
-  ok: "Yüklü",
-  missing: "Eksik",
-  expired: "Süresi doldu",
-  expiring_soon: "Süre yakında bitiyor",
 };
 
 function statusBadgeVariant(
@@ -50,6 +44,14 @@ type Props = {
 };
 
 export function WorkerDocumentChecklist(props: Props): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
+  const statusLabel: Record<ChecklistItem["status"], string> = {
+    ok: t("docChecklist.uploaded"),
+    missing: t("docChecklist.missing"),
+    expired: t("docChecklist.expired"),
+    expiring_soon: t("docChecklist.expiringSoon"),
+  };
   const [items, setItems] = useState<ChecklistItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,14 +64,14 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
     });
     setLoading(false);
     if (!res.ok) {
-      setError("Kontrol listesi yüklenemedi.");
+      setError(t("docChecklist.error"));
       setItems(null);
       return;
     }
     const json = (await res.json()) as { data: { checklist: ChecklistItem[] } };
     setItems(json.data.checklist ?? []);
     setError(null);
-  }, [props.workerId]);
+  }, [props.workerId, t]);
 
   useEffect(() => {
     void load();
@@ -79,7 +81,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
     return (
       <Card className="border-brand-navy/20">
         <CardContent className="py-6 text-sm text-slate-500">
-          Belge kontrol listesi yükleniyor…
+          {t("docChecklist.loading")}
         </CardContent>
       </Card>
     );
@@ -95,11 +97,10 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
     return (
       <Card className="border-slate-200 bg-slate-50/80">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Zorunlu belge özeti</CardTitle>
+          <CardTitle className="text-base">{t("docChecklist.titleEmpty")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-600">
-          Bu çalışanın mevcut durumu için tanımlı zorunlu belge kuralı yok (ör. işe
-          başlamayı bekliyor veya işten ayrılmış olabilir).
+          {t("docChecklist.noRules")}
         </CardContent>
       </Card>
     );
@@ -112,15 +113,12 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
     <Card className="border-brand-navy/25 shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Zorunlu belgeler — durum özeti</CardTitle>
+          <CardTitle className="text-base">{t("docChecklist.title")}</CardTitle>
           <Badge variant="outline" className="w-fit font-normal">
-            {okCount} / {total} tamam
+            {okCount} / {total} {t("docChecklist.progress")}
           </Badge>
         </div>
-        <p className="text-xs text-slate-600">
-          Eksik veya süresi geçmiş belgeleri aşağıdan yükleyin. Yükleme formu bu
-          listenin altında.
-        </p>
+        <p className="text-xs text-slate-600">{t("docChecklist.hint")}</p>
       </CardHeader>
       <CardContent className="space-y-2">
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
@@ -142,22 +140,23 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
                     {row.documentType}
                   </Badge>
                   <Badge variant={statusBadgeVariant(row.status)}>
-                    {STATUS_LABEL[row.status]}
+                    {statusLabel[row.status]}
                   </Badge>
                 </div>
                 {row.latest ? (
                   <p className="mt-1 text-xs text-slate-600">
-                    Dosya: <span className="font-medium">{row.latest.fileName}</span>
+                    {t("docChecklist.file")}:{" "}
+                    <span className="font-medium">{row.latest.fileName}</span>
                     {" · "}
-                    Yükleme:{" "}
-                    {new Date(row.latest.uploadDate).toLocaleDateString("tr-TR")}
+                    {t("docChecklist.uploadedOn")}:{" "}
+                    {new Date(row.latest.uploadDate).toLocaleDateString(localeTag)}
                     {row.latest.expiryDate
-                      ? ` · Bitiş: ${new Date(row.latest.expiryDate).toLocaleDateString("tr-TR")}`
-                      : " · Bitiş tarihi yok"}
+                      ? ` · ${t("docChecklist.expires")}: ${new Date(row.latest.expiryDate).toLocaleDateString(localeTag)}`
+                      : ` · ${t("docChecklist.noExpiry")}`}
                   </p>
                 ) : row.status === "missing" ? (
                   <p className="mt-1 text-xs text-red-800">
-                    Henüz yüklenmedi — formdan bu türü seçip yükleyin.
+                    {t("docChecklist.notUploadedYet")}
                   </p>
                 ) : null}
               </div>

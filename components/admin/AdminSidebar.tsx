@@ -11,18 +11,20 @@ import {
   Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 const items = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/leads", label: "Leads", icon: Inbox },
-  { href: "/admin/tenants", label: "Tenants", icon: Building2 },
-  { href: "/admin/users", label: "Kullanıcılar", icon: Users },
-  { href: "/admin/audit", label: "Audit", icon: Shield },
-  { href: "/admin/settings", label: "Ayarlar", icon: Settings },
+  { href: "/admin", labelKey: "admin.nav.dashboard", icon: LayoutDashboard },
+  { href: "/admin/leads", labelKey: "admin.nav.leads", icon: Inbox },
+  { href: "/admin/tenants", labelKey: "admin.nav.tenants", icon: Building2 },
+  { href: "/admin/users", labelKey: "admin.nav.users", icon: Users },
+  { href: "/admin/audit", labelKey: "admin.nav.audit", icon: Shield },
+  { href: "/admin/settings", labelKey: "admin.nav.settings", icon: Settings },
 ] as const;
 
 export function AdminSidebar(): JSX.Element {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-slate-700 bg-[#0F172A]">
@@ -30,7 +32,7 @@ export function AdminSidebar(): JSX.Element {
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
           SponsorTrack
         </p>
-        <p className="text-sm font-bold text-slate-50">Admin</p>
+        <p className="text-sm font-bold text-slate-50">{t("admin.subtitle")}</p>
       </div>
       <nav className="flex-1 space-y-0.5 p-2">
         {items.map((item) => {
@@ -51,7 +53,7 @@ export function AdminSidebar(): JSX.Element {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}

@@ -5,6 +5,8 @@ import { signOut, useSession } from "next-auth/react";
 import { LogOut, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 export function AdminLayout({
   children,
@@ -12,6 +14,7 @@ export function AdminLayout({
   children: React.ReactNode;
 }): JSX.Element {
   const { data } = useSession();
+  const { t } = useTranslation();
 
   return (
     <div className="flex min-h-screen bg-[#0F172A] text-slate-50">
@@ -24,10 +27,11 @@ export function AdminLayout({
               className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
-              Uygulama
+              {t("shell.app")}
             </Link>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher variant="dark" />
             <span className="hidden text-xs text-slate-400 sm:inline">
               {data?.user?.email}
             </span>
@@ -43,7 +47,7 @@ export function AdminLayout({
               }
             >
               <LogOut className="mr-1 h-4 w-4" />
-              Çıkış
+              {t("shell.logout")}
             </Button>
           </div>
         </header>

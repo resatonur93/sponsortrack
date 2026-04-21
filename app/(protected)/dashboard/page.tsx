@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type DashboardPayload = {
   stats: {
@@ -70,9 +71,11 @@ type RiskEngineSummary = {
 };
 
 export default function DashboardPage(): JSX.Element {
+  const { t, locale } = useTranslation();
   const [data, setData] = useState<DashboardPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [riskEngine, setRiskEngine] = useState<RiskEngineSummary | null>(null);
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
   useEffect(() => {
     void (async () => {
@@ -81,10 +84,11 @@ export default function DashboardPage(): JSX.Element {
         cache: "no-store",
       });
       if (!res.ok) {
-        setError("Veri yüklenemedi");
+        setLoadFailed(true);
         return;
       }
       const json = (await res.json()) as { data: DashboardPayload };
+      setLoadFailed(false);
       setData(json.data);
     })();
   }, []);
@@ -101,35 +105,35 @@ export default function DashboardPage(): JSX.Element {
     })();
   }, []);
 
-  if (error) {
-    return <p className="text-red-600">{error}</p>;
+  if (loadFailed) {
+    return <p className="text-red-600">{t("common.errorLoad")}</p>;
   }
   if (!data) {
-    return <p className="text-slate-600">Yükleniyor...</p>;
+    return <p className="text-slate-600">{t("common.loading")}</p>;
   }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-brand-navy">Dashboard</h1>
-        <p className="text-slate-600">Özet ve risk görünümü</p>
+        <h1 className="text-2xl font-bold text-brand-navy">{t("dashboard.title")}</h1>
+        <p className="text-slate-600">{t("dashboard.subtitle")}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatsCard title="Toplam çalışan" value={data.stats.totalWorkers} />
+        <StatsCard title={t("dashboard.totalWorkers")} value={data.stats.totalWorkers} />
         <StatsCard
-          title="Aktif sponsorluk"
+          title={t("dashboard.activeSponsorships")}
           value={data.stats.activeSponsorships}
         />
         <StatsCard
-          title="Bekleyen bildirim"
+          title={t("dashboard.pendingNotifications")}
           value={data.stats.pendingNotifications}
         />
         <StatsCard
-          title="Geciken bildirim"
+          title={t("dashboard.overdueNotifications")}
           value={data.stats.overdueNotifications}
         />
         <StatsCard
-          title="Eksik belge (kayıt)"
+          title={t("dashboard.missingDocs")}
           value={data.stats.missingDocumentIssues ?? 0}
         />
       </div>
@@ -138,20 +142,20 @@ export default function DashboardPage(): JSX.Element {
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold text-slate-900">
-              Risk engine
+              {t("dashboard.riskEngine")}
             </h2>
             <Link
               href="/risk-report"
               className="text-sm font-medium text-brand-navy underline"
             >
-              Tüm sıralama →
+              {t("dashboard.riskEngineFullRanking")}
             </Link>
           </div>
           {riskEngine.workerScores === 0 ? (
             <p className="text-sm text-slate-600">
-              Henüz skor yok — gece cron (
-              <code className="text-xs">/api/cron/risk-scores</code>) veya ilk
-              hesaplamayı tetikleyin.
+              {t("dashboard.riskEngineEmptyBefore")}
+              <code className="text-xs">/api/cron/risk-scores</code>
+              {t("dashboard.riskEngineEmptyAfter")}
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -162,7 +166,9 @@ export default function DashboardPage(): JSX.Element {
                   key={lvl}
                   className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
                 >
-                  <p className="text-xs font-medium text-slate-500">{lvl}</p>
+                  <p className="text-xs font-medium text-slate-500">
+                    {t(`risk.${lvl}`)}
+                  </p>
                   <p className="text-lg font-semibold tabular-nums text-brand-navy">
                     {riskEngine.byLevel[lvl]}
                   </p>
@@ -172,8 +178,8 @@ export default function DashboardPage(): JSX.Element {
           )}
           {riskEngine.lastCalculatedAt ? (
             <p className="mt-2 text-xs text-slate-500">
-              Son hesaplama:{" "}
-              {new Date(riskEngine.lastCalculatedAt).toLocaleString("tr-TR")}
+              {t("dashboard.lastCalculated")}{" "}
+              {new Date(riskEngine.lastCalculatedAt).toLocaleString(localeTag)}
             </p>
           ) : null}
         </div>
@@ -182,7 +188,7 @@ export default function DashboardPage(): JSX.Element {
       {data.highPriorityMissing && data.highPriorityMissing.length > 0 ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <h2 className="text-sm font-semibold text-red-900">
-            Yüksek öncelikli eksik belgeler
+            {t("dashboard.highPriorityMissing")}
           </h2>
           <ul className="mt-2 space-y-1 text-sm">
             {data.highPriorityMissing.map((h) => (
@@ -201,20 +207,24 @@ export default function DashboardPage(): JSX.Element {
       ) : null}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-sm font-medium text-slate-600">Risk skoru</h2>
+          <h2 className="text-sm font-medium text-slate-600">
+            {t("dashboard.riskScore")}
+          </h2>
           <RiskBadge level={data.risk.level} score={data.risk.score} />
         </div>
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Uyarılar</h2>
+          <h2 className="text-base font-semibold text-slate-900">
+            {t("dashboard.alerts")}
+          </h2>
           <Link href="/alerts" className="text-sm text-brand-navy underline">
-            Tümü
+            {t("dashboard.alertsAll")}
           </Link>
         </div>
         {!data.recentAlerts?.length ? (
-          <p className="text-sm text-slate-500">Aktif uyarı yok.</p>
+          <p className="text-sm text-slate-500">{t("dashboard.noAlerts")}</p>
         ) : (
           <ul className="space-y-2">
             {data.recentAlerts.map((a) => (
@@ -237,7 +247,9 @@ export default function DashboardPage(): JSX.Element {
                       </Link>
                     ) : null}
                     {!a.isRead ? (
-                      <span className="text-xs font-medium text-red-600">Yeni</span>
+                      <span className="text-xs font-medium text-red-600">
+                        {t("dashboard.newBadge")}
+                      </span>
                     ) : null}
                   </div>
                   <p className="mt-0.5 line-clamp-2 text-slate-600">{a.message}</p>
@@ -249,24 +261,29 @@ export default function DashboardPage(): JSX.Element {
       </div>
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Eksik belge takibi</h2>
+          <h2 className="text-base font-semibold text-slate-900">
+            {t("dashboard.missingDocTracking")}
+          </h2>
           <span className="text-xs text-slate-500">
-            {data.missingDocumentsTable?.length ?? 0} çalışan listeleniyor
+            {data.missingDocumentsTable?.length ?? 0}{" "}
+            {t("dashboard.missingDocListed")}
           </span>
         </div>
         {!data.missingDocumentsTable || data.missingDocumentsTable.length === 0 ? (
-          <p className="text-sm text-slate-500">Eksik ya da süresi geçen zorunlu belge yok.</p>
+          <p className="text-sm text-slate-500">{t("dashboard.noMissingDocs")}</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">S.No</TableHead>
-                <TableHead>Çalışan</TableHead>
-                <TableHead>Eksik belge başlıkları</TableHead>
-                <TableHead className="w-24">Yüksek</TableHead>
-                <TableHead className="w-24">Orta</TableHead>
-                <TableHead className="w-24">Düşük</TableHead>
-                <TableHead className="w-24 text-right">Detay</TableHead>
+                <TableHead className="w-16">{t("dashboard.tableSn")}</TableHead>
+                <TableHead>{t("dashboard.tableWorker")}</TableHead>
+                <TableHead>{t("dashboard.tableMissingTitles")}</TableHead>
+                <TableHead className="w-24">{t("dashboard.tableHigh")}</TableHead>
+                <TableHead className="w-24">{t("dashboard.tableMedium")}</TableHead>
+                <TableHead className="w-24">{t("dashboard.tableLow")}</TableHead>
+                <TableHead className="w-24 text-right">
+                  {t("dashboard.tableDetail")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -313,7 +330,7 @@ export default function DashboardPage(): JSX.Element {
                       href={`/workers/${row.workerId}`}
                       className="text-sm text-brand-navy underline"
                     >
-                      Aç
+                      {t("common.open")}
                     </Link>
                   </TableCell>
                 </TableRow>

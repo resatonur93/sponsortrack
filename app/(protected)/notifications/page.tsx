@@ -33,6 +33,7 @@ import {
 import { EscalationBadge } from "@/components/notifications/EscalationBadge";
 import { formatDeadlineWindowLabel } from "@/lib/deadline-display";
 import { workflowStateLabel } from "@/lib/event-workflow-ui";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type Row = NotificationEvent & {
   worker: { firstName: string; lastName: string; email: string };
@@ -59,6 +60,8 @@ type WorkflowAssignmentRow = {
 };
 
 export default function NotificationsPage(): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState<string>("all");
   const [type, setType] = useState<string>("all");
@@ -118,35 +121,34 @@ export default function NotificationsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-brand-navy">Bildirimler</h1>
-        <p className="text-slate-600">Uyum olayları ve tamamlama</p>
+        <h1 className="text-2xl font-bold text-brand-navy">{t("notifications.title")}</h1>
+        <p className="text-slate-600">{t("notifications.subtitle")}</p>
       </div>
 
       <Card className="border-brand-navy/20">
         <CardHeader>
-          <CardTitle className="text-base">Onay akışı — size atanan adımlar</CardTitle>
-          <p className="text-sm text-slate-600">
-            Bekleyen veya üzerinde çalıştığınız workflow adımları. Olayı açmak için Events
-            sayfasına gidin.
-          </p>
+          <CardTitle className="text-base">{t("notifications.workflowTitle")}</CardTitle>
+          <p className="text-sm text-slate-600">{t("notifications.workflowHint")}</p>
         </CardHeader>
         <CardContent>
           {workflowLoading ? (
-            <p className="text-sm text-slate-500">Yükleniyor…</p>
+            <p className="text-sm text-slate-500">{t("common.loading")}</p>
           ) : workflowRows.length === 0 ? (
-            <p className="text-sm text-slate-500">Atanan inceleme yok.</p>
+            <p className="text-sm text-slate-500">{t("notifications.workflowEmpty")}</p>
           ) : (
             <div className="overflow-x-auto rounded-md border border-slate-200">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Adım</TableHead>
-                    <TableHead>Durum</TableHead>
-                    <TableHead>Olay</TableHead>
-                    <TableHead>Çalışan</TableHead>
-                    <TableHead>Workflow</TableHead>
-                    <TableHead>Son tarih</TableHead>
-                    <TableHead className="text-right">İşlem</TableHead>
+                    <TableHead>{t("notifications.colStep")}</TableHead>
+                    <TableHead>{t("notifications.colStatus")}</TableHead>
+                    <TableHead>{t("notifications.colEvent")}</TableHead>
+                    <TableHead>{t("notifications.colWorker")}</TableHead>
+                    <TableHead>{t("notifications.colWorkflow")}</TableHead>
+                    <TableHead>{t("notifications.colDeadline")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("notifications.colAction")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -166,11 +168,13 @@ export default function NotificationsPage(): JSX.Element {
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
-                        {new Date(w.event.reportDeadline).toLocaleDateString("en-GB")}
+                        {new Date(w.event.reportDeadline).toLocaleDateString(localeTag)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button type="button" size="sm" variant="secondary" asChild>
-                          <Link href={`/events#event-${w.event.id}`}>Olaya git (Events)</Link>
+                          <Link href={`/events#event-${w.event.id}`}>
+                            {t("notifications.openEvents")}
+                          </Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -184,13 +188,15 @@ export default function NotificationsPage(): JSX.Element {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="w-full sm:w-48">
-          <label className="text-sm text-slate-600">Durum</label>
+          <label className="text-sm text-slate-600">
+            {t("notifications.filterStatus")}
+          </label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
+              <SelectItem value="all">{t("common.all")}</SelectItem>
               <SelectItem value="PENDING">PENDING</SelectItem>
               <SelectItem value="OVERDUE">OVERDUE</SelectItem>
               <SelectItem value="COMPLETED">COMPLETED</SelectItem>
@@ -199,13 +205,15 @@ export default function NotificationsPage(): JSX.Element {
           </Select>
         </div>
         <div className="w-full sm:w-56">
-          <label className="text-sm text-slate-600">Tip</label>
+          <label className="text-sm text-slate-600">
+            {t("notifications.filterType")}
+          </label>
           <Select value={type} onValueChange={setType}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
+              <SelectItem value="all">{t("common.all")}</SelectItem>
               {(
                 [
                   "NO_SHOW",
@@ -220,9 +228,9 @@ export default function NotificationsPage(): JSX.Element {
                   "SALARY_DISCREPANCY",
                   "UNAUTHORISED_ABSENCE",
                 ] as NotificationType[]
-              ).map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
+              ).map((evType) => (
+                <SelectItem key={evType} value={evType}>
+                  {evType}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -230,18 +238,20 @@ export default function NotificationsPage(): JSX.Element {
         </div>
       </div>
       {loading ? (
-        <p>Yükleniyor...</p>
+        <p>{t("common.loading")}</p>
       ) : (
         <div className="rounded-md border border-slate-200 bg-white">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Çalışan</TableHead>
-                <TableHead>Tip</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead>Urgency</TableHead>
-                <TableHead>Rapor son tarihi</TableHead>
-                <TableHead className="text-right">İşlem</TableHead>
+                <TableHead>{t("notifications.colWorker")}</TableHead>
+                <TableHead>{t("notifications.filterType")}</TableHead>
+                <TableHead>{t("notifications.colStatus")}</TableHead>
+                <TableHead>{t("notifications.tableUrgency")}</TableHead>
+                <TableHead>{t("notifications.tableReportDeadline")}</TableHead>
+                <TableHead className="text-right">
+                  {t("notifications.colAction")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -264,7 +274,7 @@ export default function NotificationsPage(): JSX.Element {
                       {(r.reportDeadlineAt ?? r.dueDate) &&
                         new Date(
                           r.reportDeadlineAt ?? r.dueDate
-                        ).toLocaleDateString("en-GB")}
+                        ).toLocaleDateString(localeTag)}
                     </div>
                     <div className="text-slate-500">
                       {formatDeadlineWindowLabel(
@@ -282,7 +292,7 @@ export default function NotificationsPage(): JSX.Element {
                         type="button"
                         onClick={() => void complete(r.id)}
                       >
-                        Tamamla
+                        {t("notifications.complete")}
                       </Button>
                     ) : null}
                   </TableCell>

@@ -33,6 +33,25 @@ import { RoleComplianceCard } from "@/components/workers/RoleComplianceCard";
 import { SalaryVerificationCard } from "@/components/workers/SalaryVerificationCard";
 import { AbsenceTrackerPanel } from "@/components/workers/AbsenceTrackerPanel";
 import { UkLawComplianceTab } from "@/components/workers/UkLawComplianceTab";
+import { useTranslation } from "@/contexts/LanguageContext";
+import type { Locale } from "@/lib/i18n/types";
+
+function formatLocaleDate(
+  d: Date | string | null | undefined,
+  locale: Locale
+): string {
+  if (!d) return "—";
+  const tag = locale === "tr" ? "tr-TR" : "en-GB";
+  return new Date(d).toLocaleDateString(tag);
+}
+
+function formatLocaleDateTime(
+  d: Date | string | number,
+  locale: Locale
+): string {
+  const tag = locale === "tr" ? "tr-TR" : "en-GB";
+  return new Date(d).toLocaleString(tag);
+}
 
 type LineManagerBrief = {
   id: string;
@@ -67,10 +86,12 @@ type EngineRiskRow = {
 };
 
 export default function WorkerDetailPage(): JSX.Element {
+  const { t, locale } = useTranslation();
+  const fmt = (d: Date | string | null | undefined) => formatLocaleDate(d, locale);
   const params = useParams();
   const id = params.id as string;
   const [data, setData] = useState<WorkerDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
@@ -93,12 +114,12 @@ export default function WorkerDetailPage(): JSX.Element {
   const load = useCallback(async (): Promise<void> => {
     const res = await fetch(`/api/workers/${id}`, { credentials: "include" });
     if (!res.ok) {
-      setError("Yüklenemedi");
+      setLoadError(true);
       return;
     }
     const json = (await res.json()) as { data: WorkerDetail };
     setData(json.data);
-    setError(null);
+    setLoadError(false);
   }, [id]);
 
   useEffect(() => {
@@ -164,7 +185,7 @@ export default function WorkerDetailPage(): JSX.Element {
     });
     setSaving(false);
     if (!res.ok) {
-      alert("Kaydedilemedi.");
+      alert(t("workerDetail.saveFailed"));
       return;
     }
     setEditOpen(false);
@@ -172,7 +193,7 @@ export default function WorkerDetailPage(): JSX.Element {
   }
 
   async function terminate(): Promise<void> {
-    if (!confirm("Sponsorluğu sonlandırmak istiyor musunuz?")) return;
+    if (!confirm(t("workerDetail.confirmTerminate"))) return;
     const res = await fetch(`/api/workers/${id}`, {
       method: "DELETE",
       credentials: "include",
@@ -194,7 +215,7 @@ export default function WorkerDetailPage(): JSX.Element {
       try {
         metadata = JSON.parse(metaRaw) as Record<string, unknown>;
       } catch {
-        alert("Metadata geçerli JSON olmalı");
+        alert(t("workerDetail.invalidJson"));
         setUploading(false);
         return;
       }
@@ -218,8 +239,12 @@ export default function WorkerDetailPage(): JSX.Element {
     setDocRefresh((x) => x + 1);
   }
 
-  if (error || !data) {
-    return <p className="text-slate-600">{error ?? "Yükleniyor..."}</p>;
+  if (!data) {
+    return (
+      <p className="text-slate-600">
+        {loadError ? t("workerDetail.loadFailed") : t("workerDetail.loading")}
+      </p>
+    );
   }
 
   const riskVariant =
@@ -251,26 +276,26 @@ export default function WorkerDetailPage(): JSX.Element {
     <div className="space-y-6">
       <div>
         <Link href="/workers" className="text-sm text-brand-navy hover:underline">
-          ← Çalışanlar
+          {t("workerDetail.backLink")}
         </Link>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="flex h-auto w-full flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
           <TabsTrigger value="overview" className="text-sm">
-            Overview
+            {t("workerDetail.tabOverview")}
           </TabsTrigger>
           <TabsTrigger value="documents" className="text-sm">
-            Documents
+            {t("workerDetail.tabDocuments")}
           </TabsTrigger>
           <TabsTrigger value="history" className="text-sm">
-            History
+            {t("workerDetail.tabHistory")}
           </TabsTrigger>
           <TabsTrigger value="compliance" className="text-sm">
-            Compliance
+            {t("workerDetail.tabCompliance")}
           </TabsTrigger>
           <TabsTrigger value="uk-law" className="text-sm">
-            UK Law
+            {t("workerDetail.tabUkLaw")}
           </TabsTrigger>
         </TabsList>
 
@@ -288,18 +313,26 @@ export default function WorkerDetailPage(): JSX.Element {
                   <p className="text-sm text-slate-600">{data.email}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge variant={statusVariant}>
-                      {employmentStatusLabel(data.employmentStatus)}
+                      {t(
+                        `workerDetail.employment.${data.employmentStatus}`,
+                        data.employmentStatus
+                      )}
                     </Badge>
-                    <Badge variant={riskVariant}>Risk: {data.riskSnapshot}</Badge>
+                    <Badge variant={riskVariant}>
+                      {t("workerDetail.risk")}: {data.riskSnapshot}
+                    </Badge>
                     <Badge variant="outline">
-                      Kayıtlı: {data.complianceRiskLevel}
+                      {t("workerDetail.registered")}: {data.complianceRiskLevel}
                     </Badge>
                     {engineRisk ? (
                       <Badge variant={engineVariant}>
-                        Engine: {engineRisk.level} · {engineRisk.score} pts
+                        {t("workerDetail.engine")}: {engineRisk.level} ·{" "}
+                        {engineRisk.score} {t("workerDetail.points")}
                       </Badge>
                     ) : engineRisk === null ? (
-                      <Badge variant="outline">Engine: henüz yok</Badge>
+                      <Badge variant="outline">
+                        {t("workerDetail.engine")}: {t("workerDetail.engineNone")}
+                      </Badge>
                     ) : null}
                   </div>
                   {engineRisk &&
@@ -307,7 +340,7 @@ export default function WorkerDetailPage(): JSX.Element {
                   engineRisk.factors.length > 0 ? (
                     <details className="mt-2 text-xs text-slate-600">
                       <summary className="cursor-pointer text-brand-navy">
-                        Risk faktörleri ({engineRisk.factors.length})
+                        {t("workerDetail.riskFactors")} ({engineRisk.factors.length})
                       </summary>
                       <ul className="mt-2 list-inside list-disc space-y-1">
                         {engineRisk.factors.map((raw, idx) => {
@@ -338,60 +371,57 @@ export default function WorkerDetailPage(): JSX.Element {
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Certificate of Sponsorship</CardTitle>
+                <CardTitle className="text-base">{t("workerDetail.cardCos")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-2 text-sm">
-                <Row label="CoS reference" value={data.cosReference} />
-                <Row label="Assign date" value={fmt(data.cosAssignDate)} />
-                <Row label="Expiry date" value={fmt(data.cosExpiryDate)} />
-                <Row label="Visa type" value={data.visaType} />
+                <Row label={t("workerDetail.fieldCosRef")} value={data.cosReference} />
+                <Row label={t("workerDetail.fieldAssignDate")} value={fmt(data.cosAssignDate)} />
+                <Row label={t("workerDetail.fieldExpiryDate")} value={fmt(data.cosExpiryDate)} />
+                <Row label={t("workerDetail.fieldVisaType")} value={data.visaType} />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Employment</CardTitle>
+                <CardTitle className="text-base">{t("workerDetail.cardEmployment")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-2 text-sm">
-                <Row label="Job title" value={data.jobTitle} />
-                <Row label="Occupation code (SOC)" value={data.occupationCode} />
-                <Row label="Salary (GBP/year)" value={String(data.salary)} />
-                <Row label="Work location" value={data.workLocation} />
-                <Row label="Start date" value={fmt(data.employmentStartDate)} />
+                <Row label={t("workerDetail.fieldJobTitle")} value={data.jobTitle} />
+                <Row label={t("workerDetail.fieldSoc")} value={data.occupationCode} />
+                <Row label={t("workerDetail.fieldSalary")} value={String(data.salary)} />
+                <Row label={t("workerDetail.fieldWorkLocation")} value={data.workLocation} />
+                <Row label={t("workerDetail.fieldStartDate")} value={fmt(data.employmentStartDate)} />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Line manager</CardTitle>
+                <CardTitle className="text-base">{t("workerDetail.cardLineManager")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-2 text-sm">
-                <Row label="Name" value={managerName} />
-                <Row label="Contact email" value={managerEmail} />
-                <Row
-                  label="Phone"
-                  value="—"
-                />
+                <Row label={t("workerDetail.fieldName")} value={managerName} />
+                <Row label={t("workerDetail.fieldContactEmail")} value={managerEmail} />
+                <Row label={t("workerDetail.fieldPhone")} value="—" />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Contact</CardTitle>
+                <CardTitle className="text-base">{t("workerDetail.cardContact")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-2 text-sm">
-                <Row label="Work email" value={data.email} />
-                <Row label="Phone" value={data.phone ?? "—"} />
-                <Row label="Personal email" value={data.personalEmail ?? "—"} />
-                <Row label="Current address" value={data.currentAddress ?? "—"} />
+                <Row label={t("workerDetail.fieldWorkEmail")} value={data.email} />
+                <Row label={t("workerDetail.fieldPhone")} value={data.phone ?? "—"} />
+                <Row label={t("workerDetail.fieldPersonalEmail")} value={data.personalEmail ?? "—"} />
+                <Row label={t("workerDetail.fieldCurrentAddress")} value={data.currentAddress ?? "—"} />
                 {data.emergencyContact || data.emergencyPhone ? (
                   <>
                     <Row
-                      label="Emergency contact"
+                      label={t("workerDetail.fieldEmergencyContact")}
                       value={data.emergencyContact ?? "—"}
                     />
                     <Row
-                      label="Emergency phone"
+                      label={t("workerDetail.fieldEmergencyPhone")}
                       value={data.emergencyPhone ?? "—"}
                     />
                   </>
@@ -402,7 +432,7 @@ export default function WorkerDetailPage(): JSX.Element {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Quick actions</CardTitle>
+              <CardTitle className="text-base">{t("workerDetail.quickActions")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button
@@ -410,16 +440,16 @@ export default function WorkerDetailPage(): JSX.Element {
                 variant="outline"
                 onClick={() => setEditOpen((v) => !v)}
               >
-                {editOpen ? "Close edit" : "Edit"}
+                {editOpen ? t("workerDetail.closeEdit") : t("workerDetail.edit")}
               </Button>
               <Button type="button" variant="danger" onClick={() => void terminate()}>
-                Terminate
+                {t("workerDetail.terminate")}
               </Button>
               <Button type="button" variant="outline" onClick={() => window.print()}>
-                Generate report
+                {t("workerDetail.generateReport")}
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link href="/compliance/audit">View audit log</Link>
+                <Link href="/compliance/audit">{t("workerDetail.viewAudit")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -427,17 +457,17 @@ export default function WorkerDetailPage(): JSX.Element {
           {editOpen ? (
             <Card className="border-brand-navy/30">
               <CardHeader>
-                <CardTitle className="text-base">Edit profile</CardTitle>
+                <CardTitle className="text-base">{t("workerDetail.editProfile")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1 sm:col-span-2">
-                  <Label>Line manager (tenant user)</Label>
+                  <Label>{t("workerDetail.lineManagerPick")}</Label>
                   <Select value={editLineManagerId} onValueChange={setEditLineManagerId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seçin" />
+                      <SelectValue placeholder={t("workerDetail.select")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">— Yok</SelectItem>
+                      <SelectItem value="none">{t("workerDetail.none")}</SelectItem>
                       {tenantUsers.map((u) => (
                         <SelectItem key={u.id} value={u.id}>
                           {u.firstName} {u.lastName} ({u.email})
@@ -447,39 +477,39 @@ export default function WorkerDetailPage(): JSX.Element {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label>Line manager name (serbest metin)</Label>
+                  <Label>{t("workerDetail.labelLmNameFree")}</Label>
                   <Input
                     value={editLineManagerName}
                     onChange={(e) => setEditLineManagerName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Line manager email</Label>
+                  <Label>{t("workerDetail.labelLmEmail")}</Label>
                   <Input
                     value={editLineManagerEmail}
                     onChange={(e) => setEditLineManagerEmail(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Personal email</Label>
+                  <Label>{t("workerDetail.fieldPersonalEmail")}</Label>
                   <Input
                     value={editPersonalEmail}
                     onChange={(e) => setEditPersonalEmail(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Phone</Label>
+                  <Label>{t("workerDetail.fieldPhone")}</Label>
                   <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Work phone</Label>
+                  <Label>{t("workerDetail.labelWorkPhone")}</Label>
                   <Input
                     value={editWorkPhone}
                     onChange={(e) => setEditWorkPhone(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <Label>Current address</Label>
+                  <Label>{t("workerDetail.labelCurrentAddress")}</Label>
                   <textarea
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={editCurrentAddress}
@@ -487,14 +517,14 @@ export default function WorkerDetailPage(): JSX.Element {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Emergency contact</Label>
+                  <Label>{t("workerDetail.fieldEmergencyContact")}</Label>
                   <Input
                     value={editEmergencyContact}
                     onChange={(e) => setEditEmergencyContact(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Emergency phone</Label>
+                  <Label>{t("workerDetail.fieldEmergencyPhone")}</Label>
                   <Input
                     value={editEmergencyPhone}
                     onChange={(e) => setEditEmergencyPhone(e.target.value)}
@@ -506,14 +536,14 @@ export default function WorkerDetailPage(): JSX.Element {
                     disabled={saving}
                     onClick={() => void saveProfileEdit()}
                   >
-                    {saving ? "Saving..." : "Save"}
+                    {saving ? t("workerDetail.saving") : t("common.save")}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setEditOpen(false)}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </CardContent>
@@ -528,25 +558,20 @@ export default function WorkerDetailPage(): JSX.Element {
             <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
               <div>
                 <p className="text-sm font-medium text-slate-800">
-                  Tüm klasörler ve sürüm geçmişi
+                  {t("workerDetail.docsVaultTitle")}
                 </p>
-                <p className="text-xs text-slate-600">
-                  Vault’ta saklanan tüm belgeler; yükleme buradan da yapılabilir.
-                </p>
+                <p className="text-xs text-slate-600">{t("workerDetail.docsVaultHint")}</p>
               </div>
               <Button size="sm" asChild>
-                <Link href={`/workers/${id}/documents`}>Belge kasasına git</Link>
+                <Link href={`/workers/${id}/documents`}>{t("workerDetail.docsVaultBtn")}</Link>
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Yeni belge yükle</CardTitle>
-              <p className="text-xs text-slate-600">
-                Dosya adı ve türü seçin. Üstteki listede <strong>eksik</strong> görünen
-                türlerden birini seçmeniz yeterli.
-              </p>
+              <CardTitle className="text-base">{t("workerDetail.uploadNew")}</CardTitle>
+              <p className="text-xs text-slate-600">{t("workerDetail.uploadHint")}</p>
             </CardHeader>
             <CardContent>
           <form
@@ -554,11 +579,11 @@ export default function WorkerDetailPage(): JSX.Element {
             className="grid gap-3 lg:grid-cols-2"
           >
             <div>
-              <Label>Dosya adı</Label>
+              <Label>{t("workerDetail.labelFileName")}</Label>
               <Input name="fileName" required placeholder="ornek-pasaport.pdf" />
             </div>
             <div>
-              <Label>Belge türü</Label>
+              <Label>{t("workerDetail.labelDocType")}</Label>
               <select
                 name="documentType"
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
@@ -585,7 +610,7 @@ export default function WorkerDetailPage(): JSX.Element {
               </select>
             </div>
             <div>
-              <Label>Kasa klasörü</Label>
+              <Label>{t("workerDetail.labelVaultFolder")}</Label>
               <select
                 name="vaultFolder"
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
@@ -612,7 +637,7 @@ export default function WorkerDetailPage(): JSX.Element {
               </select>
             </div>
             <div className="lg:col-span-2">
-              <Label>Metadata (JSON, isteğe bağlı)</Label>
+              <Label>{t("workerDetail.labelMetadata")}</Label>
               <textarea
                 name="metadataJson"
                 className="min-h-[72px] w-full rounded-md border border-slate-300 p-2 font-mono text-xs"
@@ -621,7 +646,7 @@ export default function WorkerDetailPage(): JSX.Element {
             </div>
             <div className="flex items-end lg:col-span-2">
               <Button type="submit" disabled={uploading}>
-                {uploading ? "Yükleniyor…" : "Yükle"}
+                {uploading ? t("workerDetail.uploading") : t("workerDetail.upload")}
               </Button>
             </div>
           </form>
@@ -634,30 +659,30 @@ export default function WorkerDetailPage(): JSX.Element {
           <Tabs defaultValue="summary" className="w-full space-y-4">
             <TabsList className="grid h-auto w-full max-w-md grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
               <TabsTrigger value="summary" className="text-sm">
-                Summary
+                {t("workerDetail.tabSummary")}
               </TabsTrigger>
               <TabsTrigger value="absence" className="text-sm">
-                Absence
+                {t("workerDetail.tabAbsence")}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="summary" className="space-y-6">
               <HistoryForms workerId={id} onDone={() => void load()} />
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm">Unified timeline</CardTitle>
+                  <CardTitle className="text-sm">{t("workerDetail.unifiedTimeline")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <UnifiedTimeline data={data} />
                 </CardContent>
               </Card>
               <div>
-                <h3 className="mb-2 font-semibold text-brand-navy">Change log</h3>
+                <h3 className="mb-2 font-semibold text-brand-navy">{t("workerDetail.changeLog")}</h3>
                 <ul className="space-y-2 text-sm">
                   {data.changeLogs.map((c) => (
                     <li key={c.id} className="rounded border border-slate-100 p-3">
                       <strong>{c.changeCategory}</strong> — {c.summary}
                       <div className="text-xs text-slate-500">
-                        {new Date(c.createdAt).toLocaleString("en-GB")}
+                        {formatLocaleDateTime(c.createdAt, locale)}
                       </div>
                     </li>
                   ))}
@@ -673,7 +698,7 @@ export default function WorkerDetailPage(): JSX.Element {
         <TabsContent value="compliance" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Checklist</CardTitle>
+              <CardTitle className="text-base">{t("workerDetail.checklist")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ComplianceChecklist status={data.employmentStatus} />
@@ -681,10 +706,11 @@ export default function WorkerDetailPage(): JSX.Element {
           </Card>
           <RtwSection workerId={id} data={data} onDone={() => void load()} />
           <div>
-            <h3 className="mb-2 font-semibold text-brand-navy">Notifications &amp; reporting</h3>
+            <h3 className="mb-2 font-semibold text-brand-navy">
+              {t("workerDetail.notificationsReporting")}
+            </h3>
             <p className="mb-3 text-sm text-slate-600">
-              Report deadlines and SMS drafts per event. Final legal check is your
-              responsibility.
+              {t("workerDetail.notificationsReportingHint")}
             </p>
             <div className="space-y-3">
               {data.notifications.map((n) => (
@@ -701,13 +727,13 @@ export default function WorkerDetailPage(): JSX.Element {
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm text-slate-700">
                     <p>
-                      <strong>Event / report:</strong>{" "}
-                      {fmt(n.occurredAt)} → deadline:{" "}
+                      <strong>{t("workerDetail.eventReport")}:</strong>{" "}
+                      {fmt(n.occurredAt)} → {t("workerDetail.deadline")}:{" "}
                       {fmt(n.reportDeadlineAt ?? n.dueDate)}
                     </p>
                     {n.evidenceRequired ? (
                       <p>
-                        <strong>Evidence:</strong> {n.evidenceRequired}
+                        <strong>{t("workerDetail.evidence")}:</strong> {n.evidenceRequired}
                       </p>
                     ) : null}
                     {n.smsDraft ? (
@@ -738,16 +764,6 @@ function employmentStatusVariant(
   return "warning";
 }
 
-function employmentStatusLabel(s: EmploymentStatus): string {
-  if (s === "PENDING_START") return "PENDING";
-  return s;
-}
-
-function fmt(d: Date | string | null | undefined): string {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-GB");
-}
-
 function Row(props: { label: string; value: string }): JSX.Element {
   return (
     <div>
@@ -758,38 +774,42 @@ function Row(props: { label: string; value: string }): JSX.Element {
 }
 
 function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
+  const { t, locale } = useTranslation();
   type Entry = { t: number; title: string; detail: string };
   const rows: Entry[] = [];
   for (const c of props.data.changeLogs) {
     rows.push({
       t: new Date(c.createdAt).getTime(),
-      title: `Change · ${c.changeCategory}`,
+      title: `${t("workerDetail.changePrefix")} · ${c.changeCategory}`,
       detail: c.summary,
     });
   }
   for (const a of props.data.absences) {
+    const start = formatLocaleDate(a.startDate, locale);
+    const end = a.endDate ? formatLocaleDate(a.endDate, locale) : "…";
     rows.push({
       t: new Date(a.startDate).getTime(),
       title:
         a.type === "UNAUTHORISED"
-          ? "Absence (unauthorised)"
-          : `Absence (${a.type.replace(/_/g, " ")})`,
-      detail:
-        a.notes ??
-        `${fmt(a.startDate)} – ${a.endDate ? fmt(a.endDate) : "…"}`,
+          ? t("workerDetail.absenceUnauth")
+          : t("workerDetail.absenceFmt").replace(
+              "{type}",
+              a.type.replace(/_/g, " ")
+            ),
+      detail: a.notes ?? `${start} – ${end}`,
     });
   }
   for (const doc of props.data.documents) {
     rows.push({
       t: new Date(doc.uploadDate).getTime(),
-      title: `Document · ${doc.documentType}`,
+      title: `${t("workerDetail.docPrefix")} · ${doc.documentType}`,
       detail: doc.fileName,
     });
   }
   for (const r of props.data.rtwChecks) {
     rows.push({
       t: new Date(r.checkedAt).getTime(),
-      title: `RTW · ${r.checkMethod}`,
+      title: `${t("workerDetail.rtwPrefix")} · ${r.checkMethod}`,
       detail:
         [r.outcomeSummary, r.shareCodeUsed, r.notes].filter(Boolean).join(" · ") ||
         "—",
@@ -801,14 +821,14 @@ function UnifiedTimeline(props: { data: WorkerDetail }): JSX.Element {
       {rows.map((r, i) => (
         <li key={`${r.t}-${i}`} className="text-sm">
           <p className="text-xs text-slate-500">
-            {new Date(r.t).toLocaleString("en-GB")}
+            {formatLocaleDateTime(r.t, locale)}
           </p>
           <p className="font-medium text-slate-900">{r.title}</p>
           <p className="text-slate-700">{r.detail}</p>
         </li>
       ))}
       {rows.length === 0 ? (
-        <li className="text-slate-500">No entries yet.</li>
+        <li className="text-slate-500">{t("workerDetail.timelineEmpty")}</li>
       ) : null}
     </ol>
   );
@@ -819,6 +839,7 @@ function RtwSection(props: {
   data: WorkerDetail;
   onDone: () => void;
 }): JSX.Element {
+  const { t, locale } = useTranslation();
   async function submitRtw(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -842,18 +863,18 @@ function RtwSection(props: {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Right to work checks</CardTitle>
+        <CardTitle className="text-base">{t("workerDetail.rtwTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <ul className="space-y-3 text-sm">
           {(props.data.rtwChecks ?? []).map((r) => (
             <li key={r.id} className="rounded border border-slate-100 p-3">
               <div className="font-medium">
-                {new Date(r.checkedAt).toLocaleString("en-GB")} · {r.checkMethod}
+                {formatLocaleDateTime(r.checkedAt, locale)} · {r.checkMethod}
               </div>
               {r.shareCodeUsed ? (
                 <div className="text-xs text-slate-600">
-                  Share code: {r.shareCodeUsed}
+                  {t("workerDetail.rtwShareCode")}: {r.shareCodeUsed}
                 </div>
               ) : null}
               {r.outcomeSummary ? (
@@ -861,38 +882,45 @@ function RtwSection(props: {
               ) : null}
               {r.nextCheckDueAt ? (
                 <div className="text-xs text-slate-500">
-                  Next: {fmt(r.nextCheckDueAt)}
+                  {t("workerDetail.rtwNext")}:{" "}
+                  {formatLocaleDate(r.nextCheckDueAt, locale)}
                 </div>
               ) : null}
             </li>
           ))}
           {(props.data.rtwChecks ?? []).length === 0 ? (
-            <li className="text-slate-500">No RTW records yet.</li>
+            <li className="text-slate-500">{t("workerDetail.rtwEmpty")}</li>
           ) : null}
         </ul>
         <form onSubmit={submitRtw} className="grid gap-2 border-t border-slate-100 pt-4 text-sm">
-          <Label>Method</Label>
+          <Label>{t("workerDetail.rtwMethod")}</Label>
           <select
             name="checkMethod"
             required
             className="rounded border border-slate-300 p-2"
             defaultValue="ONLINE_SHARE_CODE"
           >
-            <option value="ONLINE_SHARE_CODE">Online share code</option>
-            <option value="MANUAL_DOCUMENT_CHECK">Manual document</option>
-            <option value="EMPLOYER_PORTAL">Employer portal</option>
-            <option value="RE_VERIFICATION">Re-verification</option>
-            <option value="OTHER">Other</option>
+            <option value="ONLINE_SHARE_CODE">{t("workerDetail.rtwOptOnline")}</option>
+            <option value="MANUAL_DOCUMENT_CHECK">{t("workerDetail.rtwOptManual")}</option>
+            <option value="EMPLOYER_PORTAL">{t("workerDetail.rtwOptPortal")}</option>
+            <option value="RE_VERIFICATION">{t("workerDetail.rtwOptReverify")}</option>
+            <option value="OTHER">{t("workerDetail.rtwOptOther")}</option>
           </select>
-          <Input name="shareCodeUsed" placeholder="Share code (if any)" />
-          <Input name="outcomeSummary" placeholder="Outcome summary" />
-          <Input name="notes" placeholder="Notes" />
+          <Input
+            name="shareCodeUsed"
+            placeholder={t("workerDetail.rtwPlaceholderShare")}
+          />
+          <Input
+            name="outcomeSummary"
+            placeholder={t("workerDetail.rtwPlaceholderOutcome")}
+          />
+          <Input name="notes" placeholder={t("workerDetail.rtwPlaceholderNotes")} />
           <div>
-            <Label>Next check due</Label>
+            <Label>{t("workerDetail.rtwNextDue")}</Label>
             <Input name="nextCheckDueAt" type="date" />
           </div>
           <Button type="submit" size="sm">
-            Add RTW record
+            {t("workerDetail.rtwAdd")}
           </Button>
         </form>
       </CardContent>
@@ -904,6 +932,7 @@ function HistoryForms(props: {
   workerId: string;
   onDone: () => void;
 }): JSX.Element {
+  const { t } = useTranslation();
   async function addChange(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -925,7 +954,7 @@ function HistoryForms(props: {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Add change log</CardTitle>
+        <CardTitle className="text-sm">{t("workerDetail.addChangeLog")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={addChange} className="space-y-2 text-sm">
@@ -943,11 +972,18 @@ function HistoryForms(props: {
             <option value="ABSENCE">ABSENCE</option>
             <option value="OTHER">OTHER</option>
           </select>
-          <Input name="summary" placeholder="Summary" required />
-          <Input name="previousValue" placeholder="Previous (optional)" />
-          <Input name="newValue" placeholder="New (optional)" />
+          <Input
+            name="summary"
+            placeholder={t("workerDetail.placeholderSummary")}
+            required
+          />
+          <Input
+            name="previousValue"
+            placeholder={t("workerDetail.placeholderPrev")}
+          />
+          <Input name="newValue" placeholder={t("workerDetail.placeholderNew")} />
           <Button type="submit" size="sm">
-            Save
+            {t("common.save")}
           </Button>
         </form>
       </CardContent>
@@ -958,19 +994,20 @@ function HistoryForms(props: {
 function ComplianceChecklist(props: {
   status: EmploymentStatus;
 }): JSX.Element {
+  const { t } = useTranslation();
   const items = [
-    { ok: props.status === "ACTIVE", label: "Start / ACTIVE status" },
-    { ok: true, label: "CoS and visa dates on file" },
-    { ok: true, label: "Salary and SOC code defined" },
+    { ok: props.status === "ACTIVE", labelKey: "workerDetail.checkStart" },
+    { ok: true, labelKey: "workerDetail.checkCosVisa" },
+    { ok: true, labelKey: "workerDetail.checkSalarySoc" },
   ];
   return (
     <ul className="space-y-2">
       {items.map((i) => (
-        <li key={i.label} className="flex items-center gap-2 text-sm">
+        <li key={i.labelKey} className="flex items-center gap-2 text-sm">
           <span className={i.ok ? "text-emerald-600" : "text-amber-600"}>
             {i.ok ? "✓" : "○"}
           </span>
-          {i.label}
+          {t(i.labelKey)}
         </li>
       ))}
     </ul>
