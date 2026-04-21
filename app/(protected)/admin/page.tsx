@@ -67,7 +67,7 @@ export default function AdminUsersPage(): JSX.Element {
     return <p className="text-slate-600">Yükleniyor...</p>;
   }
   if (session?.user?.role !== "SYSTEM_ADMIN") {
-    return null;
+    return <p className="text-slate-600">Yönlendiriliyor...</p>;
   }
   if (error) {
     return <p className="text-red-600">{error}</p>;
