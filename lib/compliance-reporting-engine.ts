@@ -138,6 +138,7 @@ export async function createComplianceReportingEvent(input: {
       ),
       notes: input.notes ?? undefined,
       status: "PENDING",
+      workflowState: "DRAFT",
     },
     select: { id: true },
   });

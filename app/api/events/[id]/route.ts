@@ -8,6 +8,62 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: { id: string } };
 
+export async function GET(
+  _req: NextRequest,
+  { params }: Params
+): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    return await withTenant(user, _req, async () => {
+      const row = await prisma.complianceEvent.findFirst({
+        where: { id: params.id },
+        include: {
+          worker: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              cosReference: true,
+            },
+          },
+          workflowSteps: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              assignee: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
+              },
+              actionedByUser: {
+                select: { id: true, firstName: true, lastName: true },
+              },
+            },
+          },
+        },
+      });
+      if (!row) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      return NextResponse.json({ data: row });
+    });
+  } catch (e) {
+    logger.error("GET /api/events/[id] failed", e);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: Params

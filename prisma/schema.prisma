@@ -27,6 +27,7 @@ model Tenant {
   roleCompliances RoleCompliance[]
   salaryRecords   SalaryRecord[]
   riskScores      RiskScore[]
+  workflowSteps   WorkflowStep[]
 }
 
 model User {
@@ -44,6 +45,8 @@ model User {
   assignedLeads  Lead[]         @relation("LeadAssignee")
   leadActivities LeadActivity[]
   managedWorkers Worker[]       @relation("LineManager")
+  workflowStepsAssigned WorkflowStep[] @relation("WorkflowStepAssignee")
+  workflowStepsActioned WorkflowStep[] @relation("WorkflowStepActionedBy")
 
   @@unique([email])
   @@index([tenantId])
@@ -256,6 +259,7 @@ model ComplianceEvent {
   eventDate        DateTime
   reportDeadline   DateTime
   status           EventStatus @default(PENDING)
+  workflowState    EventWorkflowState @default(DRAFT)
   evidenceRequired String[]    @default([])
   smsDraft         String?     @db.Text
   approvedBy       String?
@@ -265,10 +269,34 @@ model ComplianceEvent {
   tenant           Tenant      @relation(fields: [tenantId], references: [id])
   createdAt        DateTime    @default(now())
   smsReportDrafts  SmsReportDraft[]
+  workflowSteps    WorkflowStep[]
 
   @@index([status, reportDeadline])
   @@index([workerId])
   @@index([tenantId])
+  @@index([workflowState])
+}
+
+model WorkflowStep {
+  id          String             @id @default(cuid())
+  eventId     String
+  event       ComplianceEvent    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  step        WorkflowStepType
+  status      WorkflowStepStatus @default(PENDING)
+  assignedTo  String
+  assignee    User               @relation("WorkflowStepAssignee", fields: [assignedTo], references: [id])
+  actionedBy  String?
+  actionedByUser User?           @relation("WorkflowStepActionedBy", fields: [actionedBy], references: [id])
+  actionedAt  DateTime?
+  notes       String?            @db.Text
+  tenantId    String
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime           @default(now())
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([assignedTo])
+  @@index([status])
 }
 
 model SmsReportDraft {
@@ -316,6 +344,31 @@ enum EventStatus {
   REPORTED
   OVERDUE
   CANCELLED
+}
+
+enum EventWorkflowState {
+  DRAFT
+  SUBMITTED
+  MANAGER_REVIEW
+  COMPLIANCE_REVIEW
+  AO_APPROVAL
+  REPORTED
+}
+
+enum WorkflowStepType {
+  HR_SUBMISSION
+  MANAGER_REVIEW
+  COMPLIANCE_REVIEW
+  AO_APPROVAL
+  FINAL_REPORT
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  ESCALATED
 }
 
 model Alert {

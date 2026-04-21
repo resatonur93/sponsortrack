@@ -57,11 +57,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
               cosReference: true,
             },
           },
+          _count: { select: { workflowSteps: true } },
         },
         take: 500,
       });
 
-      return NextResponse.json({ data: rows });
+      return NextResponse.json({
+        data: rows.map(({ _count, ...r }) => ({
+          ...r,
+          workflowStepCount: _count.workflowSteps,
+        })),
+      });
     });
   } catch (e) {
     logger.error("GET /api/events failed", e);

@@ -2,7 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { EventStatus, EventType } from "@prisma/client";
+import type {
+  EventStatus,
+  EventType,
+  EventWorkflowState,
+  Role,
+  WorkflowStepStatus,
+  WorkflowStepType,
+} from "@prisma/client";
+import { useSession } from "next-auth/react";
+import {
+  getActivePendingStep,
+  workflowStateLabel,
+} from "@/lib/event-workflow-service";
 import {
   Table,
   TableBody,
@@ -61,6 +73,8 @@ type EventRow = {
   eventDate: string;
   reportDeadline: string;
   status: EventStatus;
+  workflowState: EventWorkflowState;
+  workflowStepCount?: number;
   evidenceRequired: string[];
   smsDraft: string | null;
   notes: string | null;
@@ -72,6 +86,26 @@ type EventRow = {
     cosReference: string;
   };
 };
+
+type WorkflowStepRow = {
+  id: string;
+  step: WorkflowStepType;
+  status: WorkflowStepStatus;
+  assignedTo: string;
+  assignee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: Role;
+  };
+  actionedBy: string | null;
+  actionedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+type EventDetailFull = EventRow & { workflowSteps: WorkflowStepRow[] };
 
 type HoSmsDraft = {
   id: string;
@@ -97,10 +131,19 @@ type HoSmsDraft = {
 };
 
 export default function EventsPage(): JSX.Element {
+  const { data: session } = useSession();
+  const me = session?.user;
   const [rows, setRows] = useState<EventRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<EventRow | null>(null);
+  const [detailFull, setDetailFull] = useState<EventDetailFull | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [workflowNotes, setWorkflowNotes] = useState("");
+  const [submitManagerId, setSubmitManagerId] = useState("");
+  const [submitComplianceId, setSubmitComplianceId] = useState("");
+  const [submitAoId, setSubmitAoId] = useState("");
+  const [escalateUserId, setEscalateUserId] = useState("");
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -142,16 +185,43 @@ export default function EventsPage(): JSX.Element {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!detail) {
+      setDetailFull(null);
+      return;
+    }
+    setDetailLoading(true);
+    void (async () => {
+      const res = await fetch(`/api/events/${detail.id}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      setDetailLoading(false);
+      if (res.ok) {
+        const json = (await res.json()) as { data: EventDetailFull };
+        setDetailFull(json.data);
+      } else {
+        setDetailFull({ ...detail, workflowSteps: [] });
+      }
+    })();
+  }, [detail]);
+
   async function approve(id: string): Promise<void> {
     const res = await fetch(`/api/events/${id}/approve`, {
       method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
     });
     if (!res.ok) {
-      alert("Onaylanamadı.");
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Onaylanamadı.");
       return;
     }
     void load();
+    if (detail?.id === id) {
+      setDetail({ ...detail, workflowState: "REPORTED", status: "APPROVED" });
+    }
     setDetail(null);
   }
 
@@ -166,6 +236,147 @@ export default function EventsPage(): JSX.Element {
     }
     void load();
     setDetail(null);
+  }
+
+  async function reloadDetailAndList(): Promise<void> {
+    void load();
+    if (!detail) return;
+    const res = await fetch(`/api/events/${detail.id}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const json = (await res.json()) as { data: EventDetailFull };
+      setDetailFull(json.data);
+      setDetail({
+        id: json.data.id,
+        eventType: json.data.eventType,
+        eventDate: json.data.eventDate,
+        reportDeadline: json.data.reportDeadline,
+        status: json.data.status,
+        workflowState: json.data.workflowState,
+        workflowStepCount: json.data.workflowSteps?.length,
+        evidenceRequired: json.data.evidenceRequired,
+        smsDraft: json.data.smsDraft,
+        notes: json.data.notes,
+        worker: json.data.worker,
+      });
+    }
+  }
+
+  async function submitWorkflow(): Promise<void> {
+    if (!detail) return;
+    const res = await fetch(`/api/events/${detail.id}/submit`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        managerUserId: submitManagerId.trim() || null,
+        complianceUserId: submitComplianceId.trim() || null,
+        aoUserId: submitAoId.trim() || null,
+        notes: workflowNotes.trim() || null,
+      }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Submit failed");
+      return;
+    }
+    setWorkflowNotes("");
+    await reloadDetailAndList();
+  }
+
+  async function managerReview(): Promise<void> {
+    if (!detail) return;
+    const res = await fetch(`/api/events/${detail.id}/review`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: workflowNotes.trim() || null }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Review failed");
+      return;
+    }
+    setWorkflowNotes("");
+    await reloadDetailAndList();
+  }
+
+  async function complianceReview(): Promise<void> {
+    if (!detail) return;
+    const res = await fetch(`/api/events/${detail.id}/compliance-check`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: workflowNotes.trim() || null }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Compliance check failed");
+      return;
+    }
+    setWorkflowNotes("");
+    await reloadDetailAndList();
+  }
+
+  async function aoApproveDetail(): Promise<void> {
+    if (!detail) return;
+    const res = await fetch(`/api/events/${detail.id}/approve`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: workflowNotes.trim() || null }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Approve failed");
+      return;
+    }
+    setWorkflowNotes("");
+    await reloadDetailAndList();
+  }
+
+  async function rejectWorkflow(): Promise<void> {
+    if (!detail) return;
+    if (!window.confirm("Reject and return event to draft?")) return;
+    const res = await fetch(`/api/events/${detail.id}/reject`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: workflowNotes.trim() || null }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Reject failed");
+      return;
+    }
+    setWorkflowNotes("");
+    await reloadDetailAndList();
+  }
+
+  async function escalateWorkflow(): Promise<void> {
+    if (!detail || !escalateUserId.trim()) {
+      alert("Enter user ID to escalate to.");
+      return;
+    }
+    const res = await fetch(`/api/events/${detail.id}/escalate`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assignToUserId: escalateUserId.trim(),
+        notes: workflowNotes.trim() || null,
+      }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? "Escalate failed");
+      return;
+    }
+    setWorkflowNotes("");
+    setEscalateUserId("");
+    await reloadDetailAndList();
   }
 
   function openHoSmsModal(row: EventRow): void {
@@ -413,19 +624,20 @@ export default function EventsPage(): JSX.Element {
               <TableHead>Event date</TableHead>
               <TableHead>Deadline</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Workflow</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-slate-500">
+                <TableCell colSpan={7} className="text-slate-500">
                   Loading…
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-slate-500">
+                <TableCell colSpan={7} className="text-slate-500">
                   No events.
                 </TableCell>
               </TableRow>
@@ -453,6 +665,11 @@ export default function EventsPage(): JSX.Element {
                   <TableCell>
                     <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
                   </TableCell>
+                  <TableCell className="max-w-[140px]">
+                    <Badge variant="outline" className="whitespace-normal text-[10px]">
+                      {workflowStateLabel(r.workflowState)}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-wrap justify-end gap-1">
                       <Button
@@ -478,7 +695,13 @@ export default function EventsPage(): JSX.Element {
                         disabled={
                           r.status === "CANCELLED" ||
                           r.status === "REPORTED" ||
-                          r.status === "APPROVED"
+                          r.status === "APPROVED" ||
+                          !(
+                            r.workflowState === "AO_APPROVAL" ||
+                            ((r.workflowStepCount ?? 0) === 0 &&
+                              me?.role === "AUTHORISING_OFFICER" &&
+                              r.workflowState !== "DRAFT"))
+                          )
                         }
                         onClick={() => void approve(r.id)}
                       >
@@ -488,7 +711,12 @@ export default function EventsPage(): JSX.Element {
                         type="button"
                         size="sm"
                         disabled={
-                          r.status === "CANCELLED" || r.status === "REPORTED"
+                          r.status === "CANCELLED" ||
+                          r.status === "REPORTED" ||
+                          !(
+                            r.status === "APPROVED" &&
+                            r.workflowState === "REPORTED"
+                          )
                         }
                         onClick={() => void report(r.id)}
                       >
@@ -511,9 +739,18 @@ export default function EventsPage(): JSX.Element {
               Close
             </Button>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className="space-y-4 text-sm">
+            {detailLoading ? (
+              <p className="text-slate-500">Loading workflow…</p>
+            ) : null}
             <p>
               <span className="text-slate-500">Type:</span> {detail.eventType}
+            </p>
+            <p>
+              <span className="text-slate-500">Workflow:</span>{" "}
+              <Badge variant="outline">
+                {workflowStateLabel(detailFull?.workflowState ?? detail.workflowState)}
+              </Badge>
             </p>
             <p>
               <span className="text-slate-500">Worker:</span>{" "}
@@ -522,6 +759,136 @@ export default function EventsPage(): JSX.Element {
               </Link>{" "}
               · {detail.worker.cosReference}
             </p>
+            {detailFull?.workflowSteps?.length ? (
+              <div>
+                <p className="font-medium text-slate-800">Workflow timeline</p>
+                <ul className="relative mt-2 space-y-0 border-l-2 border-slate-200 pl-4">
+                  {detailFull.workflowSteps.map((s) => (
+                    <li key={s.id} className="relative pb-4 last:pb-0">
+                      <span className="absolute -left-[7px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-navy" />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{s.step}</span>
+                        <Badge variant="outline">{s.status}</Badge>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Assigned: {s.assignee.firstName} {s.assignee.lastName} (
+                        {s.assignee.email})
+                      </p>
+                      {s.actionedAt ? (
+                        <p className="text-xs text-slate-500">
+                          Actioned:{" "}
+                          {new Date(s.actionedAt).toLocaleString("en-GB")}
+                        </p>
+                      ) : null}
+                      {s.notes ? (
+                        <p className="text-xs text-slate-600">{s.notes}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {me?.id &&
+            detailFull?.workflowSteps?.length &&
+            getActivePendingStep(detailFull.workflowSteps)?.assignedTo === me.id ? (
+              <p className="rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900">
+                Action required — this step is assigned to you.
+              </p>
+            ) : null}
+            <div>
+              <Label className="text-slate-600">Workflow notes</Label>
+              <textarea
+                className="mt-1 min-h-[72px] w-full rounded-md border border-slate-300 p-2 text-sm"
+                value={workflowNotes}
+                onChange={(e) => setWorkflowNotes(e.target.value)}
+                placeholder="Optional notes for submit / approve / reject"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+              {detail.workflowState === "DRAFT" ? (
+                <>
+                  <div className="w-full space-y-1">
+                    <Label className="text-xs">Manager user ID (optional)</Label>
+                    <Input
+                      value={submitManagerId}
+                      onChange={(e) => setSubmitManagerId(e.target.value)}
+                      placeholder="cuid — defaults to first Level 1 user"
+                      className="text-xs"
+                    />
+                  </div>
+                  <div className="w-full space-y-1">
+                    <Label className="text-xs">Compliance user ID (optional)</Label>
+                    <Input
+                      value={submitComplianceId}
+                      onChange={(e) => setSubmitComplianceId(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
+                  <div className="w-full space-y-1">
+                    <Label className="text-xs">AO user ID (optional)</Label>
+                    <Input
+                      value={submitAoId}
+                      onChange={(e) => setSubmitAoId(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
+                  <Button type="button" size="sm" onClick={() => void submitWorkflow()}>
+                    Submit (HR)
+                  </Button>
+                </>
+              ) : null}
+              {detail.workflowState === "SUBMITTED" ? (
+                <Button type="button" size="sm" onClick={() => void managerReview()}>
+                  Manager approve
+                </Button>
+              ) : null}
+              {detail.workflowState === "COMPLIANCE_REVIEW" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void complianceReview()}
+                >
+                  Compliance approve
+                </Button>
+              ) : null}
+              {detail.workflowState === "AO_APPROVAL" ? (
+                <Button type="button" size="sm" onClick={() => void aoApproveDetail()}>
+                  AO final approve
+                </Button>
+              ) : null}
+              {detail.workflowState !== "DRAFT" &&
+              detail.workflowState !== "REPORTED" ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => void rejectWorkflow()}
+                  >
+                    Reject
+                  </Button>
+                  <div className="flex w-full flex-wrap items-end gap-2">
+                    <div className="min-w-[200px] flex-1 space-y-1">
+                      <Label className="text-xs">Escalate to user ID</Label>
+                      <Input
+                        value={escalateUserId}
+                        onChange={(e) => setEscalateUserId(e.target.value)}
+                        placeholder="cuid"
+                        className="text-xs"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void escalateWorkflow()}
+                    >
+                      Escalate
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+            </div>
             <div>
               <p className="text-slate-500">Evidence required</p>
               <ul className="mt-1 list-inside list-disc">

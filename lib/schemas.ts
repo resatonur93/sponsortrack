@@ -263,6 +263,22 @@ export const complianceEventUpdateSchema = z.object({
   approvedBy: z.string().optional().nullable(),
 });
 
+export const workflowSubmitSchema = z.object({
+  managerUserId: z.string().cuid().optional().nullable(),
+  complianceUserId: z.string().cuid().optional().nullable(),
+  aoUserId: z.string().cuid().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export const workflowNotesSchema = z.object({
+  notes: z.string().optional().nullable(),
+});
+
+export const workflowEscalateSchema = z.object({
+  assignToUserId: z.string().cuid(),
+  notes: z.string().optional().nullable(),
+});
+
 const smsDraftOverridesSchema = z
   .object({
     oldSalary: z.number().int().optional(),
