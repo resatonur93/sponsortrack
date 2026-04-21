@@ -14,7 +14,7 @@ import { useSession } from "next-auth/react";
 import {
   getActivePendingStep,
   workflowStateLabel,
-} from "@/lib/event-workflow-service";
+} from "@/lib/event-workflow-ui";
 import {
   Table,
   TableBody,

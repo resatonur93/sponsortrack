@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { EscalationBadge } from "@/components/notifications/EscalationBadge";
 import { formatDeadlineWindowLabel } from "@/lib/deadline-display";
-import { workflowStateLabel } from "@/lib/event-workflow-service";
+import { workflowStateLabel } from "@/lib/event-workflow-ui";
 
 type Row = NotificationEvent & {
   worker: { firstName: string; lastName: string; email: string };
