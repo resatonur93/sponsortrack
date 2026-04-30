@@ -5,6 +5,7 @@ import { startOfDay } from "@/lib/dates";
 import { getEvidenceHint, getSmsDraft } from "@/lib/compliance-templates";
 import { processEscalationNotifications } from "@/lib/compliance-reminders";
 import { processMissingDocumentNotifications } from "@/lib/missing-documents-cron";
+import { processExpiredDocumentEmails } from "@/lib/document-expiry-email-notify";
 
 /**
  * Runs daily maintenance: overdue notifications, visa/document upserts, kademeli hatırlatmalar.
@@ -15,6 +16,8 @@ export async function runDailyCron(): Promise<{
   documentEventsCreated: number;
   escalationLevel3: number;
   missingDocEvents: number;
+  documentExpiryEmailsSent: number;
+  documentExpiryEmailSkippedNoSmtp: boolean;
 }> {
   const now = new Date();
   let overdueUpdated = 0;
@@ -137,11 +140,16 @@ export async function runDailyCron(): Promise<{
   const { created: missingDocEvents } =
     await processMissingDocumentNotifications(prismaBase, now);
 
+  const { sent: documentExpiryEmailsSent, skippedNoSmtp: documentExpiryEmailSkippedNoSmtp } =
+    await processExpiredDocumentEmails(prismaBase, now);
+
   return {
     overdueUpdated,
     visaEventsCreated,
     documentEventsCreated,
     escalationLevel3: level3Logged,
     missingDocEvents,
+    documentExpiryEmailsSent,
+    documentExpiryEmailSkippedNoSmtp,
   };
 }
