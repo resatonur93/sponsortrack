@@ -57,9 +57,14 @@ export default function LoginPage(): JSX.Element {
               <Label htmlFor="email">{t("login.email")}</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
+                autoComplete="username"
+                inputMode="email"
+                enterKeyHint="next"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={error ? true : undefined}
                 required
               />
             </div>
@@ -67,9 +72,13 @@ export default function LoginPage(): JSX.Element {
               <Label htmlFor="password">{t("login.password")}</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
+                enterKeyHint="done"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={error ? true : undefined}
                 required
               />
             </div>

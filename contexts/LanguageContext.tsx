@@ -24,11 +24,17 @@ export type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+function inferredLocaleFromBrowser(): Locale {
+  if (typeof navigator === "undefined") return DEFAULT_LOCALE;
+  const primary = navigator.language?.toLowerCase().split(",")[0] ?? "";
+  return primary.startsWith("tr") ? "tr" : "en";
+}
+
 function readStoredLocale(): Locale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
   const raw = window.localStorage.getItem(LOCALE_STORAGE_KEY);
   if (raw === "en" || raw === "tr") return raw;
-  return DEFAULT_LOCALE;
+  return inferredLocaleFromBrowser();
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }): JSX.Element {

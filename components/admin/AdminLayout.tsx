@@ -18,6 +18,9 @@ export function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-[#0F172A] text-slate-50">
+      <a href="#main-content-admin" className="skip-nav--dark">
+        {t("common.skipToContent")}
+      </a>
       <AdminSidebar />
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-slate-700 bg-[#1E293B] px-4">
@@ -51,7 +54,13 @@ export function AdminLayout({
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
+        <main
+          id="main-content-admin"
+          className="flex-1 scroll-mt-14 overflow-auto p-4 md:p-8"
+          tabIndex={-1}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

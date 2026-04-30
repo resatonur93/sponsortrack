@@ -29,6 +29,8 @@ const tr: Record<string, string> = {
   "common.back": "Geri",
   "common.noRecords": "Kayıt yok",
   "common.errorLoad": "Veri yüklenemedi",
+  "common.retry": "Tekrar dene",
+  "common.skipToContent": "İçeriğe atla",
   "common.search": "Ara",
   "common.status": "Durum",
   "common.action": "Aksiyon",
@@ -72,6 +74,9 @@ const tr: Record<string, string> = {
   "dashboard.tableMedium": "Orta",
   "dashboard.tableLow": "Düşük",
   "dashboard.tableDetail": "Detay",
+  "dashboard.loadingHint": "Özet ve uyarılar hazırlanıyor…",
+  "dashboard.retryHint":
+    "Panel verisi şu anda yüklenemiyor. Bir süre sonra tekrar deneyin.",
   "dashboard.recentNotifications": "Son bildirimler",
   "workers.title": "Çalışanlar",
   "workers.subtitle": "Sponsorlu çalışan listesi",
@@ -200,6 +205,11 @@ const tr: Record<string, string> = {
   "workers.searchLabel": "Ara",
   "workers.statusLabel": "Durum",
   "workers.loading": "Yükleniyor…",
+  "workers.loadError":
+    "Çalışan listesi alınamadı. Bağlantınızı kontrol edip yeniden deneyin.",
+  "workers.emptyTitle": "Henüz çalışan yok",
+  "workers.emptyHint":
+    "İlk sponsorlu çalışanını ekleyerek takip ve belge uyumunu buradan yönetin.",
   "admin.nav.dashboard": "Panel",
   "admin.nav.leads": "Potansiyeller",
   "admin.nav.tenants": "Kurumlar",
@@ -346,6 +356,8 @@ const en: Record<string, string> = {
   "common.back": "Back",
   "common.noRecords": "No records",
   "common.errorLoad": "Could not load data",
+  "common.retry": "Try again",
+  "common.skipToContent": "Skip to main content",
   "common.search": "Search",
   "common.status": "Status",
   "common.action": "Actions",
@@ -389,6 +401,9 @@ const en: Record<string, string> = {
   "dashboard.tableMedium": "Medium",
   "dashboard.tableLow": "Low",
   "dashboard.tableDetail": "Detail",
+  "dashboard.loadingHint": "Preparing your summary and alerts…",
+  "dashboard.retryHint":
+    "The dashboard could not be loaded right now. Please try again in a moment.",
   "dashboard.recentNotifications": "Recent notifications",
   "workers.title": "Workers",
   "workers.subtitle": "Sponsored worker list",
@@ -517,6 +532,11 @@ const en: Record<string, string> = {
   "workers.searchLabel": "Search",
   "workers.statusLabel": "Status",
   "workers.loading": "Loading…",
+  "workers.loadError":
+    "We could not load the worker list. Check your connection and try again.",
+  "workers.emptyTitle": "No workers yet",
+  "workers.emptyHint":
+    "Add your first sponsored worker to track compliance and documents from here.",
   "admin.nav.dashboard": "Dashboard",
   "admin.nav.leads": "Leads",
   "admin.nav.tenants": "Tenants",

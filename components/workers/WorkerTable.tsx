@@ -31,6 +31,11 @@ const statusVariant = (s: EmploymentStatus): "default" | "success" | "warning" |
 export function WorkerTable(props: { workers: Worker[] }): JSX.Element {
   const { t, locale } = useTranslation();
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
+
+  function statusLabel(s: EmploymentStatus): string {
+    return t(`workerDetail.employment.${s}`);
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -43,32 +48,40 @@ export function WorkerTable(props: { workers: Worker[] }): JSX.Element {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {props.workers.map((w) => (
-          <TableRow key={w.id}>
-            <TableCell className="font-medium">
-              {w.firstName} {w.lastName}
-            </TableCell>
-            <TableCell>{w.email}</TableCell>
-            <TableCell>
-              {w.visaExpiryDate
-                ? new Date(w.visaExpiryDate).toLocaleDateString(localeTag)
-                : "—"}
-            </TableCell>
-            <TableCell>
-              <Badge variant={statusVariant(w.employmentStatus)}>
-                {w.employmentStatus}
-              </Badge>
-            </TableCell>
-            <TableCell className="text-right">
-              <Link
-                href={`/workers/${w.id}`}
-                className="text-sm font-medium text-brand-navy hover:underline"
-              >
-                {t("workerTable.detail")}
-              </Link>
+        {props.workers.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
+              {t("common.noRecords")}
             </TableCell>
           </TableRow>
-        ))}
+        ) : (
+          props.workers.map((w) => (
+            <TableRow key={w.id}>
+              <TableCell className="font-medium">
+                {w.firstName} {w.lastName}
+              </TableCell>
+              <TableCell>{w.email}</TableCell>
+              <TableCell>
+                {w.visaExpiryDate
+                  ? new Date(w.visaExpiryDate).toLocaleDateString(localeTag)
+                  : "—"}
+              </TableCell>
+              <TableCell>
+                <Badge variant={statusVariant(w.employmentStatus)}>
+                  {statusLabel(w.employmentStatus)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <Link
+                  href={`/workers/${w.id}`}
+                  className="text-sm font-medium text-brand-navy hover:underline"
+                >
+                  {t("workerTable.detail")}
+                </Link>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   );

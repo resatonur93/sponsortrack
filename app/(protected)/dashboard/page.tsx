@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { Button } from "@/components/ui/button";
 
 type DashboardPayload = {
   stats: {
@@ -74,24 +75,31 @@ export default function DashboardPage(): JSX.Element {
   const { t, locale } = useTranslation();
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const [riskEngine, setRiskEngine] = useState<RiskEngineSummary | null>(null);
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
+      setLoadFailed(false);
       const res = await fetch("/api/dashboard", {
         credentials: "include",
         cache: "no-store",
       });
+      if (cancelled) return;
       if (!res.ok) {
         setLoadFailed(true);
+        setData(null);
         return;
       }
       const json = (await res.json()) as { data: DashboardPayload };
-      setLoadFailed(false);
       setData(json.data);
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryTick]);
 
   useEffect(() => {
     void (async () => {
@@ -106,10 +114,47 @@ export default function DashboardPage(): JSX.Element {
   }, []);
 
   if (loadFailed) {
-    return <p className="text-red-600">{t("common.errorLoad")}</p>;
+    return (
+      <div
+        role="alert"
+        className="mx-auto max-w-lg rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm"
+      >
+        <h1 className="text-lg font-semibold text-red-900">{t("common.errorLoad")}</h1>
+        <p className="mt-2 text-sm text-red-800/90">{t("dashboard.retryHint")}</p>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-4 border-red-300 bg-white text-red-900 hover:bg-red-100"
+          onClick={() => setRetryTick((n) => n + 1)}
+        >
+          {t("common.retry")}
+        </Button>
+      </div>
+    );
   }
   if (!data) {
-    return <p className="text-slate-600">{t("common.loading")}</p>;
+    return (
+      <div className="space-y-6" aria-busy="true" aria-live="polite">
+        <div className="space-y-2">
+          <div className="h-9 w-48 animate-pulse rounded-md bg-slate-200" />
+          <div className="h-5 w-full max-w-xl animate-pulse rounded-md bg-slate-100" />
+        </div>
+        <p className="text-sm text-slate-600">{t("dashboard.loadingHint")}</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-28 animate-pulse rounded-lg border border-slate-100 bg-white"
+            />
+          ))}
+        </div>
+        <div className="h-40 animate-pulse rounded-lg border border-slate-100 bg-white" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="h-48 animate-pulse rounded-lg border border-slate-100 bg-white" />
+          <div className="h-48 animate-pulse rounded-lg border border-slate-100 bg-white" />
+        </div>
+      </div>
+    );
   }
 
   return (
