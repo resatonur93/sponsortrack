@@ -24,6 +24,22 @@ import {
 } from "@/components/ui/table";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const URGENT_POPUP_SESSION_KEY = "st-dashboard-urgent-v1";
+
+function dashboardHasUrgentSignals(d: DashboardPayload): boolean {
+  if (d.stats.overdueNotifications > 0) return true;
+  if (d.highPriorityMissing?.length) return true;
+  return d.recentAlerts.some(
+    (a) => !a.isRead && (a.level === "CRITICAL" || a.level === "HIGH")
+  );
+}
 
 type DashboardPayload = {
   stats: {
@@ -77,6 +93,7 @@ export default function DashboardPage(): JSX.Element {
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
   const [riskEngine, setRiskEngine] = useState<RiskEngineSummary | null>(null);
+  const [urgentPopupOpen, setUrgentPopupOpen] = useState(false);
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
   useEffect(() => {
@@ -112,6 +129,29 @@ export default function DashboardPage(): JSX.Element {
       setRiskEngine(json.data);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!data) return;
+    if (!dashboardHasUrgentSignals(data)) return;
+    let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem(URGENT_POPUP_SESSION_KEY) === "1";
+    } catch {
+      dismissed = false;
+    }
+    if (dismissed) return;
+    const id = window.setTimeout(() => setUrgentPopupOpen(true), 500);
+    return () => window.clearTimeout(id);
+  }, [data]);
+
+  const dismissUrgentPopup = (): void => {
+    try {
+      sessionStorage.setItem(URGENT_POPUP_SESSION_KEY, "1");
+    } catch {
+      /* ignore private mode etc. */
+    }
+    setUrgentPopupOpen(false);
+  };
 
   if (loadFailed) {
     return (
@@ -157,8 +197,67 @@ export default function DashboardPage(): JSX.Element {
     );
   }
 
+  const unreadCriticalAlerts = data.recentAlerts.filter(
+    (a) => !a.isRead && (a.level === "CRITICAL" || a.level === "HIGH")
+  ).length;
+
   return (
     <div className="space-y-8">
+      <Dialog open={urgentPopupOpen} onOpenChange={(o) => !o && dismissUrgentPopup()}>
+        <DialogContent className="max-w-md border-amber-200 bg-amber-50/95 sm:rounded-lg">
+          <DialogHeader>
+            <DialogTitle className="text-amber-950">
+              {t("dashboard.urgentPopup.title")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-amber-900/90">{t("dashboard.urgentPopup.intro")}</p>
+          <ul className="list-inside list-disc space-y-1.5 text-sm text-amber-950">
+            {data.stats.overdueNotifications > 0 ? (
+              <li>
+                <span className="font-medium">
+                  {t("dashboard.urgentPopup.overdueLabel")}:{" "}
+                </span>
+                {data.stats.overdueNotifications}
+              </li>
+            ) : null}
+            {data.highPriorityMissing?.length ? (
+              <li>
+                <span className="font-medium">
+                  {t("dashboard.urgentPopup.missingDocsLabel")}:{" "}
+                </span>
+                {data.highPriorityMissing.length}
+              </li>
+            ) : null}
+            {unreadCriticalAlerts > 0 ? (
+              <li>
+                <span className="font-medium">
+                  {t("dashboard.urgentPopup.alertLabel")}:{" "}
+                </span>
+                {unreadCriticalAlerts}
+              </li>
+            ) : null}
+          </ul>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+            <Link
+              href="/notifications"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-brand-navy px-4 text-sm font-medium text-white hover:opacity-90"
+              onClick={() => dismissUrgentPopup()}
+            >
+              {t("dashboard.urgentPopup.gotoNotifications")}
+            </Link>
+            <Link
+              href="/alerts"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-amber-800/40 bg-white px-4 text-sm font-medium text-amber-950 hover:bg-amber-100"
+              onClick={() => dismissUrgentPopup()}
+            >
+              {t("dashboard.urgentPopup.gotoAlerts")}
+            </Link>
+            <Button type="button" variant="outline" onClick={() => dismissUrgentPopup()}>
+              {t("dashboard.urgentPopup.dismiss")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div>
         <h1 className="text-2xl font-bold text-brand-navy">{t("dashboard.title")}</h1>
         <p className="text-slate-600">{t("dashboard.subtitle")}</p>

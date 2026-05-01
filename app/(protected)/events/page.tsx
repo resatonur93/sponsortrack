@@ -11,10 +11,8 @@ import type {
   WorkflowStepType,
 } from "@prisma/client";
 import { useSession } from "next-auth/react";
-import {
-  getActivePendingStep,
-  workflowStateLabel,
-} from "@/lib/event-workflow-ui";
+import { getActivePendingStep } from "@/lib/event-workflow-ui";
+import { useTranslation } from "@/contexts/LanguageContext";
 import {
   Table,
   TableBody,
@@ -107,6 +105,58 @@ type WorkflowStepRow = {
 
 type EventDetailFull = EventRow & { workflowSteps: WorkflowStepRow[] };
 
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
+
+function eventTypeDisplay(
+  eventType: EventType,
+  translate: (key: string, fallback?: string) => string
+): string {
+  return tEnum(translate, `events.eventType.${eventType}`, eventType);
+}
+
+function eventStatusDisplay(
+  status: EventStatus,
+  translate: (key: string, fallback?: string) => string
+): string {
+  return tEnum(translate, `events.status.${status}`, status);
+}
+
+function workflowStateDisplay(
+  state: EventWorkflowState,
+  translate: (key: string, fallback?: string) => string
+): string {
+  return tEnum(translate, `notifications.workflow.state.${state}`, state);
+}
+
+function workflowStepDisplay(
+  step: WorkflowStepType,
+  translate: (key: string, fallback?: string) => string
+): string {
+  return tEnum(translate, `notifications.workflow.step.${step}`, step);
+}
+
+function workflowStepStatusDisplay(
+  status: WorkflowStepStatus,
+  translate: (key: string, fallback?: string) => string
+): string {
+  return tEnum(translate, `notifications.workflow.stepStatus.${status}`, status);
+}
+
+function formatEventDate(iso: string, localeTag: string): string {
+  return new Date(iso).toLocaleString(localeTag, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 type HoSmsDraft = {
   id: string;
   smsText: string;
@@ -131,6 +181,8 @@ type HoSmsDraft = {
 };
 
 export default function EventsPage(): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
   const { data: session } = useSession();
   const me = session?.user;
   const [rows, setRows] = useState<EventRow[]>([]);
@@ -173,13 +225,13 @@ export default function EventsPage(): JSX.Element {
     const res = await fetch(`/api/events?${q}`, { credentials: "include" });
     setLoading(false);
     if (!res.ok) {
-      setError("Liste yüklenemedi.");
+      setError(t("events.listError"));
       return;
     }
     const json = (await res.json()) as { data: EventRow[] };
     setRows(json.data);
     setError(null);
-  }, [statusFilter, typeFilter, dateFrom, dateTo]);
+  }, [statusFilter, typeFilter, dateFrom, dateTo, t]);
 
   useEffect(() => {
     void load();
@@ -224,7 +276,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Onaylanamadı.");
+      alert(j.error ?? t("events.alertApproveFailed"));
       return;
     }
     void load();
@@ -259,7 +311,7 @@ export default function EventsPage(): JSX.Element {
       credentials: "include",
     });
     if (!res.ok) {
-      alert("Güncellenemedi.");
+      alert(t("events.reportUpdateFailed"));
       return;
     }
     void load();
@@ -307,7 +359,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Submit failed");
+      alert(j.error ?? t("events.alertSubmitFailed"));
       return;
     }
     setWorkflowNotes("");
@@ -324,7 +376,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Review failed");
+      alert(j.error ?? t("events.alertReviewFailed"));
       return;
     }
     setWorkflowNotes("");
@@ -341,7 +393,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Compliance check failed");
+      alert(j.error ?? t("events.alertComplianceFailed"));
       return;
     }
     setWorkflowNotes("");
@@ -358,7 +410,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Approve failed");
+      alert(j.error ?? t("events.alertApproveFailed"));
       return;
     }
     setWorkflowNotes("");
@@ -367,7 +419,7 @@ export default function EventsPage(): JSX.Element {
 
   async function rejectWorkflow(): Promise<void> {
     if (!detail) return;
-    if (!window.confirm("Reject and return event to draft?")) return;
+    if (!window.confirm(t("events.confirmReject"))) return;
     const res = await fetch(`/api/events/${detail.id}/reject`, {
       method: "POST",
       credentials: "include",
@@ -376,7 +428,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Reject failed");
+      alert(j.error ?? t("events.alertRejectFailed"));
       return;
     }
     setWorkflowNotes("");
@@ -385,7 +437,7 @@ export default function EventsPage(): JSX.Element {
 
   async function escalateWorkflow(): Promise<void> {
     if (!detail || !escalateUserId.trim()) {
-      alert("Enter user ID to escalate to.");
+      alert(t("events.alertEscalateUserId"));
       return;
     }
     const res = await fetch(`/api/events/${detail.id}/escalate`, {
@@ -399,7 +451,7 @@ export default function EventsPage(): JSX.Element {
     });
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(j.error ?? "Escalate failed");
+      alert(j.error ?? t("events.alertEscalateFailed"));
       return;
     }
     setWorkflowNotes("");
@@ -441,7 +493,7 @@ export default function EventsPage(): JSX.Element {
         error?: string;
       };
       if (!res.ok) {
-        setHoSmsError(json.error ?? "Could not generate SMS draft");
+        setHoSmsError(json.error ?? t("events.alertSmsDraftFailed"));
         setHoSmsPhase("prepare");
         return;
       }
@@ -469,7 +521,7 @@ export default function EventsPage(): JSX.Element {
         error?: string;
       };
       if (!res.ok) {
-        setHoSmsError(json.error ?? "Approve failed");
+        setHoSmsError(json.error ?? t("events.alertSmsApproveFailed"));
         return;
       }
       if (json.data) setHoSmsDraft(json.data);
@@ -494,7 +546,7 @@ export default function EventsPage(): JSX.Element {
         error?: string;
       };
       if (!res.ok) {
-        setHoSmsError(json.error ?? "Update failed");
+        setHoSmsError(json.error ?? t("events.alertSmsUpdateFailed"));
         return;
       }
       if (json.data) setHoSmsDraft(json.data);
@@ -505,7 +557,7 @@ export default function EventsPage(): JSX.Element {
 
   async function submitManual(): Promise<void> {
     if (!manualWorkerId.trim()) {
-      alert("Worker ID gerekli.");
+      alert(t("events.manualWorkerRequired"));
       return;
     }
     setManualSubmitting(true);
@@ -521,7 +573,7 @@ export default function EventsPage(): JSX.Element {
     setManualSubmitting(false);
     if (!res.ok) {
       const j = (await res.json()) as { error?: string };
-      alert(j.error ?? "Oluşturulamadı.");
+      alert(j.error ?? t("events.manualCreateFallback"));
       return;
     }
     setManualWorkerId("");
@@ -535,51 +587,49 @@ export default function EventsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-brand-navy">Event reporting</h1>
-        <p className="text-sm text-slate-600">
-          Sponsor raporlama son tarihleri (UK iş günü / no-show takvim günü).
-        </p>
+        <h1 className="text-2xl font-bold text-brand-navy">{t("events.title")}</h1>
+        <p className="text-sm text-slate-600">{t("events.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Filters</CardTitle>
+          <CardTitle className="text-base">{t("events.filters")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
           <div className="space-y-1">
-            <Label>Status</Label>
+            <Label>{t("events.filterStatus")}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">{t("common.all")}</SelectItem>
                 {EVENT_STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s}
+                    {eventStatusDisplay(s, t)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Event type</Label>
+            <Label>{t("events.filterEventType")}</Label>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-[260px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {EVENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
+                <SelectItem value="all">{t("common.all")}</SelectItem>
+                {EVENT_TYPES.map((et) => (
+                  <SelectItem key={et} value={et}>
+                    {eventTypeDisplay(et, t)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Event date from</Label>
+            <Label>{t("events.dateFrom")}</Label>
             <Input
               type="date"
               value={dateFrom}
@@ -588,7 +638,7 @@ export default function EventsPage(): JSX.Element {
             />
           </div>
           <div className="space-y-1">
-            <Label>Event date to</Label>
+            <Label>{t("events.dateTo")}</Label>
             <Input
               type="date"
               value={dateTo}
@@ -597,26 +647,26 @@ export default function EventsPage(): JSX.Element {
             />
           </div>
           <Button type="button" onClick={() => void load()} disabled={loading}>
-            Apply
+            {t("common.apply")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Manual event</CardTitle>
+          <CardTitle className="text-base">{t("events.manualTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-1">
-            <Label>Worker ID</Label>
+            <Label>{t("events.workerId")}</Label>
             <Input
               value={manualWorkerId}
               onChange={(e) => setManualWorkerId(e.target.value)}
-              placeholder="cuid..."
+              placeholder={t("events.placeholderCuid")}
             />
           </div>
           <div className="w-full space-y-1 sm:w-64">
-            <Label>Type</Label>
+            <Label>{t("events.type")}</Label>
             <Select
               value={manualType}
               onValueChange={(v) => setManualType(v as EventType)}
@@ -625,9 +675,9 @@ export default function EventsPage(): JSX.Element {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {EVENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
+                {EVENT_TYPES.map((et) => (
+                  <SelectItem key={et} value={et}>
+                    {eventTypeDisplay(et, t)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -638,7 +688,7 @@ export default function EventsPage(): JSX.Element {
             disabled={manualSubmitting}
             onClick={() => void submitManual()}
           >
-            Create
+            {t("events.create")}
           </Button>
         </CardContent>
       </Card>
@@ -647,33 +697,33 @@ export default function EventsPage(): JSX.Element {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Worker</TableHead>
-              <TableHead>Event date</TableHead>
-              <TableHead>Deadline</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Workflow</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("events.colType")}</TableHead>
+              <TableHead>{t("events.colWorker")}</TableHead>
+              <TableHead>{t("events.colEventDate")}</TableHead>
+              <TableHead>{t("events.colDeadline")}</TableHead>
+              <TableHead>{t("events.colStatus")}</TableHead>
+              <TableHead>{t("events.colWorkflow")}</TableHead>
+              <TableHead className="text-right">{t("events.colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-slate-500">
-                  Loading…
+                  {t("common.loading")}
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-slate-500">
-                  No events.
+                  {t("events.noEvents")}
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((r) => (
                 <TableRow key={r.id} id={`event-${r.id}`}>
                   <TableCell className="max-w-[200px] truncate text-xs font-medium">
-                    {r.eventType}
+                    {eventTypeDisplay(r.eventType, t)}
                   </TableCell>
                   <TableCell>
                     <Link
@@ -685,17 +735,19 @@ export default function EventsPage(): JSX.Element {
                     <div className="text-xs text-slate-500">{r.worker.email}</div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
-                    {fmtDate(r.eventDate)}
+                    {formatEventDate(r.eventDate, localeTag)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
-                    {fmtDate(r.reportDeadline)}
+                    {formatEventDate(r.reportDeadline, localeTag)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
+                    <Badge variant={statusVariant(r.status)}>
+                      {eventStatusDisplay(r.status, t)}
+                    </Badge>
                   </TableCell>
                   <TableCell className="max-w-[140px]">
                     <Badge variant="outline" className="whitespace-normal text-[10px]">
-                      {workflowStateLabel(r.workflowState)}
+                      {workflowStateDisplay(r.workflowState, t)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -706,7 +758,7 @@ export default function EventsPage(): JSX.Element {
                         variant="outline"
                         onClick={() => setDetail(r)}
                       >
-                        Details
+                        {t("events.details")}
                       </Button>
                       <Button
                         type="button"
@@ -714,7 +766,7 @@ export default function EventsPage(): JSX.Element {
                         variant="secondary"
                         onClick={() => openHoSmsModal(r)}
                       >
-                        Generate SMS
+                        {t("events.generateSms")}
                       </Button>
                       <Button
                         type="button"
@@ -733,7 +785,7 @@ export default function EventsPage(): JSX.Element {
                         }
                         onClick={() => void approve(r.id)}
                       >
-                        Approve
+                        {t("events.approve")}
                       </Button>
                       <Button
                         type="button"
@@ -748,7 +800,7 @@ export default function EventsPage(): JSX.Element {
                         }
                         onClick={() => void report(r.id)}
                       >
-                        Report
+                        {t("events.report")}
                       </Button>
                     </div>
                   </TableCell>
@@ -762,7 +814,7 @@ export default function EventsPage(): JSX.Element {
       {detail ? (
         <Card className="border-brand-navy/30">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Event detail</CardTitle>
+            <CardTitle className="text-base">{t("events.detailTitle")}</CardTitle>
             <Button
               type="button"
               variant="ghost"
@@ -781,24 +833,25 @@ export default function EventsPage(): JSX.Element {
                 setDetail(null);
               }}
             >
-              Close
+              {t("common.close")}
             </Button>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {detailLoading ? (
-              <p className="text-slate-500">Loading workflow…</p>
+              <p className="text-slate-500">{t("events.loadingWorkflow")}</p>
             ) : null}
             <p>
-              <span className="text-slate-500">Type:</span> {detail.eventType}
+              <span className="text-slate-500">{t("events.labelType")}:</span>{" "}
+              {eventTypeDisplay(detail.eventType, t)}
             </p>
             <p>
-              <span className="text-slate-500">Workflow:</span>{" "}
+              <span className="text-slate-500">{t("events.labelWorkflow")}:</span>{" "}
               <Badge variant="outline">
-                {workflowStateLabel(detailFull?.workflowState ?? detail.workflowState)}
+                {workflowStateDisplay(detailFull?.workflowState ?? detail.workflowState, t)}
               </Badge>
             </p>
             <p>
-              <span className="text-slate-500">Worker:</span>{" "}
+              <span className="text-slate-500">{t("events.labelWorker")}:</span>{" "}
               <Link href={`/workers/${detail.worker.id}`} className="underline">
                 {detail.worker.firstName} {detail.worker.lastName}
               </Link>{" "}
@@ -806,23 +859,27 @@ export default function EventsPage(): JSX.Element {
             </p>
             {detailFull?.workflowSteps?.length ? (
               <div>
-                <p className="font-medium text-slate-800">Workflow timeline</p>
+                <p className="font-medium text-slate-800">{t("events.timelineTitle")}</p>
                 <ul className="relative mt-2 space-y-0 border-l-2 border-slate-200 pl-4">
                   {detailFull.workflowSteps.map((s) => (
                     <li key={s.id} className="relative pb-4 last:pb-0">
                       <span className="absolute -left-[7px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-navy" />
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{s.step}</span>
-                        <Badge variant="outline">{s.status}</Badge>
+                        <span className="font-medium">
+                          {workflowStepDisplay(s.step, t)}
+                        </span>
+                        <Badge variant="outline">
+                          {workflowStepStatusDisplay(s.status, t)}
+                        </Badge>
                       </div>
                       <p className="text-xs text-slate-600">
-                        Assigned: {s.assignee.firstName} {s.assignee.lastName} (
-                        {s.assignee.email})
+                        {t("events.assignedTo")}: {s.assignee.firstName}{" "}
+                        {s.assignee.lastName} ({s.assignee.email})
                       </p>
                       {s.actionedAt ? (
                         <p className="text-xs text-slate-500">
-                          Actioned:{" "}
-                          {new Date(s.actionedAt).toLocaleString("en-GB")}
+                          {t("events.actionedAt")}:{" "}
+                          {new Date(s.actionedAt).toLocaleString(localeTag)}
                         </p>
                       ) : null}
                       {s.notes ? (
@@ -837,32 +894,32 @@ export default function EventsPage(): JSX.Element {
             detailFull?.workflowSteps?.length &&
             getActivePendingStep(detailFull.workflowSteps)?.assignedTo === me.id ? (
               <p className="rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900">
-                Action required — this step is assigned to you.
+                {t("events.actionRequired")}
               </p>
             ) : null}
             <div>
-              <Label className="text-slate-600">Workflow notes</Label>
+              <Label className="text-slate-600">{t("events.workflowNotes")}</Label>
               <textarea
                 className="mt-1 min-h-[72px] w-full rounded-md border border-slate-300 p-2 text-sm"
                 value={workflowNotes}
                 onChange={(e) => setWorkflowNotes(e.target.value)}
-                placeholder="Optional notes for submit / approve / reject"
+                placeholder={t("events.workflowNotesPlaceholder")}
               />
             </div>
             <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
               {detail.workflowState === "DRAFT" ? (
                 <>
                   <div className="w-full space-y-1">
-                    <Label className="text-xs">Manager user ID (optional)</Label>
+                    <Label className="text-xs">{t("events.managerUserId")}</Label>
                     <Input
                       value={submitManagerId}
                       onChange={(e) => setSubmitManagerId(e.target.value)}
-                      placeholder="cuid — defaults to first Level 1 user"
+                      placeholder={t("events.managerUserIdPlaceholder")}
                       className="text-xs"
                     />
                   </div>
                   <div className="w-full space-y-1">
-                    <Label className="text-xs">Compliance user ID (optional)</Label>
+                    <Label className="text-xs">{t("events.complianceUserId")}</Label>
                     <Input
                       value={submitComplianceId}
                       onChange={(e) => setSubmitComplianceId(e.target.value)}
@@ -870,7 +927,7 @@ export default function EventsPage(): JSX.Element {
                     />
                   </div>
                   <div className="w-full space-y-1">
-                    <Label className="text-xs">AO user ID (optional)</Label>
+                    <Label className="text-xs">{t("events.aoUserId")}</Label>
                     <Input
                       value={submitAoId}
                       onChange={(e) => setSubmitAoId(e.target.value)}
@@ -878,13 +935,13 @@ export default function EventsPage(): JSX.Element {
                     />
                   </div>
                   <Button type="button" size="sm" onClick={() => void submitWorkflow()}>
-                    Submit (HR)
+                    {t("events.submitHr")}
                   </Button>
                 </>
               ) : null}
               {detail.workflowState === "SUBMITTED" ? (
                 <Button type="button" size="sm" onClick={() => void managerReview()}>
-                  Manager approve
+                  {t("events.managerApprove")}
                 </Button>
               ) : null}
               {detail.workflowState === "COMPLIANCE_REVIEW" ? (
@@ -893,12 +950,12 @@ export default function EventsPage(): JSX.Element {
                   size="sm"
                   onClick={() => void complianceReview()}
                 >
-                  Compliance approve
+                  {t("events.complianceApprove")}
                 </Button>
               ) : null}
               {detail.workflowState === "AO_APPROVAL" ? (
                 <Button type="button" size="sm" onClick={() => void aoApproveDetail()}>
-                  AO final approve
+                  {t("events.aoFinalApprove")}
                 </Button>
               ) : null}
               {detail.workflowState !== "DRAFT" &&
@@ -910,15 +967,15 @@ export default function EventsPage(): JSX.Element {
                     variant="danger"
                     onClick={() => void rejectWorkflow()}
                   >
-                    Reject
+                    {t("events.reject")}
                   </Button>
                   <div className="flex w-full flex-wrap items-end gap-2">
                     <div className="min-w-[200px] flex-1 space-y-1">
-                      <Label className="text-xs">Escalate to user ID</Label>
+                      <Label className="text-xs">{t("events.escalateToUserId")}</Label>
                       <Input
                         value={escalateUserId}
                         onChange={(e) => setEscalateUserId(e.target.value)}
-                        placeholder="cuid"
+                        placeholder={t("events.placeholderCuidShort")}
                         className="text-xs"
                       />
                     </div>
@@ -928,14 +985,14 @@ export default function EventsPage(): JSX.Element {
                       variant="secondary"
                       onClick={() => void escalateWorkflow()}
                     >
-                      Escalate
+                      {t("events.escalate")}
                     </Button>
                   </div>
                 </>
               ) : null}
             </div>
             <div>
-              <p className="text-slate-500">Evidence required</p>
+              <p className="text-slate-500">{t("events.evidenceRequired")}</p>
               <ul className="mt-1 list-inside list-disc">
                 {detail.evidenceRequired.map((e) => (
                   <li key={e}>{e}</li>
@@ -944,7 +1001,7 @@ export default function EventsPage(): JSX.Element {
             </div>
             {detail.smsDraft ? (
               <div>
-                <p className="text-slate-500">SMS draft</p>
+                <p className="text-slate-500">{t("events.smsDraft")}</p>
                 <pre className="mt-1 whitespace-pre-wrap rounded bg-slate-50 p-3 text-xs">
                   {detail.smsDraft}
                 </pre>
@@ -952,7 +1009,8 @@ export default function EventsPage(): JSX.Element {
             ) : null}
             {detail.notes ? (
               <p>
-                <span className="text-slate-500">Notes:</span> {detail.notes}
+                <span className="text-slate-500">{t("events.labelNotes")}:</span>{" "}
+                {detail.notes}
               </p>
             ) : null}
           </CardContent>
@@ -967,13 +1025,16 @@ export default function EventsPage(): JSX.Element {
       >
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>HO SMS draft</DialogTitle>
+            <DialogTitle>{t("events.dialogHoSmsTitle")}</DialogTitle>
           </DialogHeader>
           {hoSmsEvent ? (
             <div className="space-y-4 text-sm">
               <p className="text-slate-600">
-                <span className="font-medium text-slate-800">Event:</span>{" "}
-                {hoSmsEvent.eventType} · {hoSmsEvent.worker.firstName}{" "}
+                <span className="font-medium text-slate-800">
+                  {t("events.dialogEventLabel")}:
+                </span>{" "}
+                {eventTypeDisplay(hoSmsEvent.eventType, t)} ·{" "}
+                {hoSmsEvent.worker.firstName}{" "}
                 {hoSmsEvent.worker.lastName} ({hoSmsEvent.worker.cosReference})
               </p>
               {hoSmsError ? (
@@ -985,11 +1046,11 @@ export default function EventsPage(): JSX.Element {
               {hoSmsPhase === "prepare" ? (
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <Label>Internal notes (optional)</Label>
+                    <Label>{t("events.dialogInternalNotes")}</Label>
                     <textarea
                       value={hoSmsNotes}
                       onChange={(e) => setHoSmsNotes(e.target.value)}
-                      placeholder="Context for approvers only — not sent to HO"
+                      placeholder={t("events.dialogInternalNotesPlaceholder")}
                       className="min-h-[80px] w-full rounded-md border border-slate-300 p-2 text-sm"
                     />
                   </div>
@@ -997,20 +1058,20 @@ export default function EventsPage(): JSX.Element {
                     type="button"
                     onClick={() => void generateHoSmsDraft()}
                   >
-                    Generate draft
+                    {t("events.dialogGenerateDraft")}
                   </Button>
                 </div>
               ) : null}
 
               {hoSmsPhase === "loading" ? (
-                <p className="text-slate-500">Generating…</p>
+                <p className="text-slate-500">{t("events.dialogGenerating")}</p>
               ) : null}
 
               {hoSmsPhase === "review" && hoSmsDraft ? (
                 <div className="space-y-4 border-t border-slate-100 pt-4">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Review — SMS text
+                      {t("events.dialogReviewSms")}
                     </p>
                     <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900">
                       {hoSmsDraft.smsText}
@@ -1018,7 +1079,7 @@ export default function EventsPage(): JSX.Element {
                   </div>
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Evidence checklist
+                      {t("events.dialogEvidenceChecklist")}
                     </p>
                     <ul className="mt-2 list-inside list-disc text-slate-700">
                       {hoSmsDraft.evidenceChecklist.map((item) => (
@@ -1028,20 +1089,25 @@ export default function EventsPage(): JSX.Element {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">
-                      Deadline: {fmtDate(hoSmsDraft.deadline)}
+                      {t("events.dialogDeadline")}:{" "}
+                      {formatEventDate(hoSmsDraft.deadline, localeTag)}
                     </Badge>
                     {hoSmsDraft.approvedAt ? (
-                      <Badge variant="success">Approved</Badge>
+                      <Badge variant="success">{t("events.badgeApproved")}</Badge>
                     ) : (
-                      <Badge variant="warning">Awaiting approval</Badge>
+                      <Badge variant="warning">
+                        {t("events.badgeAwaitingApproval")}
+                      </Badge>
                     )}
                     {hoSmsDraft.sentToHO ? (
-                      <Badge variant="success">Sent to HO</Badge>
+                      <Badge variant="success">{t("events.badgeSentToHo")}</Badge>
                     ) : null}
                   </div>
                   {hoSmsDraft.internalNotes ? (
                     <p className="text-xs text-slate-600">
-                      <span className="font-medium">Internal notes:</span>{" "}
+                      <span className="font-medium">
+                        {t("events.internalNotesColon")}:
+                      </span>{" "}
                       {hoSmsDraft.internalNotes}
                     </p>
                   ) : null}
@@ -1052,7 +1118,7 @@ export default function EventsPage(): JSX.Element {
                         disabled={hoSmsBusy}
                         onClick={() => void approveHoSmsDraft()}
                       >
-                        Approve draft
+                        {t("events.approveDraft")}
                       </Button>
                     ) : null}
                     {hoSmsDraft.approvedAt && !hoSmsDraft.sentToHO ? (
@@ -1062,7 +1128,7 @@ export default function EventsPage(): JSX.Element {
                         disabled={hoSmsBusy}
                         onClick={() => void markHoSmsSent()}
                       >
-                        Mark sent to HO
+                        {t("events.markSentToHo")}
                       </Button>
                     ) : null}
                   </div>
@@ -1074,14 +1140,6 @@ export default function EventsPage(): JSX.Element {
       </Dialog>
     </div>
   );
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 function statusVariant(

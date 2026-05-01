@@ -33,7 +33,6 @@ import {
 import { EscalationBadge } from "@/components/notifications/EscalationBadge";
 import { isClosedForExpiredDocument } from "@/lib/document-expiring-notification-closure";
 import { formatDeadlineWindowLabel } from "@/lib/deadline-display";
-import { workflowStateLabel } from "@/lib/event-workflow-ui";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 type Row = NotificationEvent & {
@@ -60,6 +59,64 @@ type WorkflowAssignmentRow = {
   };
 };
 
+const NOTIFICATION_TYPES: NotificationType[] = [
+  "NO_SHOW",
+  "SALARY_REDUCTION",
+  "WORK_LOCATION_CHANGE",
+  "SPONSORSHIP_ENDED",
+  "VISA_EXPIRING_90_DAYS",
+  "VISA_EXPIRING_30_DAYS",
+  "VISA_EXPIRING_7_DAYS",
+  "DOCUMENT_EXPIRING",
+  "WORKER_MISSING_DOCUMENTS",
+  "SALARY_DISCREPANCY",
+  "UNAUTHORISED_ABSENCE",
+];
+
+const NOTIFICATION_STATUSES: NotificationStatus[] = [
+  "PENDING",
+  "OVERDUE",
+  "COMPLETED",
+  "CANCELLED",
+];
+
+function tEnum(
+  t: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = t(key, fallback);
+  return v === key ? fallback : v;
+}
+
+function notificationTypeLabel(
+  type: NotificationType | EventType,
+  t: (key: string, fallback?: string) => string
+): string {
+  return tEnum(t, `notifications.type.${type}`, type);
+}
+
+function workflowStepLabel(
+  step: WorkflowStepType,
+  t: (key: string, fallback?: string) => string
+): string {
+  return tEnum(t, `notifications.workflow.step.${step}`, step);
+}
+
+function workflowStepStatusLabel(
+  status: WorkflowStepStatus,
+  t: (key: string, fallback?: string) => string
+): string {
+  return tEnum(t, `notifications.workflow.stepStatus.${status}`, status);
+}
+
+function workflowStateDisplay(
+  state: EventWorkflowState,
+  t: (key: string, fallback?: string) => string
+): string {
+  return tEnum(t, `notifications.workflow.state.${state}`, state);
+}
+
 function notificationStatusDisplay(
   row: Row,
   translate: (key: string, fallback?: string) => string
@@ -71,9 +128,7 @@ function notificationStatusDisplay(
   ) {
     return translate("notifications.status.documentEnded");
   }
-  const key = `notifications.status.${row.status}`;
-  const label = translate(key, row.status);
-  return label === key ? row.status : label;
+  return tEnum(translate, `notifications.status.${row.status}`, row.status);
 }
 
 export default function NotificationsPage(): JSX.Element {
@@ -163,25 +218,25 @@ export default function NotificationsPage(): JSX.Element {
                     <TableHead>{t("notifications.colWorker")}</TableHead>
                     <TableHead>{t("notifications.colWorkflow")}</TableHead>
                     <TableHead>{t("notifications.colDeadline")}</TableHead>
-                    <TableHead className="text-right">
-                      {t("notifications.colAction")}
-                    </TableHead>
+                    <TableHead className="text-right">{t("notifications.colAction")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {workflowRows.map((w) => (
                     <TableRow key={w.id}>
-                      <TableCell className="text-xs font-medium">{w.step}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{w.status}</Badge>
+                      <TableCell className="text-xs font-medium">
+                        {workflowStepLabel(w.step, t)}
                       </TableCell>
-                      <TableCell className="text-xs">{w.event.eventType}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{workflowStepStatusLabel(w.status, t)}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">{notificationTypeLabel(w.event.eventType, t)}</TableCell>
                       <TableCell className="text-sm">
                         {w.event.worker.firstName} {w.event.worker.lastName}
                       </TableCell>
                       <TableCell className="max-w-[140px]">
                         <Badge variant="outline" className="whitespace-normal text-[10px]">
-                          {workflowStateLabel(w.event.workflowState)}
+                          {workflowStateDisplay(w.event.workflowState, t)}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
@@ -189,9 +244,7 @@ export default function NotificationsPage(): JSX.Element {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button type="button" size="sm" variant="secondary" asChild>
-                          <Link href={`/events#event-${w.event.id}`}>
-                            {t("notifications.openEvents")}
-                          </Link>
+                          <Link href={`/events#event-${w.event.id}`}>{t("notifications.openEvents")}</Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -205,49 +258,32 @@ export default function NotificationsPage(): JSX.Element {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="w-full sm:w-48">
-          <label className="text-sm text-slate-600">
-            {t("notifications.filterStatus")}
-          </label>
+          <label className="text-sm text-slate-600">{t("notifications.filterStatus")}</label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("common.all")}</SelectItem>
-              <SelectItem value="PENDING">PENDING</SelectItem>
-              <SelectItem value="OVERDUE">OVERDUE</SelectItem>
-              <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-              <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+              {NOTIFICATION_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {tEnum(t, `notifications.status.${s}`, s)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="w-full sm:w-56">
-          <label className="text-sm text-slate-600">
-            {t("notifications.filterType")}
-          </label>
+          <label className="text-sm text-slate-600">{t("notifications.filterType")}</label>
           <Select value={type} onValueChange={setType}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("common.all")}</SelectItem>
-              {(
-                [
-                  "NO_SHOW",
-                  "SALARY_REDUCTION",
-                  "WORK_LOCATION_CHANGE",
-                  "SPONSORSHIP_ENDED",
-                  "VISA_EXPIRING_90_DAYS",
-                  "VISA_EXPIRING_30_DAYS",
-                  "VISA_EXPIRING_7_DAYS",
-                  "DOCUMENT_EXPIRING",
-                  "WORKER_MISSING_DOCUMENTS",
-                  "SALARY_DISCREPANCY",
-                  "UNAUTHORISED_ABSENCE",
-                ] as NotificationType[]
-              ).map((evType) => (
+              {NOTIFICATION_TYPES.map((evType) => (
                 <SelectItem key={evType} value={evType}>
-                  {evType}
+                  {notificationTypeLabel(evType, t)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -266,9 +302,7 @@ export default function NotificationsPage(): JSX.Element {
                 <TableHead>{t("notifications.colStatus")}</TableHead>
                 <TableHead>{t("notifications.tableUrgency")}</TableHead>
                 <TableHead>{t("notifications.tableReportDeadline")}</TableHead>
-                <TableHead className="text-right">
-                  {t("notifications.colAction")}
-                </TableHead>
+                <TableHead className="text-right">{t("notifications.colAction")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -277,7 +311,7 @@ export default function NotificationsPage(): JSX.Element {
                   <TableCell>
                     {r.worker.firstName} {r.worker.lastName}
                   </TableCell>
-                  <TableCell className="text-xs">{r.eventType}</TableCell>
+                  <TableCell className="text-xs">{notificationTypeLabel(r.eventType, t)}</TableCell>
                   <TableCell>{notificationStatusDisplay(r, t)}</TableCell>
                   <TableCell>
                     <EscalationBadge
@@ -295,15 +329,14 @@ export default function NotificationsPage(): JSX.Element {
                   <TableCell className="text-xs">
                     <div>
                       {(r.reportDeadlineAt ?? r.dueDate) &&
-                        new Date(
-                          r.reportDeadlineAt ?? r.dueDate
-                        ).toLocaleDateString(localeTag)}
+                        new Date(r.reportDeadlineAt ?? r.dueDate).toLocaleDateString(localeTag)}
                     </div>
                     <div className="text-slate-500">
                       {formatDeadlineWindowLabel(
                         r.eventType,
                         r.occurredAt,
-                        r.reportDeadlineAt ?? r.dueDate
+                        r.reportDeadlineAt ?? r.dueDate,
+                        locale
                       )}
                     </div>
                   </TableCell>

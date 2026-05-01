@@ -64,6 +64,17 @@ const tr: Record<string, string> = {
   "dashboard.alertsAll": "Tümü",
   "dashboard.noAlerts": "Aktif uyarı yok.",
   "dashboard.newBadge": "Yeni",
+  "dashboard.urgentPopup.title": "Önemli uyarılar",
+  "dashboard.urgentPopup.intro":
+    "Şu konular aksiyon gerektirebilir:",
+  "dashboard.urgentPopup.overdueLabel": "Geciken bildirim",
+  "dashboard.urgentPopup.missingDocsLabel":
+    "Yüksek öncelikli eksik belgesi olan çalışan",
+  "dashboard.urgentPopup.alertLabel":
+    "Kritik veya yüksek düzeyde okunmamış uyarı",
+  "dashboard.urgentPopup.dismiss": "Anladım",
+  "dashboard.urgentPopup.gotoNotifications": "Bildirimler",
+  "dashboard.urgentPopup.gotoAlerts": "Uyarılar sayfası",
   "dashboard.missingDocTracking": "Eksik belge takibi",
   "dashboard.missingDocListed": "çalışan listeleniyor",
   "dashboard.noMissingDocs": "Eksik ya da süresi geçen zorunlu belge yok.",
@@ -84,8 +95,9 @@ const tr: Record<string, string> = {
   "workers.searchPlaceholder": "İsim, e-posta, CoS…",
   "workers.visaExpiry": "Vize bitiş",
   "workerTable.detail": "Detay",
-  "events.title": "Uyum olayları",
-  "events.subtitle": "Raporlama ve SMS taslakları",
+  "events.title": "Olay raporlama",
+  "events.subtitle":
+    "Sponsor raporlama son tarihleri (Birleşik Krallık iş günü; devamsızlıkta takvim günü).",
   "events.listError": "Liste yüklenemedi.",
   "events.loading": "Yükleniyor…",
   "events.noEvents": "Olay yok.",
@@ -95,6 +107,9 @@ const tr: Record<string, string> = {
   "events.dateTo": "Olay tarihi (bitiş)",
   "events.manualTitle": "Manuel olay",
   "events.workerId": "Çalışan ID",
+  "events.manualWorkerRequired": "Çalışan ID zorunludur.",
+  "events.reportUpdateFailed": "Güncellenemedi.",
+  "events.manualCreateFallback": "Oluşturulamadı.",
   "events.create": "Oluştur",
   "events.colType": "Tür",
   "events.colWorker": "Çalışan",
@@ -106,6 +121,146 @@ const tr: Record<string, string> = {
   "events.generateSms": "SMS üret",
   "events.approve": "Onayla",
   "events.report": "Raporla",
+  "events.details": "Detaylar",
+  "events.filterStatus": "Durum",
+  "events.filterEventType": "Olay türü",
+  "events.placeholderCuid": "cuid…",
+  "events.detailTitle": "Olay detayı",
+  "events.loadingWorkflow": "İş akışı yükleniyor…",
+  "events.labelType": "Tür",
+  "events.labelWorkflow": "İş akışı",
+  "events.labelWorker": "Çalışan",
+  "events.timelineTitle": "İş akışı zaman çizelgesi",
+  "events.assignedTo": "Atanan",
+  "events.actionedAt": "İşlem tarihi",
+  "events.labelNotes": "Notlar",
+  "events.workflowNotes": "İş akışı notları",
+  "events.workflowNotesPlaceholder":
+    "Gönderme, onay veya reddetme için isteğe bağlı notlar",
+  "events.managerUserId": "Yönetici kullanıcı ID (isteğe bağlı)",
+  "events.managerUserIdPlaceholder":
+    "cuid — yoksa ilk Seviye 1 kullanıcı",
+  "events.complianceUserId": "Uyum kullanıcı ID (isteğe bağlı)",
+  "events.aoUserId": "Yetkili onaycı kullanıcı ID (isteğe bağlı)",
+  "events.submitHr": "Gönder (İK)",
+  "events.managerApprove": "Yönetici onayı",
+  "events.complianceApprove": "Uyum onayı",
+  "events.aoFinalApprove": "Yetkili onaycı nihai onayı",
+  "events.reject": "Reddet",
+  "events.escalateToUserId": "Şu kullanıcıya yükselt (ID)",
+  "events.placeholderCuidShort": "cuid",
+  "events.escalate": "Yükselt",
+  "events.evidenceRequired": "Kanıt gereksinimi",
+  "events.smsDraft": "SMS taslağı",
+  "events.confirmReject":
+    "Reddedip olayı taslağa döndürmek istediğinize emin misiniz?",
+  "events.alertSubmitFailed": "Gönderilemedi.",
+  "events.alertReviewFailed": "İnceleme işlemi başarısız.",
+  "events.alertComplianceFailed": "Uyum kontrolü başarısız.",
+  "events.alertApproveFailed": "Onay başarısız.",
+  "events.alertRejectFailed": "Red işlemi başarısız.",
+  "events.alertEscalateUserId": "Yükseltme için kullanıcı ID girin.",
+  "events.alertEscalateFailed": "Yükseltme başarısız.",
+  "events.alertSmsDraftFailed": "SMS taslağı oluşturulamadı.",
+  "events.alertSmsApproveFailed": "Taslak onaylanamadı.",
+  "events.alertSmsUpdateFailed": "Güncelleme başarısız.",
+  "events.actionRequired":
+    "Eylem gerekli — bu adım size atanmış.",
+  "events.dialogHoSmsTitle": "İçişleri Bakanlığı SMS taslağı",
+  "events.dialogEventLabel": "Olay",
+  "events.dialogInternalNotes": "Dahili notlar (isteğe bağlı)",
+  "events.dialogInternalNotesPlaceholder":
+    "Yalnızca onaylayıcılar için bağlam — metin İçişleri Bakanlığı’na gönderilmez",
+  "events.dialogGenerateDraft": "Taslak oluştur",
+  "events.dialogGenerating": "Üretiliyor…",
+  "events.dialogReviewSms": "İnceleme — SMS metni",
+  "events.dialogEvidenceChecklist": "Kanıt kontrol listesi",
+  "events.dialogDeadline": "Son tarih",
+  "events.badgeApproved": "Onaylandı",
+  "events.badgeAwaitingApproval": "Onay bekliyor",
+  "events.badgeSentToHo": "İçişleri Bakanlığı’na gönderildi",
+  "events.internalNotesColon": "Dahili notlar",
+  "events.approveDraft": "Taslağı onayla",
+  "events.markSentToHo":
+    "İçişleri Bakanlığı’na gönderildi olarak işaretle",
+  "notifications.type.NO_SHOW": "28 günlük devamsızlık bildirimi",
+  "notifications.type.UNAUTHORISED_ABSENCE": "İzinsiz devamsızlık",
+  "notifications.type.UNPAID_OR_REDUCED_PAY_ABSENCE":
+    "Ücretsiz veya kesintili ücretli devamsızlık",
+  "notifications.type.SALARY_REDUCTION": "Ücret/az maaş değişikliği",
+  "notifications.type.CHANGE_OF_ROLE_OR_DUTIES": "Rol veya görev değişikliği",
+  "notifications.type.PROMOTION_SAME_SOC":
+    "Terfi (aynı meslek koduyla)",
+  "notifications.type.WORK_LOCATION_CHANGE": "Çalışma yeri değişikliği",
+  "notifications.type.SPONSORSHIP_ENDED": "Sponsorluk sonu",
+  "notifications.type.OFFSHORE_ARRIVAL": "Açık deniz varışı",
+  "notifications.type.OFFSHORE_DEPARTURE": "Açık deniz ayrılışı",
+  "notifications.type.ORGANISATION_CHANGE": "Kuruluş değişikliği",
+  "notifications.type.ADDRESS_CONTACT_UPDATE":
+    "Adres veya iletişim güncellemesi",
+  "notifications.type.ORGANISATION_SIZE_CHANGE": "Kuruluş boyutu değişikliği",
+  "notifications.type.CHARITY_STATUS_CHANGE": "Hayır kurumu statüsü değişikliği",
+  "notifications.type.KEY_PERSONNEL_CHANGE": "Önemli personel değişikliği",
+  "notifications.type.MERGER_TUPE_RESTRUCTURING":
+    "Birleşme, iş aktarımı veya yeniden yapılandırma",
+  "notifications.type.INSOLVENCY_RELATED": "İflasla ilgili",
+  "notifications.type.VISA_EXPIRING_90_DAYS":
+    "Vize süresi doluyor (90 gün)",
+  "notifications.type.VISA_EXPIRING_30_DAYS":
+    "Vize süresi doluyor (30 gün)",
+  "notifications.type.VISA_EXPIRING_7_DAYS":
+    "Vize süresi doluyor (7 gün)",
+  "notifications.type.DOCUMENT_EXPIRING": "Belge süresi doluyor",
+  "notifications.type.WORKER_MISSING_DOCUMENTS":
+    "Çalışanda eksik belgeler",
+  "notifications.type.SALARY_DISCREPANCY": "Ücret tutarsızlığı",
+  "notifications.workflow.state.DRAFT": "Taslak",
+  "notifications.workflow.state.SUBMITTED": "Gönderildi (yönetici)",
+  "notifications.workflow.state.MANAGER_REVIEW":
+    "Yönetici incelemesi",
+  "notifications.workflow.state.COMPLIANCE_REVIEW":
+    "Uyum incelemesi",
+  "notifications.workflow.state.AO_APPROVAL": "Yetkili onaycı onayı",
+  "notifications.workflow.state.REPORTED":
+    "Onaylı (iş akışı tamam)",
+  "notifications.workflow.step.HR_SUBMISSION":
+    "İK başvurusu",
+  "notifications.workflow.step.MANAGER_REVIEW":
+    "Yönetici incelemesi",
+  "notifications.workflow.step.COMPLIANCE_REVIEW":
+    "Uyum incelemesi",
+  "notifications.workflow.step.AO_APPROVAL":
+    "Yetkili onaycı onayı",
+  "notifications.workflow.step.FINAL_REPORT": "Son rapor",
+  "notifications.workflow.stepStatus.PENDING": "Beklemede",
+  "notifications.workflow.stepStatus.IN_PROGRESS": "Devam ediyor",
+  "notifications.workflow.stepStatus.APPROVED": "Onaylandı",
+  "notifications.workflow.stepStatus.REJECTED": "Reddedildi",
+  "notifications.workflow.stepStatus.ESCALATED": "Yükseltildi",
+  "events.status.PENDING": "Beklemede",
+  "events.status.UNDER_REVIEW": "İncelemede",
+  "events.status.APPROVED": "Onaylı",
+  "events.status.REPORTED": "Raporlandı",
+  "events.status.OVERDUE": "Süresi geçmiş",
+  "events.status.CANCELLED": "İptal edildi",
+  "events.eventType.NO_SHOW_28_DAYS":
+    "28 günlük devamsızlık",
+  "events.eventType.UNAUTHORISED_ABSENCE_10_DAYS":
+    "10 günlük izinsiz devamsızlık",
+  "events.eventType.REDUCED_PAY_ABSENCE":
+    "Ücret kesintili devamsızlık",
+  "events.eventType.SALARY_REDUCTION": "Ücret indirimi",
+  "events.eventType.ROLE_CHANGE":
+    "Rol veya görev değişikliği",
+  "events.eventType.PROMOTION_SAME_CODE":
+    "Terfi (aynı meslek koduyla)",
+  "events.eventType.WORK_LOCATION_CHANGE": "Çalışma yeri değişikliği",
+  "events.eventType.SPONSORSHIP_ENDED": "Sponsorluk sonu",
+  "events.eventType.OFFSHORE_ARRIVAL": "Açık deniz varışı",
+  "events.eventType.OFFSHORE_DEPARTURE": "Açık deniz ayrılışı",
+  "events.eventType.ADDRESS_CHANGE": "Adres değişikliği",
+  "events.eventType.PHONE_CHANGE": "Telefon değişikliği",
+  "events.eventType.EMAIL_CHANGE": "E-posta değişikliği",
   "notifications.title": "Bildirimler",
   "notifications.subtitle": "Uyum olayları ve tamamlama",
   "notifications.workflowTitle": "Onay akışı — size atanan adımlar",
@@ -398,6 +553,17 @@ const en: Record<string, string> = {
   "dashboard.alertsAll": "All",
   "dashboard.noAlerts": "No active alerts.",
   "dashboard.newBadge": "New",
+  "dashboard.urgentPopup.title": "Important notices",
+  "dashboard.urgentPopup.intro":
+    "The following may need your attention:",
+  "dashboard.urgentPopup.overdueLabel": "Overdue notifications",
+  "dashboard.urgentPopup.missingDocsLabel":
+    "Workers with high-priority missing documents",
+  "dashboard.urgentPopup.alertLabel":
+    "Unread critical or high-severity alerts",
+  "dashboard.urgentPopup.dismiss": "Got it",
+  "dashboard.urgentPopup.gotoNotifications": "Notifications",
+  "dashboard.urgentPopup.gotoAlerts": "Alerts page",
   "dashboard.missingDocTracking": "Missing document tracking",
   "dashboard.missingDocListed": "workers listed",
   "dashboard.noMissingDocs": "No missing or expired required documents.",
@@ -418,8 +584,9 @@ const en: Record<string, string> = {
   "workers.searchPlaceholder": "Name, email, CoS…",
   "workers.visaExpiry": "Visa expiry",
   "workerTable.detail": "Details",
-  "events.title": "Compliance events",
-  "events.subtitle": "Reporting and SMS drafts",
+  "events.title": "Event reporting",
+  "events.subtitle":
+    "Sponsor reporting deadlines (UK working days; calendar days for no-show).",
   "events.listError": "Could not load list.",
   "events.loading": "Loading…",
   "events.noEvents": "No events.",
@@ -429,6 +596,9 @@ const en: Record<string, string> = {
   "events.dateTo": "Event date to",
   "events.manualTitle": "Manual event",
   "events.workerId": "Worker ID",
+  "events.manualWorkerRequired": "Worker ID is required.",
+  "events.reportUpdateFailed": "Could not update.",
+  "events.manualCreateFallback": "Could not create.",
   "events.create": "Create",
   "events.colType": "Type",
   "events.colWorker": "Worker",
@@ -440,6 +610,156 @@ const en: Record<string, string> = {
   "events.generateSms": "Generate SMS",
   "events.approve": "Approve",
   "events.report": "Report",
+  "events.details": "Details",
+  "events.filterStatus": "Status",
+  "events.filterEventType": "Event type",
+  "events.placeholderCuid": "cuid…",
+  "events.detailTitle": "Event detail",
+  "events.loadingWorkflow": "Loading workflow…",
+  "events.labelType": "Type",
+  "events.labelWorkflow": "Workflow",
+  "events.labelWorker": "Worker",
+  "events.timelineTitle": "Workflow timeline",
+  "events.assignedTo": "Assigned to",
+  "events.actionedAt": "Actioned",
+  "events.labelNotes": "Notes",
+  "events.workflowNotes": "Workflow notes",
+  "events.workflowNotesPlaceholder":
+    "Optional notes for submit / approve / reject",
+  "events.managerUserId": "Manager user ID (optional)",
+  "events.managerUserIdPlaceholder":
+    "cuid — defaults to first Level 1 user",
+  "events.complianceUserId": "Compliance user ID (optional)",
+  "events.aoUserId":
+    "Authorising officer user ID (optional)",
+  "events.submitHr": "Submit (HR)",
+  "events.managerApprove": "Manager approve",
+  "events.complianceApprove": "Compliance approve",
+  "events.aoFinalApprove": "Authorising officer final approve",
+  "events.reject": "Reject",
+  "events.escalateToUserId": "Escalate to user ID",
+  "events.placeholderCuidShort": "cuid",
+  "events.escalate": "Escalate",
+  "events.evidenceRequired": "Evidence required",
+  "events.smsDraft": "SMS draft",
+  "events.confirmReject":
+    "Reject and return this event to draft?",
+  "events.alertSubmitFailed": "Submit failed.",
+  "events.alertReviewFailed": "Review failed.",
+  "events.alertComplianceFailed": "Compliance check failed.",
+  "events.alertApproveFailed": "Approve failed.",
+  "events.alertRejectFailed": "Reject failed.",
+  "events.alertEscalateUserId": "Enter user ID to escalate to.",
+  "events.alertEscalateFailed": "Escalate failed.",
+  "events.alertSmsDraftFailed": "Could not generate SMS draft.",
+  "events.alertSmsApproveFailed": "Approve failed.",
+  "events.alertSmsUpdateFailed": "Update failed.",
+  "events.actionRequired":
+    "Action required — this step is assigned to you.",
+  "events.dialogHoSmsTitle": "Home Office SMS draft",
+  "events.dialogEventLabel": "Event",
+  "events.dialogInternalNotes": "Internal notes (optional)",
+  "events.dialogInternalNotesPlaceholder":
+    "Context for approvers only — not sent to the Home Office",
+  "events.dialogGenerateDraft": "Generate draft",
+  "events.dialogGenerating": "Generating…",
+  "events.dialogReviewSms": "Review — SMS text",
+  "events.dialogEvidenceChecklist": "Evidence checklist",
+  "events.dialogDeadline": "Deadline",
+  "events.badgeApproved": "Approved",
+  "events.badgeAwaitingApproval": "Awaiting approval",
+  "events.badgeSentToHo": "Sent to Home Office",
+  "events.internalNotesColon": "Internal notes",
+  "events.approveDraft": "Approve draft",
+  "events.markSentToHo": "Mark sent to Home Office",
+  "notifications.type.NO_SHOW": "No-show — 28 days",
+  "notifications.type.UNAUTHORISED_ABSENCE":
+    "Unauthorised absence",
+  "notifications.type.UNPAID_OR_REDUCED_PAY_ABSENCE":
+    "Unpaid or reduced-pay absence",
+  "notifications.type.SALARY_REDUCTION": "Salary reduction",
+  "notifications.type.CHANGE_OF_ROLE_OR_DUTIES":
+    "Change of role or duties",
+  "notifications.type.PROMOTION_SAME_SOC":
+    "Promotion (same SOC code)",
+  "notifications.type.WORK_LOCATION_CHANGE":
+    "Work location change",
+  "notifications.type.SPONSORSHIP_ENDED":
+    "Sponsorship ended",
+  "notifications.type.OFFSHORE_ARRIVAL": "Offshore arrival",
+  "notifications.type.OFFSHORE_DEPARTURE": "Offshore departure",
+  "notifications.type.ORGANISATION_CHANGE":
+    "Organisation change",
+  "notifications.type.ADDRESS_CONTACT_UPDATE":
+    "Address or contact update",
+  "notifications.type.ORGANISATION_SIZE_CHANGE":
+    "Organisation size change",
+  "notifications.type.CHARITY_STATUS_CHANGE":
+    "Charity status change",
+  "notifications.type.KEY_PERSONNEL_CHANGE":
+    "Key personnel change",
+  "notifications.type.MERGER_TUPE_RESTRUCTURING":
+    "Merger, TUPE, or restructuring",
+  "notifications.type.INSOLVENCY_RELATED": "Insolvency related",
+  "notifications.type.VISA_EXPIRING_90_DAYS":
+    "Visa expiring — 90 days",
+  "notifications.type.VISA_EXPIRING_30_DAYS":
+    "Visa expiring — 30 days",
+  "notifications.type.VISA_EXPIRING_7_DAYS":
+    "Visa expiring — 7 days",
+  "notifications.type.DOCUMENT_EXPIRING":
+    "Document expiring",
+  "notifications.type.WORKER_MISSING_DOCUMENTS":
+    "Worker missing documents",
+  "notifications.type.SALARY_DISCREPANCY":
+    "Salary discrepancy",
+  "notifications.workflow.state.DRAFT": "Draft",
+  "notifications.workflow.state.SUBMITTED":
+    "Submitted (manager)",
+  "notifications.workflow.state.MANAGER_REVIEW":
+    "Manager review",
+  "notifications.workflow.state.COMPLIANCE_REVIEW":
+    "Compliance review",
+  "notifications.workflow.state.AO_APPROVAL":
+    "Authorising officer approval",
+  "notifications.workflow.state.REPORTED":
+    "Approved (workflow complete)",
+  "notifications.workflow.step.HR_SUBMISSION": "HR submission",
+  "notifications.workflow.step.MANAGER_REVIEW":
+    "Manager review",
+  "notifications.workflow.step.COMPLIANCE_REVIEW":
+    "Compliance review",
+  "notifications.workflow.step.AO_APPROVAL":
+    "Authorising officer approval",
+  "notifications.workflow.step.FINAL_REPORT": "Final report",
+  "notifications.workflow.stepStatus.PENDING": "Pending",
+  "notifications.workflow.stepStatus.IN_PROGRESS": "In progress",
+  "notifications.workflow.stepStatus.APPROVED": "Approved",
+  "notifications.workflow.stepStatus.REJECTED": "Rejected",
+  "notifications.workflow.stepStatus.ESCALATED": "Escalated",
+  "events.status.PENDING": "Pending",
+  "events.status.UNDER_REVIEW": "Under review",
+  "events.status.APPROVED": "Approved",
+  "events.status.REPORTED": "Reported",
+  "events.status.OVERDUE": "Overdue",
+  "events.status.CANCELLED": "Cancelled",
+  "events.eventType.NO_SHOW_28_DAYS": "No-show — 28 days",
+  "events.eventType.UNAUTHORISED_ABSENCE_10_DAYS":
+    "Unauthorised absence — 10 days",
+  "events.eventType.REDUCED_PAY_ABSENCE":
+    "Reduced pay absence",
+  "events.eventType.SALARY_REDUCTION": "Salary reduction",
+  "events.eventType.ROLE_CHANGE": "Role change",
+  "events.eventType.PROMOTION_SAME_CODE":
+    "Promotion (same SOC code)",
+  "events.eventType.WORK_LOCATION_CHANGE":
+    "Work location change",
+  "events.eventType.SPONSORSHIP_ENDED": "Sponsorship ended",
+  "events.eventType.OFFSHORE_ARRIVAL": "Offshore arrival",
+  "events.eventType.OFFSHORE_DEPARTURE": "Offshore departure",
+  "events.eventType.ADDRESS_CHANGE": "Address change",
+  "events.eventType.PHONE_CHANGE": "Phone change",
+  "events.eventType.EMAIL_CHANGE": "Email change",
   "notifications.title": "Notifications",
   "notifications.subtitle": "Compliance events and completion",
   "notifications.workflowTitle": "Approval workflow — steps assigned to you",
@@ -684,3 +1004,4 @@ export function translate(
   const trDict = getDictionary("tr");
   return dict[key] ?? trDict[key] ?? fallback ?? key;
 }
+
