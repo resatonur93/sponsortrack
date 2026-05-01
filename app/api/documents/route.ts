@@ -61,21 +61,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const d = parsed.data;
 
     return await withTenant(user, req, async () => {
-      let version = 1;
-      let replacesId: string | undefined;
-      if (d.replacesDocumentId) {
-        const parent = await prisma.document.findFirst({
-          where: {
-            id: d.replacesDocumentId,
-            workerId: d.workerId,
-          },
-        });
-        if (parent) {
-          version = parent.version + 1;
-          replacesId = parent.id;
-        }
-      }
-
       const expiry = d.expiryDate ? new Date(d.expiryDate) : null;
       const retentionUntil = expiry
         ? addYears(expiry, 1)
@@ -86,26 +71,80 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ? (d.metadata as object)
           : undefined;
 
-      const doc = await prisma.document.create({
-        data: {
-          workerId: d.workerId,
+      const active = await prisma.document.findFirst({
+        where: {
           tenantId: user.tenantId,
+          workerId: d.workerId,
           documentType: d.documentType,
-          vaultFolder: d.vaultFolder ?? DocumentVaultFolder.OTHER,
-          fileName: d.fileName,
-          fileUrl: d.fileUrl,
-          mimeType: d.mimeType,
-          sizeBytes: d.sizeBytes,
-          fileHash: d.fileHash,
-          metadata: meta ?? undefined,
-          version,
-          replacesDocumentId: replacesId,
-          expiryDate: expiry ?? undefined,
-          retentionUntil,
-          uploadedBy: user.id,
-          complianceEventId: d.complianceEventId ?? undefined,
+          isDeleted: false,
         },
       });
+
+      let version = 1;
+      if (active) {
+        version = active.version + 1;
+      } else if (d.replacesDocumentId) {
+        const parent = await prisma.document.findFirst({
+          where: {
+            id: d.replacesDocumentId,
+            workerId: d.workerId,
+            tenantId: user.tenantId,
+          },
+        });
+        if (parent) version = parent.version + 1;
+      }
+
+      const payload = {
+        vaultFolder: d.vaultFolder ?? DocumentVaultFolder.OTHER,
+        fileName: d.fileName,
+        fileUrl: d.fileUrl,
+        mimeType: d.mimeType,
+        sizeBytes: d.sizeBytes,
+        fileHash: d.fileHash,
+        metadata: meta ?? undefined,
+        version,
+        replacesDocumentId: null as string | null,
+        vaultFileId: null as null,
+        expiryDate: expiry ?? undefined,
+        retentionUntil,
+        uploadedBy: user.id,
+        complianceEventId: d.complianceEventId ?? undefined,
+        uploadDate: new Date(),
+      };
+
+      const resetVerification =
+        !!active &&
+        active.fileHash !== d.fileHash &&
+        active.complianceRecordStatus === "VERIFIED";
+
+      let doc;
+      if (active) {
+        doc = await prisma.document.update({
+          where: { id: active.id },
+          data: {
+            ...payload,
+            ...(resetVerification
+              ? {
+                  verifiedAt: null,
+                  verifiedByUserId: null,
+                  verificationNote: null,
+                  complianceRecordStatus: "UPLOADED" as const,
+                }
+              : {}),
+          },
+        });
+      } else {
+        doc = await prisma.document.create({
+          data: {
+            workerId: d.workerId,
+            tenantId: user.tenantId,
+            documentType: d.documentType,
+            complianceRecordStatus: "UPLOADED",
+            ...payload,
+          },
+        });
+      }
+
       void processDocumentExpiryRemindersForDocumentId(prismaBase, doc.id).catch((err) =>
         logger.error("document expiry reminders after upload failed", err, {
           documentId: doc.id,

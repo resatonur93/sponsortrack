@@ -1,0 +1,7 @@
+-- Optional backfill for environments that already have DocumentVault rows but no linked Document checklist rows.
+--
+-- Prefer running a short Node/ts script that loads each vault row inside tenant context and calls
+-- `syncVaultToDocument(tx, vault.tenantId, vault.workerId, vault)` so folder→type mapping stays
+-- identical to production code (see `lib/sync-vault-to-document.ts` and `lib/document-folder-mapping.ts`).
+--
+-- Raw SQL duplicates business rules and can drift from Appendix D; use only if you accept that risk.

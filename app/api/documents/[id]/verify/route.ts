@@ -40,6 +40,7 @@ export async function POST(
           verifiedAt: new Date(),
           verifiedByUserId: user.id,
           verificationNote: parsed.data.verificationNote ?? undefined,
+          complianceRecordStatus: "VERIFIED",
         },
       });
       return NextResponse.json({ data: updated });

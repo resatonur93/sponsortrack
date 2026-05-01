@@ -556,6 +556,11 @@ enum NotificationStatus {
   CANCELLED
 }
 
+enum DocumentComplianceRecordStatus {
+  UPLOADED
+  VERIFIED
+}
+
 model Document {
   id                  String         @id @default(cuid())
   workerId            String
@@ -572,6 +577,10 @@ model Document {
   replacesDocumentId  String?
   replaces            Document?      @relation("DocumentVersions", fields: [replacesDocumentId], references: [id])
   laterVersions       Document[]     @relation("DocumentVersions")
+  /// Physical file in the worker vault (S3/Supabase); null when created only via /api/documents.
+  vaultFileId         String?        @unique @map("vault_file_id")
+  vaultSource         DocumentVault? @relation("VaultComplianceMirror", fields: [vaultFileId], references: [id], onDelete: SetNull)
+  complianceRecordStatus DocumentComplianceRecordStatus @default(UPLOADED) @map("compliance_record_status")
   uploadDate          DateTime       @default(now())
   expiryDate          DateTime?
   retentionUntil      DateTime?
@@ -592,6 +601,7 @@ model Document {
   @@index([tenantId])
   @@index([vaultFolder])
   @@index([complianceEventId])
+  @@index([tenantId, workerId, documentType])
 }
 
 // One row per (document, expiry calendar day) after an expiry notification email was sent.
@@ -637,6 +647,8 @@ model DocumentVault {
   tenant           Tenant         @relation(fields: [tenantId], references: [id])
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  /// Inverse: at most one compliance Document may reference this vault row (via Document.vaultFileId).
+  complianceMirror Document?      @relation("VaultComplianceMirror")
 
   @@index([workerId])
   @@index([tenantId])

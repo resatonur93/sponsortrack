@@ -233,6 +233,22 @@ export function getRequiredDocumentsForWorker(worker: Worker): ComplianceDocRequ
   return out.sort((a, b) => a.slotId.localeCompare(b.slotId));
 }
 
+/**
+ * Appendix D evaluator assumes one authoritative row per `documentType` per worker.
+ * The DB enforces that for active rows; this keeps checklist stable if legacy duplicates exist.
+ */
+export function normalizeActiveComplianceDocuments(documents: Document[]): Document[] {
+  const active = documents.filter((d) => !d.isDeleted);
+  const byType = new Map<DocumentType, Document>();
+  for (const d of active) {
+    const prev = byType.get(d.documentType);
+    if (!prev || d.uploadDate.getTime() > prev.uploadDate.getTime()) {
+      byType.set(d.documentType, d);
+    }
+  }
+  return Array.from(byType.values());
+}
+
 function docCoversAccepted(d: Document, accepted: DocumentType[]): boolean {
   return accepted.includes(d.documentType) && !d.isDeleted;
 }
@@ -299,12 +315,13 @@ export function buildDocumentChecklist(
   documents: Document[],
   now: Date = new Date()
 ): DocumentChecklistItem[] {
+  const normalizedDocs = normalizeActiveComplianceDocuments(documents);
   const required = getRequiredDocumentsForWorker(worker);
   const anchor = anchorComplianceDate(worker);
   const items: DocumentChecklistItem[] = [];
 
   for (const r of required) {
-    const latest = latestForAccepted(documents, r.documentTypesAccepted);
+    const latest = latestForAccepted(normalizedDocs, r.documentTypesAccepted);
     const base = {
       slotId: r.slotId,
       documentType: r.primaryDocumentType,
@@ -359,6 +376,7 @@ export function buildDocumentChecklist(
   return items;
 }
 
+/** Derives misses from Appendix D checklist rows sourced from persisted `Document` records (vault sync included). */
 export function evaluateMissingDocuments(
   worker: Worker,
   documents: Document[],

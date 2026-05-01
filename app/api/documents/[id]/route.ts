@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { type Prisma } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
-import { prisma } from "@/lib/prisma";
+import { prisma, prismaBase } from "@/lib/prisma";
 import { documentVaultUpdateSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
+import { processDocumentExpiryRemindersForDocumentId } from "@/lib/document-expiry-email-notify";
+import {
+  softUnlinkComplianceDocumentForVault,
+  syncVaultToDocument,
+} from "@/lib/sync-vault-to-document";
 
 export const dynamic = "force-dynamic";
 
@@ -108,10 +113,24 @@ export async function PUT(
         }
       }
 
-      const updated = await prisma.documentVault.update({
-        where: { id },
-        data,
+      const { updated, syncMeta } = await prismaBase.$transaction(async (tx) => {
+        const row = await tx.documentVault.update({
+          where: { id },
+          data,
+        });
+        const s = await syncVaultToDocument(tx, existing.tenantId, existing.workerId, row);
+        return { updated: row, syncMeta: s };
       });
+
+      if (syncMeta) {
+        void processDocumentExpiryRemindersForDocumentId(prismaBase, syncMeta.documentId).catch(
+          (err) =>
+            logger.error("document expiry reminders after vault metadata update failed", err, {
+              vaultId: id,
+              documentId: syncMeta.documentId,
+            })
+        );
+      }
 
       return NextResponse.json({ data: updated });
     });
@@ -143,9 +162,12 @@ export async function DELETE(
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
-      await prisma.documentVault.update({
-        where: { id },
-        data: { isDeleted: true },
+      await prismaBase.$transaction(async (tx) => {
+        await softUnlinkComplianceDocumentForVault(tx, existing.tenantId, id);
+        await tx.documentVault.update({
+          where: { id },
+          data: { isDeleted: true },
+        });
       });
 
       return NextResponse.json({ ok: true });

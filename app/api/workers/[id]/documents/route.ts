@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DocumentFolder } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
-import { prisma } from "@/lib/prisma";
+import { prisma, prismaBase } from "@/lib/prisma";
+import { processDocumentExpiryRemindersForDocumentId } from "@/lib/document-expiry-email-notify";
 import { documentVaultCreateSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
+import { syncVaultToDocument } from "@/lib/sync-vault-to-document";
 
 export const dynamic = "force-dynamic";
 
@@ -113,22 +115,37 @@ export async function POST(
         ? addYears(expiry, 1)
         : addYears(new Date(), 1);
 
-      const doc = await prisma.documentVault.create({
-        data: {
-          workerId,
-          tenantId: user.tenantId,
-          folder: d.folder,
-          fileName: d.fileName,
-          fileUrl: d.fileUrl,
-          mimeType: d.mimeType,
-          sizeBytes: d.sizeBytes,
-          fileHash: d.fileHash,
-          uploadedBy: user.id,
-          expiryDate: expiry ?? undefined,
-          retentionUntil,
-        },
+      const { vaultRow, syncMeta } = await prismaBase.$transaction(async (tx) => {
+        const row = await tx.documentVault.create({
+          data: {
+            workerId,
+            tenantId: user.tenantId,
+            folder: d.folder,
+            fileName: d.fileName,
+            fileUrl: d.fileUrl,
+            mimeType: d.mimeType,
+            sizeBytes: d.sizeBytes,
+            fileHash: d.fileHash,
+            uploadedBy: user.id,
+            expiryDate: expiry ?? undefined,
+            retentionUntil,
+          },
+        });
+        const s = await syncVaultToDocument(tx, user.tenantId, workerId, row);
+        return { vaultRow: row, syncMeta: s };
       });
-      return NextResponse.json({ data: doc }, { status: 201 });
+
+      if (syncMeta) {
+        void processDocumentExpiryRemindersForDocumentId(prismaBase, syncMeta.documentId).catch(
+          (err) =>
+            logger.error("document expiry reminders after vault upload failed", err, {
+              vaultId: vaultRow.id,
+              documentId: syncMeta.documentId,
+            })
+        );
+      }
+
+      return NextResponse.json({ data: vaultRow }, { status: 201 });
     });
   } catch (error) {
     logger.error("POST /api/workers/[id]/documents failed", error);
