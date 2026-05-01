@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EscalationBadge } from "@/components/notifications/EscalationBadge";
+import { isClosedForExpiredDocument } from "@/lib/document-expiring-notification-closure";
 import { formatDeadlineWindowLabel } from "@/lib/deadline-display";
 import { workflowStateLabel } from "@/lib/event-workflow-ui";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -58,6 +59,22 @@ type WorkflowAssignmentRow = {
     };
   };
 };
+
+function notificationStatusDisplay(
+  row: Row,
+  translate: (key: string, fallback?: string) => string
+): string {
+  if (
+    row.eventType === "DOCUMENT_EXPIRING" &&
+    row.status === "COMPLETED" &&
+    isClosedForExpiredDocument(row.metadata)
+  ) {
+    return translate("notifications.status.documentEnded");
+  }
+  const key = `notifications.status.${row.status}`;
+  const label = translate(key, row.status);
+  return label === key ? row.status : label;
+}
 
 export default function NotificationsPage(): JSX.Element {
   const { t, locale } = useTranslation();
@@ -261,12 +278,18 @@ export default function NotificationsPage(): JSX.Element {
                     {r.worker.firstName} {r.worker.lastName}
                   </TableCell>
                   <TableCell className="text-xs">{r.eventType}</TableCell>
-                  <TableCell>{r.status}</TableCell>
+                  <TableCell>{notificationStatusDisplay(r, t)}</TableCell>
                   <TableCell>
                     <EscalationBadge
                       reportDeadlineAt={r.reportDeadlineAt}
                       dueDate={r.dueDate}
                       status={r.status}
+                      completedLabel={
+                        r.eventType === "DOCUMENT_EXPIRING" &&
+                        isClosedForExpiredDocument(r.metadata)
+                          ? t("notifications.status.documentEnded")
+                          : undefined
+                      }
                     />
                   </TableCell>
                   <TableCell className="text-xs">

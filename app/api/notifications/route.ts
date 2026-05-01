@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
-import { prisma } from "@/lib/prisma";
+import { prisma, prismaBase } from "@/lib/prisma";
+import { closeStaleDocumentExpiringNotifications } from "@/lib/document-expiring-notification-closure";
 import { manualNotificationSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
 import { buildComplianceEventData } from "@/lib/compliance-event-factory";
@@ -49,6 +50,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const overdueOnly = searchParams.get("overdueOnly") === "true";
 
     return await withTenant(user, req, async () => {
+      await closeStaleDocumentExpiringNotifications(prismaBase, {
+        tenantId: user.tenantId,
+      });
+
       const where: Prisma.NotificationEventWhereInput = {};
       if (status) where.status = status;
       if (type) where.eventType = type;

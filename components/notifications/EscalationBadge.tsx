@@ -6,6 +6,7 @@ import {
   getEscalationLevel,
   type EscalationLevel,
 } from "@/lib/escalation";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 function daysUntil(deadline: Date, now: Date): number {
   const ms =
@@ -18,7 +19,29 @@ export function EscalationBadge(props: {
   reportDeadlineAt: Date | string | null;
   dueDate: Date | string;
   status: NotificationStatus;
+  /** Overrides default “completed” label (e.g. document validity ended). */
+  completedLabel?: string | null;
 }): JSX.Element {
+  const { t } = useTranslation();
+
+  if (props.status === "COMPLETED") {
+    const label =
+      props.completedLabel?.trim() ||
+      t("notifications.badge.completed");
+    return (
+      <span className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+        {label}
+      </span>
+    );
+  }
+  if (props.status === "CANCELLED") {
+    return (
+      <span className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
+        {t("notifications.badge.cancelled")}
+      </span>
+    );
+  }
+
   const deadline = props.reportDeadlineAt
     ? new Date(props.reportDeadlineAt)
     : new Date(props.dueDate);
