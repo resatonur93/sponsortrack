@@ -36,7 +36,7 @@ import { workflowStateLabel } from "@/lib/event-workflow-ui";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 type Row = NotificationEvent & {
-  worker: { firstName: string; lastName: string; email: string };
+  worker: { id: string; firstName: string; lastName: string; email: string };
 };
 
 type WorkflowAssignmentRow = {

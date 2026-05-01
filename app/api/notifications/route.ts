@@ -8,6 +8,35 @@ import type { NotificationStatus, NotificationType, Prisma } from "@prisma/clien
 
 export const dynamic = "force-dynamic";
 
+/** Per worker, keep the row with the earliest report deadline (or dueDate if unset). */
+function pickClosestNotificationPerWorker<
+  T extends {
+    workerId: string;
+    id: string;
+    reportDeadlineAt: Date | null;
+    dueDate: Date;
+  },
+>(items: T[]): T[] {
+  const winners = new Map<string, T>();
+  for (const item of items) {
+    const hit = winners.get(item.workerId);
+    if (!hit) {
+      winners.set(item.workerId, item);
+      continue;
+    }
+    const aMs = (item.reportDeadlineAt ?? item.dueDate).getTime();
+    const bMs = (hit.reportDeadlineAt ?? hit.dueDate).getTime();
+    if (aMs < bMs || (aMs === bMs && item.id < hit.id)) {
+      winners.set(item.workerId, item);
+    }
+  }
+  return Array.from(winners.values()).sort((u, v) => {
+    const uMs = (u.reportDeadlineAt ?? u.dueDate).getTime();
+    const vMs = (v.reportDeadlineAt ?? v.dueDate).getTime();
+    return uMs - vMs;
+  });
+}
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const user = await getSessionUser();
@@ -42,7 +71,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         orderBy: { dueDate: "asc" },
         take: 500,
       });
-      return NextResponse.json({ data: items });
+      const data = pickClosestNotificationPerWorker(items);
+      return NextResponse.json({ data });
     });
   } catch (error) {
     logger.error("GET /api/notifications failed", error);
