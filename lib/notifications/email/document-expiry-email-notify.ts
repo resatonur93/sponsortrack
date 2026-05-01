@@ -1,54 +1,19 @@
-import {
-  Prisma,
-  Role,
-  type DocumentExpiryReminderKind,
-  type PrismaClient,
-} from "@prisma/client";
+import { Prisma, type DocumentExpiryReminderKind, type PrismaClient } from "@prisma/client";
 import { addDays, daysBetween, startOfDay } from "@/lib/dates";
 import { logger } from "@/lib/logger";
 import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
 import {
   documentTypeTitleTr,
   formatDocumentHumanSummary,
-} from "@/lib/document-email-labels";
+} from "@/lib/documents/document-email-labels";
+import {
+  DOCUMENT_EXPIRY_REMINDER_KINDS,
+  expiryReminderKindMatchesCalendar,
+} from "./expiry-reminder-calendar";
+import { resolveDocumentExpiryRecipients } from "./ao-recipients";
 
 function expiryDayKey(expiryDate: Date): string {
   return startOfDay(expiryDate).toISOString().slice(0, 10);
-}
-
-async function resolveExpiryRecipients(
-  db: PrismaClient,
-  tenantId: string
-): Promise<string[]> {
-  const users = await db.user.findMany({
-    where: {
-      tenantId,
-      isActive: true,
-      role: Role.AUTHORISING_OFFICER,
-    },
-    select: { email: true },
-  });
-
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const u of users) {
-    const raw = u.email.trim();
-    if (!raw) continue;
-    const key = raw.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(raw);
-  }
-
-  if (out.length > 0) return out;
-
-  const fallback = process.env.DOCUMENT_EXPIRY_NOTIFY_TO?.trim();
-  if (fallback) return [fallback];
-
-  logger.warn("document expiry email: no active Authorising Officer for tenant", {
-    tenantId,
-  });
-  return [];
 }
 
 type DocMailPayload = {
@@ -67,23 +32,6 @@ type DocMailPayload = {
   };
   tenant: { companyName: string };
 };
-
-function kindMatchesCalendar(kind: DocumentExpiryReminderKind, d: number): boolean {
-  switch (kind) {
-    case "BEFORE_60":
-      return d === 60;
-    case "BEFORE_30":
-      return d === 30;
-    case "BEFORE_7":
-      return d === 7;
-    case "EXPIRY_DAY":
-      return d === 0;
-    case "AFTER_EXPIRED":
-      return d < 0;
-    default:
-      return false;
-  }
-}
 
 function subjectAndLead(
   kind: DocumentExpiryReminderKind,
@@ -145,7 +93,7 @@ async function trySendReminderForLoadedDoc(
 
   const today = startOfDay(now);
   const d = daysBetween(today, startOfDay(doc.expiryDate));
-  if (!kindMatchesCalendar(kind, d)) return false;
+  if (!expiryReminderKindMatchesCalendar(kind, d)) return false;
 
   const expiryDay = expiryDayKey(doc.expiryDate);
   const exists = await db.documentExpiryEmailLog.findUnique({
@@ -155,7 +103,7 @@ async function trySendReminderForLoadedDoc(
   });
   if (exists) return false;
 
-  const recipients = await resolveExpiryRecipients(db, doc.tenantId);
+  const recipients = await resolveDocumentExpiryRecipients(db, doc.tenantId);
   if (recipients.length === 0) return false;
 
   const to = recipients.join(", ");
@@ -213,14 +161,6 @@ async function trySendReminderForLoadedDoc(
   return true;
 }
 
-const REMINDER_KINDS: DocumentExpiryReminderKind[] = [
-  "BEFORE_60",
-  "BEFORE_30",
-  "BEFORE_7",
-  "EXPIRY_DAY",
-  "AFTER_EXPIRED",
-];
-
 async function loadDocMailPayload(db: PrismaClient, documentId: string): Promise<DocMailPayload | null> {
   const doc = await db.document.findFirst({
     where: { id: documentId, isDeleted: false },
@@ -259,7 +199,7 @@ export async function processDocumentExpiryRemindersForDocumentId(
   if (!doc) return 0;
 
   let sent = 0;
-  for (const kind of REMINDER_KINDS) {
+  for (const kind of DOCUMENT_EXPIRY_REMINDER_KINDS) {
     try {
       if (await trySendReminderForLoadedDoc(db, doc, kind, now)) sent += 1;
     } catch (e) {

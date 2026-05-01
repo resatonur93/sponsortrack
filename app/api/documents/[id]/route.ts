@@ -4,11 +4,11 @@ import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma, prismaBase } from "@/lib/prisma";
 import { documentVaultUpdateSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
-import { processDocumentExpiryRemindersForDocumentId } from "@/lib/document-expiry-email-notify";
+import { processDocumentExpiryRemindersForDocumentId } from "@/lib/notifications/email/document-expiry-email-notify";
 import {
   softUnlinkComplianceDocumentForVault,
   syncVaultToDocument,
-} from "@/lib/sync-vault-to-document";
+} from "@/lib/documents/sync-vault-to-document";
 
 export const dynamic = "force-dynamic";
 

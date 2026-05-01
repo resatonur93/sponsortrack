@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EscalationBadge } from "@/components/notifications/EscalationBadge";
-import { isClosedForExpiredDocument } from "@/lib/document-expiring-notification-closure";
+import { isClosedForExpiredDocument } from "@/lib/documents/document-expiring-notification-closure";
 import { formatDeadlineWindowLabel } from "@/lib/deadline-display";
 import { useTranslation } from "@/contexts/LanguageContext";
 

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { parseDocumentMetadata } from "@/lib/document-metadata";
-import { getDocumentExpiryBand } from "@/lib/document-expiry-status";
+import { parseDocumentMetadata } from "@/lib/documents/document-metadata";
+import { getDocumentExpiryBand } from "@/lib/documents/document-expiry-status";
 import {
   evaluateMissingDocuments,
   type MissingDocumentItem,

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { DocumentFolder } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma, prismaBase } from "@/lib/prisma";
-import { processDocumentExpiryRemindersForDocumentId } from "@/lib/document-expiry-email-notify";
+import { processDocumentExpiryRemindersForDocumentId } from "@/lib/notifications/email/document-expiry-email-notify";
 import { documentVaultCreateSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
-import { syncVaultToDocument } from "@/lib/sync-vault-to-document";
+import { syncVaultToDocument } from "@/lib/documents/sync-vault-to-document";
 
 export const dynamic = "force-dynamic";
 

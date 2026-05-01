@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { runRiskScoringForTenant } from "@/lib/risk-scoring-cron";
+import { runRiskScoringForTenant } from "@/lib/scheduler";
 import { Role } from "@prisma/client";
 
 export const dynamic = "force-dynamic";

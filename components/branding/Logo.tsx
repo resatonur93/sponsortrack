@@ -4,46 +4,44 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const VARIANT_SRC = {
-  light: "/brand/logo-primary.svg",
-  dark: "/brand/logo-dark.svg",
-  monochrome: "/brand/logo-mono.svg",
-} as const;
+/** Tek resmî marka varlığı (`public/logo-sponsor-track.png`). */
+const LOGO_SRC = "/logo-sponsor-track.png";
 
-/** Display width presets — lockup SVG is wide; height drives scale */
+export type LogoVariant = "light" | "dark" | "monochrome";
+
+/** Display height-led; genişlik içerik oranına göre `w-auto` ile ayarlanır. */
 const SIZE_PX = {
-  sm: { className: "h-9 w-[148px]" as const },
-  md: { className: "h-11 w-[188px]" as const },
-  lg: { className: "h-14 w-[236px]" as const },
+  sm: { className: "h-9 w-auto max-w-[120px]" as const },
+  md: { className: "h-11 w-auto max-w-[150px]" as const },
+  lg: { className: "h-14 w-auto max-w-[190px]" as const },
 };
 
 export type LogoProps = {
-  variant?: keyof typeof VARIANT_SRC;
+  /** Geriye dönük uyumluluk; tüm değerler aynı PNG’yi kullanır. */
+  variant?: LogoVariant;
   size?: keyof typeof SIZE_PX;
   withWordmark?: boolean;
   className?: string;
   href?: string;
 };
 
-/** Official Sponsor Track lockup (SVG asset). Sizes match header / sidebar rails. */
 export function Logo({
-  variant = "light",
+  variant: _variant = "light",
   size = "md",
   withWordmark: _withWordmark = true,
   className,
   href,
 }: LogoProps): JSX.Element {
-  const src = VARIANT_SRC[variant];
   const dim = SIZE_PX[size];
 
   const img = (
     <Image
-      src={src}
+      src={LOGO_SRC}
       alt="Sponsor Track"
-      width={260}
-      height={52}
+      width={512}
+      height={512}
       priority={Boolean(href)}
-      sizes="(max-width: 768px) 160px, 240px"
+      sizes="(max-width: 768px) 140px, 200px"
       className={cn(
         "object-contain object-left",
         dim.className,

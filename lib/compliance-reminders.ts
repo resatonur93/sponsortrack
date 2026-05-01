@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { getEscalationLevel } from "@/lib/escalation";
 
 // Visa / RTW / sponsorship reminder e-postaları günlük `runDailyCron` içinde
-// (`processVisaAndSponsorshipExpiries`) işlenir; bu modül escalation (LEVEL_3 konsol) için.
+// (`lib/scheduler/cron-logic.ts` → `processVisaAndSponsorshipExpiries`) işlenir; burası LEVEL_3 escalation içindir.
 
 type Meta = { level3EmailPrepared?: boolean };
 

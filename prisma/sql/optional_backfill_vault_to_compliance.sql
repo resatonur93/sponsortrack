@@ -2,6 +2,6 @@
 --
 -- Prefer running a short Node/ts script that loads each vault row inside tenant context and calls
 -- `syncVaultToDocument(tx, vault.tenantId, vault.workerId, vault)` so folder→type mapping stays
--- identical to production code (see `lib/sync-vault-to-document.ts` and `lib/document-folder-mapping.ts`).
+-- identical to production code (see `lib/documents/sync-vault-to-document.ts` and `lib/documents/document-folder-mapping.ts`).
 --
 -- Raw SQL duplicates business rules and can drift from Appendix D; use only if you accept that risk.

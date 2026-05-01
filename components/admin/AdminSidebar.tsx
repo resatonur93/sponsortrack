@@ -35,11 +35,11 @@ export function AdminSidebar(): JSX.Element {
           className="mb-3 flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold rounded"
         >
           <Image
-            src="/brand/logo-dark.svg"
+            src="/logo-sponsor-track.png"
             alt="Sponsor Track Admin"
-            width={200}
-            height={40}
-            className="h-10 w-[180px] object-contain object-left"
+            width={512}
+            height={512}
+            className="h-10 w-auto max-w-[150px] object-contain object-left"
           />
         </Link>
         <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold/90">

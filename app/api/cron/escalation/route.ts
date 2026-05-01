@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runEscalationAlertsCron } from "@/lib/escalation-alerts-cron";
+import { runEscalationAlertsCron } from "@/lib/scheduler";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";

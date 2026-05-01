@@ -2,7 +2,7 @@ import type { NotificationType, Prisma } from "@prisma/client";
 import { addDays, startOfDay } from "@/lib/dates";
 import { getEvidenceHint, getSmsDraft } from "@/lib/compliance-templates";
 
-// TR+EN uyumluluk hatırlatma e-postaları: `lib/notification-expiry-email.ts` (NotificationEmailLog).
+// TR+EN uyumluluk hatırlatma e-postaları: `lib/notifications/email/notification-expiry-email.ts`.
 
 export function visaIdempotencyKey(
   workerId: string,

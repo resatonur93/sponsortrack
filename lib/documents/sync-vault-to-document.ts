@@ -7,7 +7,7 @@ import type {
 import {
   mapDocumentFolderToVaultFolder,
   mapFolderToDocumentType,
-} from "@/lib/document-folder-mapping";
+} from "@/lib/documents/document-folder-mapping";
 
 /**
  * When a vault file is removed, retire the linked compliance row so the checklist shows a gap

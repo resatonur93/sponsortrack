@@ -24,11 +24,8 @@ export const metadata: Metadata = {
     "UK sponsor licence compliance management for employers — Compliance Made Clear.",
   applicationName: "SponsorTrack",
   icons: {
-    icon: [
-      { url: "/brand/favicon.svg", type: "image/svg+xml" },
-      { url: "/brand/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: [{ url: "/brand/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [{ url: "/logo-sponsor-track.png", type: "image/png" }],
+    apple: [{ url: "/logo-sponsor-track.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     title: "SponsorTrack — Compliance Made Clear",
@@ -37,9 +34,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/brand/og-image.png",
-        width: 1200,
-        height: 630,
+        url: "/logo-sponsor-track.png",
         alt: "SponsorTrack",
       },
     ],
@@ -49,7 +44,7 @@ export const metadata: Metadata = {
     title: "SponsorTrack — Compliance Made Clear",
     description:
       "UK sponsor licence compliance management for employers.",
-    images: ["/brand/og-image.png"],
+    images: ["/logo-sponsor-track.png"],
   },
 };
 

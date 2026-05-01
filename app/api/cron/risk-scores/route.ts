@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runRiskScoringAllTenants } from "@/lib/risk-scoring-cron";
+import { runRiskScoringAllTenants } from "@/lib/scheduler";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runDailyCron } from "@/lib/cron-logic";
+import { runDailyCron } from "@/lib/scheduler";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";

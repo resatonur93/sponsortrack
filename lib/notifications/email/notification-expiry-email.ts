@@ -4,12 +4,16 @@ import {
   type NotificationEvent,
   type NotificationType,
   Prisma,
-  Role,
   type PrismaClient,
 } from "@prisma/client";
 import { addDays, daysBetween, startOfDay } from "@/lib/dates";
 import { logger } from "@/lib/logger";
 import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
+import { resolveComplianceReminderRecipients } from "./ao-recipients";
+import {
+  DOCUMENT_EXPIRY_REMINDER_KINDS,
+  expiryReminderKindMatchesCalendar,
+} from "./expiry-reminder-calendar";
 
 /**
  * Sends TR+EN compliance emails for visa, RTW recheck due dates, sponsorship end, and CoS expiry anchors.
@@ -18,14 +22,6 @@ import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
  *
  * TODO: Split CoS migrant vs licence assignment horizons when product rules differentiate them.
  */
-
-const REMINDER_KINDS: DocumentExpiryReminderKind[] = [
-  "BEFORE_60",
-  "BEFORE_30",
-  "BEFORE_7",
-  "EXPIRY_DAY",
-  "AFTER_EXPIRED",
-];
 
 const EVENT_TYPE_EMAIL_MAP: Partial<
   Record<
@@ -78,23 +74,6 @@ export const NOTIFICATION_EMAIL_EVENT_TYPES = new Set(
 
 function anchorDayIso(d: Date): string {
   return startOfDay(d).toISOString().slice(0, 10);
-}
-
-function kindMatchesCalendar(kind: DocumentExpiryReminderKind, d: number): boolean {
-  switch (kind) {
-    case "BEFORE_60":
-      return d === 60;
-    case "BEFORE_30":
-      return d === 30;
-    case "BEFORE_7":
-      return d === 7;
-    case "EXPIRY_DAY":
-      return d === 0;
-    case "AFTER_EXPIRED":
-      return d < 0;
-    default:
-      return false;
-  }
 }
 
 function domainLabels(domain: NotificationComplianceAnchorDomain): {
@@ -196,43 +175,6 @@ function readMetadataAnchorIso(meta: unknown, keys: readonly string[]): string |
   return null;
 }
 
-async function resolveRecipients(
-  db: PrismaClient,
-  tenantId: string,
-  extras: readonly string[]
-): Promise<string[]> {
-  const aos = await db.user.findMany({
-    where: { tenantId, isActive: true, role: Role.AUTHORISING_OFFICER },
-    select: { email: true },
-  });
-
-  const seen = new Set<string>();
-  const out: string[] = [];
-  function pushCsv(raw: string) {
-    const t = raw.trim();
-    if (!t) return;
-    const low = t.toLowerCase();
-    if (seen.has(low)) return;
-    seen.add(low);
-    out.push(t);
-  }
-
-  for (const x of aos) pushCsv(x.email);
-  for (const e of extras) pushCsv(e);
-
-  if (out.length > 0) return out;
-
-  const fallback =
-    process.env.NOTIFICATION_EXPIRY_NOTIFY_TO?.trim() ||
-    process.env.DOCUMENT_EXPIRY_NOTIFY_TO?.trim();
-  if (fallback) return [fallback];
-
-  logger.warn("notification expiry email: no Authorising Officers or fallback recipients", {
-    tenantId,
-  });
-  return [];
-}
-
 type WorkerBrief = {
   id: string;
   tenantId: string;
@@ -284,7 +226,7 @@ async function sendComplianceAnchorEmail(opts: {
 
   const today = startOfDay(now);
   const d = daysBetween(today, startOfDay(anchorDate));
-  if (!skipCalendarCheck && !kindMatchesCalendar(reminderKind, d)) return false;
+  if (!skipCalendarCheck && !expiryReminderKindMatchesCalendar(reminderKind, d)) return false;
 
   const anchorDay = anchorDayIso(anchorDate);
 
@@ -306,7 +248,7 @@ async function sendComplianceAnchorEmail(opts: {
   if (opts.lineManagerEmailOnWorker?.trim())
     mgrExtras.push(opts.lineManagerEmailOnWorker.trim());
 
-  const recipients = await resolveRecipients(db, tenantId, mgrExtras);
+  const recipients = await resolveComplianceReminderRecipients(db, tenantId, mgrExtras);
   if (recipients.length === 0) return false;
 
   const baseRaw = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
@@ -525,7 +467,7 @@ export async function processVisaAndSponsorshipExpiries(
     worker: (typeof workers)[0];
   }): Promise<void> {
     const { anchorDate, anchorDomain, worker } = params;
-    for (const kind of REMINDER_KINDS) {
+    for (const kind of DOCUMENT_EXPIRY_REMINDER_KINDS) {
       try {
         if (
           await sendComplianceAnchorEmail({

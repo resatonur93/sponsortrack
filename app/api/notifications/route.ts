@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma, prismaBase } from "@/lib/prisma";
-import { closeStaleDocumentExpiringNotifications } from "@/lib/document-expiring-notification-closure";
+import { closeStaleDocumentExpiringNotifications } from "@/lib/documents/document-expiring-notification-closure";
 import { manualNotificationSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
 import { buildComplianceEventData } from "@/lib/compliance-event-factory";
