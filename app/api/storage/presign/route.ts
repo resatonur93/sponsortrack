@@ -8,11 +8,13 @@ import { isFileStorageConfigured } from "@/lib/file-storage";
 import {
   buildObjectKey,
   createPutUrl,
+  getS3MissingEnvVars,
   isS3Configured,
   objectUrl,
 } from "@/lib/storage-presign";
 import {
   createSupabaseSignedUploadUrl,
+  getSupabaseStorageMissingEnvVars,
   isSupabaseStorageConfigured,
   supabasePublicObjectUrl,
 } from "@/lib/supabase-storage";
@@ -64,14 +66,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     if (!isFileStorageConfigured()) {
-      logger.warn(
-        "POST /api/storage/presign rejected: set Supabase (SUPABASE_STORAGE_BUCKET + SUPABASE_SERVICE_ROLE_KEY + project URL) or AWS S3 (S3_REGION, S3_BUCKET, …)"
-      );
+      const missingSupabase = getSupabaseStorageMissingEnvVars();
+      const missingS3 = getS3MissingEnvVars();
+      logger.warn("POST /api/storage/presign rejected: incomplete storage env", {
+        missingSupabase,
+        missingS3,
+      });
       return NextResponse.json(
         {
           error:
-            "File storage is not configured. Use Supabase Storage (recommended here): SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET—or set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY.",
+            "File storage is not configured. For Supabase: set NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_STORAGE_BUCKET—or set all S3_* vars. NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is not used for uploads.",
           code: "STORAGE_NOT_CONFIGURED",
+          missingSupabaseEnv: missingSupabase,
+          missingS3Env: missingS3,
         },
         { status: 503 }
       );

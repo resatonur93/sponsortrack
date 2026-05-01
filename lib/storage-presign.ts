@@ -12,6 +12,15 @@ export function isS3Configured(): boolean {
   return Boolean(REGION && BUCKET && ACCESS_KEY_ID && SECRET_ACCESS_KEY);
 }
 
+export function getS3MissingEnvVars(): string[] {
+  const missing: string[] = [];
+  if (!REGION) missing.push("S3_REGION");
+  if (!BUCKET) missing.push("S3_BUCKET");
+  if (!ACCESS_KEY_ID) missing.push("S3_ACCESS_KEY_ID");
+  if (!SECRET_ACCESS_KEY) missing.push("S3_SECRET_ACCESS_KEY");
+  return missing;
+}
+
 function s3Client(): S3Client {
   if (!REGION || !BUCKET || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY) {
     throw new Error("S3 is not configured");

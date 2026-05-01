@@ -10,6 +10,21 @@ export function isSupabaseStorageConfigured(): boolean {
   return Boolean(PROJECT_URL && SERVICE_ROLE && BUCKET);
 }
 
+/** Teşhis: bucket / service_role / URL hangisi eksik (env adları — secret değerleri dönmez). */
+export function getSupabaseStorageMissingEnvVars(): string[] {
+  const missing: string[] = [];
+  if (!process.env.SUPABASE_URL?.trim() && !process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
+    missing.push("NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL");
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+    missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  }
+  if (!process.env.SUPABASE_STORAGE_BUCKET?.trim()) {
+    missing.push("SUPABASE_STORAGE_BUCKET");
+  }
+  return missing;
+}
+
 function adminClient(): SupabaseClient {
   if (!isSupabaseStorageConfigured()) {
     throw new Error("Supabase storage is not configured");
