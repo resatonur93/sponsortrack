@@ -76,7 +76,7 @@ export default function AdminUsersPage(): JSX.Element {
         <h1 className="text-2xl font-bold text-slate-50">Kullanıcılar</h1>
         <p className="text-sm text-slate-400">Tüm kiracılardaki hesaplar</p>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-slate-700 bg-[#1E293B]">
+      <div className="overflow-x-auto rounded-lg border border-brand-navy/10 bg-white shadow-card">
         <Table>
           <TableHeader>
             <TableRow className="border-slate-700 hover:bg-slate-800/50">

@@ -163,7 +163,7 @@ export function SalaryVerificationCard({
       </CardHeader>
       <CardContent className="space-y-6">
         {chartRows.length > 0 ? (
-          <div className="h-64 w-full rounded-lg border border-slate-100 bg-slate-50/50 p-2">
+          <div className="h-64 w-full rounded-lg border border-brand-navy/12 bg-brand-surface/70 p-2">
             <p className="mb-2 text-xs font-medium text-slate-600">
               Last 12 months — pro-rated expected vs actual paid
             </p>
@@ -184,7 +184,7 @@ export function SalaryVerificationCard({
                 <Bar
                   dataKey="expected"
                   name="Pro-rated expected"
-                  fill="#1E5BB5"
+                  fill="#0A2A5E"
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar

@@ -106,13 +106,13 @@ export default function WorkersPage(): JSX.Element {
       {loading ? (
         <div className="space-y-2" aria-busy="true">
           <p className="text-sm text-slate-600">{t("workers.loading")}</p>
-          <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-            <div className="space-y-0 divide-y divide-slate-100">
+          <div className="overflow-hidden rounded-md border border-brand-navy/15 bg-white shadow-card">
+            <div className="space-y-0 divide-y divide-brand-navy/10">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex gap-4 p-4">
-                  <div className="h-5 flex-1 animate-pulse rounded bg-slate-100" />
-                  <div className="h-5 w-48 animate-pulse rounded bg-slate-100" />
-                  <div className="hidden h-5 w-24 animate-pulse rounded bg-slate-100 sm:block" />
+                  <div className="h-5 flex-1 animate-pulse rounded bg-brand-navy/10" />
+                  <div className="h-5 w-48 animate-pulse rounded bg-brand-navy/10" />
+                  <div className="hidden h-5 w-24 animate-pulse rounded bg-brand-navy/10 sm:block" />
                 </div>
               ))}
             </div>
@@ -134,7 +134,7 @@ export default function WorkersPage(): JSX.Element {
           </Link>
         </div>
       ) : (
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-md border border-brand-navy/15 bg-white shadow-card">
           <WorkerTable workers={workers} />
         </div>
       )}

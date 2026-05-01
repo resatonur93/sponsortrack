@@ -15,13 +15,13 @@ export function LanguageSwitcher({
 
   const baseBtn =
     variant === "dark"
-      ? "border-slate-600 text-slate-200 hover:bg-slate-700"
-      : "border-slate-200 text-slate-700 hover:bg-slate-50";
+      ? "border-brand-navy/30 text-slate-200 hover:bg-brand-gold/15 hover:text-white"
+      : "border-transparent text-brand-navy/80 hover:bg-brand-gold/20 hover:text-brand-navy";
 
   const activeBtn =
     variant === "dark"
-      ? "border-[#1E5BB5] bg-[#1E5BB5] text-white"
-      : "border-brand-navy bg-brand-navy text-white";
+      ? "border-brand-gold bg-brand-gold text-brand-navy shadow-sm"
+      : "border-brand-navy bg-brand-navy text-white shadow-sm";
 
   function pill(next: Locale): void {
     setLocale(next);
@@ -30,10 +30,10 @@ export function LanguageSwitcher({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border p-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-lg border p-0.5 text-xs font-semibold tracking-wide",
         variant === "dark"
-          ? "border-slate-600 bg-slate-800/80"
-          : "border-slate-200 bg-white",
+          ? "border-brand-navy/40 bg-brand-navy/40"
+          : "border-brand-navy/15 bg-brand-surface",
         className
       )}
       role="group"
@@ -43,7 +43,7 @@ export function LanguageSwitcher({
         type="button"
         onClick={() => pill("tr")}
         className={cn(
-          "rounded px-2 py-1 transition-colors",
+          "rounded-md px-2.5 py-1 transition-colors",
           locale === "tr" ? activeBtn : baseBtn
         )}
       >
@@ -53,7 +53,7 @@ export function LanguageSwitcher({
         type="button"
         onClick={() => pill("en")}
         className={cn(
-          "rounded px-2 py-1 transition-colors",
+          "rounded-md px-2.5 py-1 transition-colors",
           locale === "en" ? activeBtn : baseBtn
         )}
       >

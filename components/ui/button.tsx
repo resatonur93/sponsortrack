@@ -4,18 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-royal focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-brand-navy text-white hover:bg-brand-navy/90",
+        default:
+          "bg-brand-navy text-white shadow-sm hover:bg-brand-gold hover:text-brand-navy",
         secondary:
-          "border border-brand-navy bg-white text-brand-navy hover:bg-slate-50",
+          "border border-brand-navy/25 bg-white text-brand-navy shadow-sm hover:border-brand-gold hover:bg-brand-gold/15 hover:text-brand-navy",
         outline:
-          "border border-slate-300 bg-white hover:bg-slate-50",
-        ghost: "hover:bg-slate-100",
-        danger: "bg-brand-rose text-white hover:bg-brand-rose/90",
-        success: "bg-brand-emerald text-white hover:bg-brand-emerald/90",
+          "border border-slate-300/90 bg-white text-brand-navy hover:border-brand-gold hover:bg-brand-gold/10",
+        ghost:
+          "text-brand-navy hover:bg-brand-gold/12 hover:text-brand-navy",
+        danger:
+          "bg-brand-rose text-white shadow-sm hover:bg-brand-rose hover:shadow-[0_0_0_2px_rgba(212,175,135,0.45)]",
+        success:
+          "bg-brand-emerald text-white shadow-sm hover:bg-brand-emerald hover:shadow-[0_0_0_2px_rgba(212,175,135,0.45)]",
       },
       size: {
         default: "h-10 px-4 py-2",

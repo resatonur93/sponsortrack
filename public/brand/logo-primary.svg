@@ -1,8 +1,8 @@
 <svg width="200" height="40" viewBox="0 0 200 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <g class="logo-icon">
-    <path d="M8 8C8 5.79086 9.79086 4 12 4H20C22.2091 4 24 5.79086 24 8V12C24 14.2091 22.2091 16 20 16H12C9.79086 16 8 17.7909 8 20V24C8 26.2091 9.79086 28 12 28H20" stroke="#1E5BB5" stroke-width="3" stroke-linecap="round"/>
-    <path d="M20 28L28 28C30.2091 28 32 26.2091 32 24V20" stroke="#0D9488" stroke-width="3" stroke-linecap="round"/>
-    <path d="M28 16L32 20L40 12" stroke="#0D9488" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 8C8 5.79086 9.79086 4 12 4H20C22.2091 4 24 5.79086 24 8V12C24 14.2091 22.2091 16 20 16H12C9.79086 16 8 17.7909 8 20V24C8 26.2091 9.79086 28 12 28H20" stroke="#0A2A5E" stroke-width="3" stroke-linecap="round"/>
+    <path d="M20 28L28 28C30.2091 28 32 26.2091 32 24V20" stroke="#D4AF87" stroke-width="3" stroke-linecap="round"/>
+    <path d="M28 16L32 20L40 12" stroke="#D4AF87" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <text x="48" y="26" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" fill="#0F2B5B">Sponsor<tspan fill="#1E5BB5">Track</tspan></text>
+  <text x="48" y="26" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" fill="#0A2A5E">Sponsor<tspan fill="#D4AF87"> Track</tspan></text>
 </svg>

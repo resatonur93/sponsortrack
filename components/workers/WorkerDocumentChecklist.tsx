@@ -100,9 +100,9 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
   }
   if (!items || items.length === 0) {
     return (
-      <Card className="border-slate-200 bg-slate-50/80">
+      <Card className="border-brand-navy/15 bg-brand-surface/90">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t("docChecklist.titleEmpty")}</CardTitle>
+          <CardTitle className="text-base text-brand-navy">{t("docChecklist.titleEmpty")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-600">
           {t("docChecklist.noRules")}
@@ -115,10 +115,10 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
   const total = items.length;
 
   return (
-    <Card className="border-brand-navy/25 shadow-sm">
+    <Card className="border-brand-navy/20 shadow-card">
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">{t("docChecklist.title")}</CardTitle>
+          <CardTitle className="text-base text-brand-navy">{t("docChecklist.title")}</CardTitle>
           <Badge variant="outline" className="w-fit font-normal">
             {okCount} / {total} {t("docChecklist.progress")}
           </Badge>
@@ -126,7 +126,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
         <p className="text-xs text-slate-600">{t("docChecklist.hint")}</p>
       </CardHeader>
       <CardContent className="space-y-2">
-        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+        <ul className="divide-y divide-brand-navy/10 rounded-lg border border-brand-navy/15 bg-white">
           {items.map((row) => (
             <li
               key={row.slotId}
@@ -140,7 +140,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-slate-900">{row.label}</span>
+                  <span className="font-medium text-brand-navy">{row.label}</span>
                   <Badge variant="outline" className="font-mono text-[10px]">
                     {row.documentTypesAccepted.join(" · ")}
                   </Badge>

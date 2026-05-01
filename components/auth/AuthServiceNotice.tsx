@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SetupDbUnavailable({ hint }: { hint?: string }): JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-brand-surface p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl text-brand-navy">Kurulum şu an yapılamıyor</CardTitle>
@@ -39,7 +39,7 @@ export function SetupDbUnavailable({ hint }: { hint?: string }): JSX.Element {
 
 export function RegistrationNotConfigured(): JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-brand-surface p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl text-brand-navy">Kurumsal kayıt kapalı</CardTitle>
@@ -63,7 +63,7 @@ export function RegistrationNotConfigured(): JSX.Element {
 
 export function SetupAlreadyCompleted(): JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-brand-surface p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl text-brand-navy">İlk kurulum tamamlandı</CardTitle>

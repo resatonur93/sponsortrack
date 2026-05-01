@@ -17,32 +17,31 @@ export function AdminLayout({
   const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-screen bg-[#0F172A] text-slate-50">
+    <div className="flex min-h-screen bg-brand-surface text-slate-900">
       <a href="#main-content-admin" className="skip-nav--dark">
         {t("common.skipToContent")}
       </a>
       <AdminSidebar />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-slate-700 bg-[#1E293B] px-4">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-brand-navy/12 bg-white px-4 shadow-sm">
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white"
+              className="inline-flex items-center gap-1 text-sm font-medium text-brand-navy/80 transition-colors hover:text-brand-gold"
             >
               <ArrowLeft className="h-4 w-4" />
               {t("shell.app")}
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            <LanguageSwitcher variant="dark" />
-            <span className="hidden text-xs text-slate-400 sm:inline">
+            <LanguageSwitcher variant="light" />
+            <span className="hidden max-w-[200px] truncate text-xs text-brand-slate sm:inline">
               {data?.user?.email}
             </span>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700 hover:text-white"
               onClick={() =>
                 void signOut({
                   callbackUrl: `${window.location.origin}/login`,
@@ -56,7 +55,7 @@ export function AdminLayout({
         </header>
         <main
           id="main-content-admin"
-          className="flex-1 scroll-mt-14 overflow-auto p-4 md:p-8"
+          className="flex-1 scroll-mt-14 overflow-auto bg-brand-surface p-4 md:p-8"
           tabIndex={-1}
         >
           {children}

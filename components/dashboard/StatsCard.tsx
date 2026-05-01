@@ -8,7 +8,7 @@ export function StatsCard(props: {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-slate-600">
+        <CardTitle className="text-sm font-medium text-brand-slate">
           {props.title}
         </CardTitle>
       </CardHeader>

@@ -96,10 +96,10 @@ export default function AdminLeadsPage(): JSX.Element {
   }, [status, session?.user?.canAccessAdminPanel, router, load]);
 
   if (status === "loading" || !session) {
-    return <p className="text-slate-400">Yükleniyor...</p>;
+    return <p className="text-brand-slate">Yükleniyor...</p>;
   }
   if (!session.user.canAccessAdminPanel) {
-    return <p className="text-slate-400">Yönlendiriliyor...</p>;
+    return <p className="text-brand-slate">Yönlendiriliyor...</p>;
   }
   if (error) {
     return <p className="text-rose-400">{error}</p>;
@@ -110,15 +110,15 @@ export default function AdminLeadsPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-50">Leads</h1>
-        <p className="text-sm text-slate-400">Demo ve iletişim başvuruları</p>
+        <h1 className="text-2xl font-bold text-brand-navy">Leads</h1>
+        <p className="text-sm text-brand-slate">Demo ve iletişim başvuruları</p>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-lg border border-slate-700 bg-[#1E293B] p-4 md:flex-row md:flex-wrap md:items-end">
+      <div className="flex flex-col gap-4 rounded-lg border border-brand-navy/10 bg-white p-4 shadow-card md:flex-row md:flex-wrap md:items-end">
         <div className="space-y-1">
-          <Label className="text-slate-400">Durum</Label>
+          <Label className="text-brand-slate">Durum</Label>
           <Select value={statusFilter} onValueChange={(v) => { setPage(1); setStatusFilter(v); }}>
-            <SelectTrigger className="w-[200px] border-slate-600 bg-[#0F172A] text-slate-100">
+            <SelectTrigger className="w-[200px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -132,9 +132,9 @@ export default function AdminLeadsPage(): JSX.Element {
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-slate-400">Kaynak</Label>
+          <Label className="text-brand-slate">Kaynak</Label>
           <Select value={sourceFilter} onValueChange={(v) => { setPage(1); setSourceFilter(v); }}>
-            <SelectTrigger className="w-[200px] border-slate-600 bg-[#0F172A] text-slate-100">
+            <SelectTrigger className="w-[200px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -146,9 +146,8 @@ export default function AdminLeadsPage(): JSX.Element {
           </Select>
         </div>
         <div className="min-w-[200px] flex-1 space-y-1">
-          <Label className="text-slate-400">Ara</Label>
+          <Label className="text-brand-slate">Ara</Label>
           <Input
-            className="border-slate-600 bg-[#0F172A] text-slate-100"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="E-posta, şirket, ad"
@@ -162,7 +161,6 @@ export default function AdminLeadsPage(): JSX.Element {
         </div>
         <Button
           type="button"
-          className="bg-[#1E5BB5] hover:bg-[#1a4fa0]"
           onClick={() => {
             setPage(1);
             void load();
@@ -172,43 +170,43 @@ export default function AdminLeadsPage(): JSX.Element {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-700 bg-[#1E293B]">
+      <div className="overflow-x-auto rounded-lg border border-brand-navy/10 bg-white shadow-card">
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-700 hover:bg-transparent">
-              <TableHead className="text-slate-300">E-posta</TableHead>
-              <TableHead className="text-slate-300">Şirket</TableHead>
-              <TableHead className="text-slate-300">Ad</TableHead>
-              <TableHead className="text-slate-300">Durum</TableHead>
-              <TableHead className="text-slate-300">Kaynak</TableHead>
-              <TableHead className="text-slate-300">Tarih</TableHead>
-              <TableHead className="text-slate-300">İşlem</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>E-posta</TableHead>
+              <TableHead>Şirket</TableHead>
+              <TableHead>Ad</TableHead>
+              <TableHead>Durum</TableHead>
+              <TableHead>Kaynak</TableHead>
+              <TableHead>Tarih</TableHead>
+              <TableHead>İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-slate-500">
+                <TableCell colSpan={7} className="text-brand-slate">
                   Kayıt yok
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((r) => (
-                <TableRow key={r.id} className="border-slate-700">
-                  <TableCell className="text-slate-200">{r.email}</TableCell>
-                  <TableCell className="text-slate-300">{r.companyName ?? "—"}</TableCell>
-                  <TableCell className="text-slate-300">{r.name ?? "—"}</TableCell>
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-brand-navy">{r.email}</TableCell>
+                  <TableCell>{r.companyName ?? "—"}</TableCell>
+                  <TableCell>{r.name ?? "—"}</TableCell>
                   <TableCell>
                     <LeadStatusBadge status={r.status} />
                   </TableCell>
-                  <TableCell className="text-xs text-slate-400">{r.source}</TableCell>
-                  <TableCell className="text-xs text-slate-500">
+                  <TableCell className="text-xs text-brand-slate">{r.source}</TableCell>
+                  <TableCell className="text-xs text-brand-slate">
                     {new Date(r.createdAt).toLocaleString("en-GB")}
                   </TableCell>
                   <TableCell>
                     <Link
                       href={`/admin/leads/${r.id}`}
-                      className="text-[#60A5FA] hover:underline"
+                      className="font-medium text-brand-navy hover:text-brand-gold hover:underline"
                     >
                       Detay
                     </Link>
@@ -220,7 +218,7 @@ export default function AdminLeadsPage(): JSX.Element {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-400">
+      <div className="flex items-center justify-between text-sm text-brand-slate">
         <span>
           Toplam {meta.total} · Sayfa {meta.page} / {totalPages}
         </span>
@@ -229,7 +227,6 @@ export default function AdminLeadsPage(): JSX.Element {
             type="button"
             variant="outline"
             size="sm"
-            className="border-slate-600 text-slate-200"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
@@ -239,7 +236,6 @@ export default function AdminLeadsPage(): JSX.Element {
             type="button"
             variant="outline"
             size="sm"
-            className="border-slate-600 text-slate-200"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
           >

@@ -60,30 +60,31 @@ export function AppShell({
     : [...navBase];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-brand-surface">
       <a href="#main-content" className="skip-nav">
         {t("common.skipToContent")}
       </a>
-      <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
-        <div className="flex h-16 items-center border-b border-slate-200 px-4">
-          <Logo href="/dashboard" size="md" variant="light" />
+      <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col border-r border-brand-navy/12 bg-white shadow-[2px_0_24px_-12px_rgba(10,42,94,0.08)] md:flex">
+        <div className="flex h-[4.25rem] items-center border-b border-brand-navy/10 bg-white px-3">
+          <Logo href="/dashboard" size="sm" variant="light" />
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   active
-                    ? "bg-brand-navy text-white"
-                    : "text-slate-700 hover:bg-slate-100"
+                    ? "bg-brand-navy text-white shadow-sm"
+                    : "text-brand-navy/90 hover:bg-brand-gold/12 hover:text-brand-navy"
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-4 w-4 shrink-0 opacity-95" />
                 <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                   <span className="truncate">{t(item.labelKey)}</span>
                   {item.href === "/alerts" ? <AlertCountPill /> : null}
@@ -92,8 +93,8 @@ export function AppShell({
             );
           })}
         </nav>
-        <div className="border-t border-slate-200 p-3">
-          <p className="truncate text-xs text-slate-500">
+        <div className="border-t border-brand-navy/10 bg-brand-surface/50 p-3">
+          <p className="truncate text-xs text-brand-slate">
             {data?.user?.email}
           </p>
           <Button
@@ -112,12 +113,12 @@ export function AppShell({
         </div>
       </aside>
       <div className="flex flex-1 flex-col">
-        <header className="border-b border-slate-200 bg-white px-4 py-2 md:hidden">
-          <div className="flex h-10 items-center justify-between gap-2">
+        <header className="sticky top-0 z-40 border-b border-brand-navy/10 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm md:hidden">
+          <div className="flex h-11 items-center justify-between gap-2">
             <Logo href="/dashboard" size="sm" variant="light" />
             <LanguageSwitcher />
           </div>
-          <nav className="flex gap-2 overflow-x-auto pb-2 text-sm">
+          <nav className="mt-2 flex gap-2 overflow-x-auto pb-1 text-sm">
             {nav.map((item) => {
               const Icon = item.icon;
               const active =
@@ -128,8 +129,10 @@ export function AppShell({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex shrink-0 items-center gap-1 rounded-md px-2 py-1",
-                    active ? "bg-brand-navy text-white" : "bg-slate-100"
+                    "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 font-medium transition-colors",
+                    active
+                      ? "bg-brand-navy text-white shadow-sm"
+                      : "bg-brand-surface text-brand-navy hover:bg-brand-gold/15"
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -142,10 +145,14 @@ export function AppShell({
             })}
           </nav>
         </header>
-        <div className="hidden items-center justify-end border-b border-slate-200 bg-white px-4 py-2 md:flex">
+        <div className="hidden items-center justify-end border-b border-brand-navy/10 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-sm md:flex">
           <LanguageSwitcher />
         </div>
-        <main id="main-content" className="flex-1 scroll-mt-16 p-4 md:p-8" tabIndex={-1}>
+        <main
+          id="main-content"
+          className="flex-1 scroll-mt-16 bg-brand-surface p-4 md:p-8"
+          tabIndex={-1}
+        >
           {children}
         </main>
       </div>

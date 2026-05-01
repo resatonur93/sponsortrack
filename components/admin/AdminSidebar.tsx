@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -27,12 +28,23 @@ export function AdminSidebar(): JSX.Element {
   const { t } = useTranslation();
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-slate-700 bg-[#0F172A]">
-      <div className="border-b border-slate-700 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          SponsorTrack
+    <aside className="flex w-56 shrink-0 flex-col border-r border-brand-navy/30 bg-brand-navy">
+      <div className="border-b border-white/10 px-4 py-4">
+        <Link
+          href="/admin"
+          className="mb-3 flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold rounded"
+        >
+          <Image
+            src="/brand/logo-dark.svg"
+            alt="Sponsor Track Admin"
+            width={200}
+            height={40}
+            className="h-10 w-[180px] object-contain object-left"
+          />
+        </Link>
+        <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold/90">
+          {t("admin.subtitle")}
         </p>
-        <p className="text-sm font-bold text-slate-50">{t("admin.subtitle")}</p>
       </div>
       <nav className="flex-1 space-y-0.5 p-2">
         {items.map((item) => {
@@ -46,10 +58,10 @@ export function AdminSidebar(): JSX.Element {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "bg-[#1E5BB5] text-white"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  ? "bg-brand-gold text-brand-navy shadow-md"
+                  : "text-brand-surface/92 hover:bg-white/10 hover:text-white"
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />

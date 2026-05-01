@@ -30,7 +30,7 @@ export default function AdminAuditPage(): JSX.Element {
       </p>
       <Link
         href="/compliance/audit"
-        className="inline-flex rounded-md bg-[#1E5BB5] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a4fa0]"
+        className="inline-flex rounded-md bg-brand-navy px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-gold hover:text-brand-navy"
       >
         Compliance audit pack →
       </Link>

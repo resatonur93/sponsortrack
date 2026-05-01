@@ -64,7 +64,7 @@ function expiryBadge(expiry: Date | string | null | undefined): {
   if (!expiry) {
     return {
       label: "No expiry",
-      className: "bg-slate-100 text-slate-600 border-slate-200",
+      className: "border-brand-navy/20 bg-brand-surface text-brand-navy/75",
     };
   }
   const d = typeof expiry === "string" ? new Date(expiry) : expiry;
@@ -371,7 +371,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
           return (
             <section key={folder} className="space-y-3">
               <div className="flex flex-wrap items-end justify-between gap-3">
-                <h2 className="text-lg font-medium text-slate-900">
+                <h2 className="text-lg font-medium text-brand-navy">
                   {FOLDER_LABELS[folder]}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
@@ -415,7 +415,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                   "rounded-lg border-2 border-dashed p-4 transition-colors",
                   dragOver === folder
                     ? "border-brand-navy bg-brand-navy/5"
-                    : "border-slate-200 bg-slate-50/50"
+                    : "border-brand-navy/20 bg-brand-surface/80"
                 )}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -440,7 +440,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                       const exp = expiryBadge(doc.expiryDate);
                       return (
                         <li key={doc.id}>
-                          <Card className="h-full border-slate-200 shadow-sm">
+                          <Card className="h-full border-brand-navy/15 shadow-card">
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between gap-2">
                                 <CardTitle className="line-clamp-2 text-sm font-medium leading-snug">
@@ -527,7 +527,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
             {historyEntries.map((h) => (
               <li
                 key={`${h.version}-${h.createdAt}`}
-                className="rounded border border-slate-100 bg-slate-50/80 p-3"
+                className="rounded border border-brand-navy/12 bg-brand-surface p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium">v{h.version}</span>

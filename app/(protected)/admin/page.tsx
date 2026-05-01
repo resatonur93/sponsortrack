@@ -62,26 +62,26 @@ export default function AdminDashboardPage(): JSX.Element {
   }, [status, session?.user?.canAccessAdminPanel, router]);
 
   if (status === "loading" || !session) {
-    return <p className="text-slate-400">Yükleniyor...</p>;
+    return <p className="text-brand-slate">Yükleniyor...</p>;
   }
   if (!session.user.canAccessAdminPanel) {
-    return <p className="text-slate-400">Yönlendiriliyor...</p>;
+    return <p className="text-brand-slate">Yönlendiriliyor...</p>;
   }
   if (error) {
     return <p className="text-rose-400">{error}</p>;
   }
   if (!stats) {
-    return <p className="text-slate-400">Yükleniyor...</p>;
+    return <p className="text-brand-slate">Yükleniyor...</p>;
   }
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-50">Admin dashboard</h1>
-          <p className="text-sm text-slate-400">Lead özetleri ve son hareketler</p>
+          <h1 className="text-2xl font-bold text-brand-navy">Admin dashboard</h1>
+          <p className="text-sm text-brand-slate">Lead özetleri ve son hareketler</p>
         </div>
-        <Button asChild className="bg-[#1E5BB5] hover:bg-[#1a4fa0]">
+        <Button asChild>
           <Link href="/admin/leads">Tüm leadler</Link>
         </Button>
       </div>
@@ -111,13 +111,13 @@ export default function AdminDashboardPage(): JSX.Element {
         />
       </div>
 
-      <div className="rounded-lg border border-slate-700 bg-[#1E293B]">
-        <div className="border-b border-slate-700 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-200">Son 10 lead</h2>
+      <div className="rounded-lg border border-brand-navy/10 bg-white shadow-card">
+        <div className="border-b border-brand-navy/10 bg-brand-navy/[0.04] px-4 py-3">
+          <h2 className="text-sm font-semibold text-brand-navy">Son 10 lead</h2>
         </div>
-        <ul className="divide-y divide-slate-700">
+        <ul className="divide-y divide-brand-navy/[0.08]">
           {stats.recentActivity.length === 0 ? (
-            <li className="px-4 py-6 text-sm text-slate-500">Kayıt yok</li>
+            <li className="px-4 py-6 text-sm text-brand-slate">Kayıt yok</li>
           ) : (
             stats.recentActivity.map((r) => (
               <li
@@ -127,11 +127,11 @@ export default function AdminDashboardPage(): JSX.Element {
                 <div>
                   <Link
                     href={`/admin/leads/${r.id}`}
-                    className="font-medium text-[#60A5FA] hover:underline"
+                    className="font-medium text-brand-navy hover:text-brand-gold hover:underline"
                   >
                     {r.email}
                   </Link>
-                  <span className="text-slate-500">
+                  <span className="text-brand-slate">
                     {" "}
                     · {r.companyName ?? "—"}
                   </span>

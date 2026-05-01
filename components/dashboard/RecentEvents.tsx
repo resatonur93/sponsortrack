@@ -44,9 +44,9 @@ export function RecentEvents(props: { events: EventRow[] }): JSX.Element {
   });
 
   return (
-    <Card>
+    <Card className="border-brand-navy/15 shadow-card">
       <CardHeader>
-        <CardTitle>{t("dashboard.recentNotifications")}</CardTitle>
+        <CardTitle className="text-brand-navy">{t("dashboard.recentNotifications")}</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">
@@ -56,9 +56,9 @@ export function RecentEvents(props: { events: EventRow[] }): JSX.Element {
             events.map((e) => (
               <li
                 key={e.id}
-                className="flex flex-col rounded-md border border-slate-100 p-3 text-sm"
+                className="flex flex-col rounded-md border border-brand-navy/10 bg-white p-3 text-sm shadow-sm"
               >
-                <span className="font-medium text-slate-900">
+                <span className="font-medium text-brand-navy">
                   {e.worker.firstName} {e.worker.lastName}
                 </span>
                 <span className="text-slate-600">{e.eventType}</span>

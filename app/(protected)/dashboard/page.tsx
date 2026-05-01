@@ -176,22 +176,22 @@ export default function DashboardPage(): JSX.Element {
     return (
       <div className="space-y-6" aria-busy="true" aria-live="polite">
         <div className="space-y-2">
-          <div className="h-9 w-48 animate-pulse rounded-md bg-slate-200" />
-          <div className="h-5 w-full max-w-xl animate-pulse rounded-md bg-slate-100" />
+          <div className="h-9 w-48 animate-pulse rounded-md bg-brand-navy/15" />
+          <div className="h-5 w-full max-w-xl animate-pulse rounded-md bg-brand-navy/10" />
         </div>
         <p className="text-sm text-slate-600">{t("dashboard.loadingHint")}</p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 animate-pulse rounded-lg border border-slate-100 bg-white"
+              className="h-28 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card"
             />
           ))}
         </div>
-        <div className="h-40 animate-pulse rounded-lg border border-slate-100 bg-white" />
+        <div className="h-40 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card" />
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="h-48 animate-pulse rounded-lg border border-slate-100 bg-white" />
-          <div className="h-48 animate-pulse rounded-lg border border-slate-100 bg-white" />
+          <div className="h-48 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card" />
+          <div className="h-48 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card" />
         </div>
       </div>
     );
@@ -240,14 +240,14 @@ export default function DashboardPage(): JSX.Element {
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Link
               href="/notifications"
-              className="inline-flex h-10 items-center justify-center rounded-md bg-brand-navy px-4 text-sm font-medium text-white hover:opacity-90"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-brand-navy px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-gold hover:text-brand-navy"
               onClick={() => dismissUrgentPopup()}
             >
               {t("dashboard.urgentPopup.gotoNotifications")}
             </Link>
             <Link
               href="/alerts"
-              className="inline-flex h-10 items-center justify-center rounded-md border border-amber-800/40 bg-white px-4 text-sm font-medium text-amber-950 hover:bg-amber-100"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-brand-navy/25 bg-white px-4 text-sm font-medium text-brand-navy transition-colors hover:border-brand-gold hover:bg-brand-gold/15"
               onClick={() => dismissUrgentPopup()}
             >
               {t("dashboard.urgentPopup.gotoAlerts")}
@@ -283,9 +283,9 @@ export default function DashboardPage(): JSX.Element {
       </div>
 
       {riskEngine ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold text-slate-900">
+            <h2 className="text-base font-semibold text-brand-navy">
               {t("dashboard.riskEngine")}
             </h2>
             <Link
@@ -308,9 +308,9 @@ export default function DashboardPage(): JSX.Element {
               ).map((lvl) => (
                 <div
                   key={lvl}
-                  className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2"
+                  className="rounded-md border border-brand-navy/12 bg-brand-surface px-3 py-2"
                 >
-                  <p className="text-xs font-medium text-slate-500">
+                  <p className="text-xs font-medium text-brand-navy/60">
                     {t(`risk.${lvl}`)}
                   </p>
                   <p className="text-lg font-semibold tabular-nums text-brand-navy">
@@ -358,9 +358,9 @@ export default function DashboardPage(): JSX.Element {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">
+          <h2 className="text-base font-semibold text-brand-navy">
             {t("dashboard.alerts")}
           </h2>
           <Link href="/alerts" className="text-sm text-brand-navy underline">
@@ -403,9 +403,9 @@ export default function DashboardPage(): JSX.Element {
           </ul>
         )}
       </div>
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">
+          <h2 className="text-base font-semibold text-brand-navy">
             {t("dashboard.missingDocTracking")}
           </h2>
           <span className="text-xs text-slate-500">

@@ -11,22 +11,27 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          navy: "#0F2B5B",
-          royal: "#1E5BB5",
+          /** Primary — UK sponsor navy */
+          navy: "#0A2A5E",
+          /** Secondary — institutional gold */
+          gold: "#D4AF87",
+          /** Alias: focus rings & links (formerly royal blue — now gold) */
+          royal: "#D4AF87",
+          surface: "#F8F9FA",
           teal: "#0D9488",
-          slate: "#64748B",
-          amber: "#D97706",
+          slate: "#5C6570",
+          amber: "#B8860B",
           emerald: "#059669",
-          rose: "#E11D48",
+          rose: "#C41E3A",
         },
         primary: {
-          DEFAULT: "#0F2B5B",
+          DEFAULT: "#0A2A5E",
           foreground: "#FFFFFF",
         },
         success: "#059669",
-        warning: "#D97706",
-        danger: "#E11D48",
-        background: "#F8FAFC",
+        warning: "#B8860B",
+        danger: "#C41E3A",
+        background: "#F8F9FA",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -40,6 +45,11 @@ const config: Config = {
       },
       animation: {
         "draw-check": "draw-check 0.5s ease-out forwards",
+      },
+      boxShadow: {
+        card: "0 4px 24px -4px rgba(10, 42, 94, 0.08), 0 2px 8px -4px rgba(10, 42, 94, 0.04)",
+        "card-hover":
+          "0 8px 32px -6px rgba(10, 42, 94, 0.12), 0 4px 12px -4px rgba(212, 175, 135, 0.15)",
       },
     },
   },

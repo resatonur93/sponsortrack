@@ -12,7 +12,7 @@ export default function SelfServiceLayout({
   children: ReactNode;
 }): JSX.Element {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-brand-surface">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
           <Link href="/self-service/login" className="text-sm font-semibold text-brand-navy">

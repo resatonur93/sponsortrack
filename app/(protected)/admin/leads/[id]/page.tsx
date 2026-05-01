@@ -181,54 +181,54 @@ export default function AdminLeadDetailPage(): JSX.Element {
   }
 
   if (status === "loading" || !session) {
-    return <p className="text-slate-400">Yükleniyor...</p>;
+    return <p className="text-brand-slate">Yükleniyor...</p>;
   }
   if (!session.user.canAccessAdminPanel) {
-    return <p className="text-slate-400">Yönlendiriliyor...</p>;
+    return <p className="text-brand-slate">Yönlendiriliyor...</p>;
   }
   if (error && !lead) {
     return (
       <div className="space-y-4">
         <p className="text-rose-400">{error}</p>
-        <Link href="/admin/leads" className="text-[#60A5FA] hover:underline">
+        <Link href="/admin/leads" className="font-medium text-brand-navy hover:text-brand-gold hover:underline">
           ← Lead listesi
         </Link>
       </div>
     );
   }
   if (!lead) {
-    return <p className="text-slate-400">Yükleniyor...</p>;
+    return <p className="text-brand-slate">Yükleniyor...</p>;
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <Link href="/admin/leads" className="text-sm text-[#60A5FA] hover:underline">
+          <Link href="/admin/leads" className="text-sm font-medium text-brand-navy hover:text-brand-gold hover:underline">
             ← Leads
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-slate-50">{lead.email}</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="mt-2 text-2xl font-bold text-brand-navy">{lead.email}</h1>
+          <p className="text-sm text-brand-slate">
             {lead.companyName ?? "—"} · {lead.source}
           </p>
         </div>
         <LeadStatusBadge status={lead.status} />
       </div>
 
-      <div className="grid gap-6 rounded-lg border border-slate-700 bg-[#1E293B] p-6 md:grid-cols-2">
+      <div className="grid gap-6 rounded-lg border border-brand-navy/10 bg-white p-6 shadow-card md:grid-cols-2">
         <div className="space-y-2 text-sm">
-          <p className="text-slate-400">Ad</p>
-          <p className="text-slate-100">{lead.name ?? "—"}</p>
-          <p className="text-slate-400">Telefon</p>
-          <p className="text-slate-100">{lead.phone ?? "—"}</p>
-          <p className="text-slate-400">Mesaj</p>
-          <p className="whitespace-pre-wrap text-slate-200">{lead.message ?? "—"}</p>
+          <p className="text-brand-slate">Ad</p>
+          <p className="font-medium text-slate-900">{lead.name ?? "—"}</p>
+          <p className="text-brand-slate">Telefon</p>
+          <p className="font-medium text-slate-900">{lead.phone ?? "—"}</p>
+          <p className="text-brand-slate">Mesaj</p>
+          <p className="whitespace-pre-wrap text-slate-800">{lead.message ?? "—"}</p>
         </div>
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label className="text-slate-400">Durum</Label>
+            <Label className="text-brand-slate">Durum</Label>
             <Select value={editStatus} onValueChange={(v) => setEditStatus(v as LeadStatus)}>
-              <SelectTrigger className="border-slate-600 bg-[#0F172A] text-slate-100">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -241,9 +241,9 @@ export default function AdminLeadDetailPage(): JSX.Element {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-slate-400">Atanan</Label>
+            <Label className="text-brand-slate">Atanan</Label>
             <Select value={editAssign} onValueChange={setEditAssign}>
-              <SelectTrigger className="border-slate-600 bg-[#0F172A] text-slate-100">
+              <SelectTrigger>
                 <SelectValue placeholder="Seçin" />
               </SelectTrigger>
               <SelectContent>
@@ -257,27 +257,21 @@ export default function AdminLeadDetailPage(): JSX.Element {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-slate-400">Notlar</Label>
+            <Label className="text-brand-slate">Notlar</Label>
             <textarea
-              className="min-h-[120px] w-full rounded-md border border-slate-600 bg-[#0F172A] px-3 py-2 text-sm text-slate-100"
+              className="min-h-[120px] w-full rounded-md border border-brand-navy/20 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
               value={editNotes}
               onChange={(e) => setEditNotes(e.target.value)}
             />
           </div>
           {error ? <p className="text-sm text-rose-400">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              className="bg-[#1E5BB5] hover:bg-[#1a4fa0]"
-              disabled={saving}
-              onClick={() => void save()}
-            >
+            <Button type="button" disabled={saving} onClick={() => void save()}>
               {saving ? "Kaydediliyor..." : "Kaydet"}
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="border-slate-600 text-slate-200"
               onClick={() => void softDelete()}
             >
               Arşivle
@@ -287,43 +281,40 @@ export default function AdminLeadDetailPage(): JSX.Element {
       </div>
 
       {lead.status !== "CONVERTED" ? (
-        <div className="rounded-lg border border-slate-700 bg-[#1E293B] p-6">
+        <div className="rounded-lg border border-brand-navy/10 bg-white p-6 shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-slate-100">Tenant&apos;a dönüştür</h2>
+            <h2 className="text-lg font-semibold text-brand-navy">Tenant&apos;a dönüştür</h2>
             <Button
               type="button"
               variant="outline"
-              className="border-amber-600 text-amber-200"
               onClick={() => setConvertOpen((v) => !v)}
             >
               {convertOpen ? "Kapat" : "Formu aç"}
             </Button>
           </div>
           {convertOpen ? (
-            <div className="mt-4 space-y-3 border-t border-slate-700 pt-4">
-              <p className="text-xs text-slate-400">
+            <div className="mt-4 space-y-3 border-t border-brand-navy/10 pt-4">
+              <p className="text-xs text-brand-slate">
                 Yeni tenant + AUTHORISING_OFFICER kullanıcı (lead e-postası) oluşturulur.
               </p>
               <div className="space-y-1">
-                <Label className="text-slate-400">Sponsor lisans no</Label>
+                <Label className="text-brand-slate">Sponsor lisans no</Label>
                 <Input
-                  className="border-slate-600 bg-[#0F172A] text-slate-100"
                   value={licenceNumber}
                   onChange={(e) => setLicenceNumber(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-slate-400">İlk giriş şifresi (min 8)</Label>
+                <Label className="text-brand-slate">İlk giriş şifresi (min 8)</Label>
                 <Input
                   type="password"
-                  className="border-slate-600 bg-[#0F172A] text-slate-100"
                   value={convertPassword}
                   onChange={(e) => setConvertPassword(e.target.value)}
                 />
               </div>
               <Button
                 type="button"
-                className="bg-emerald-700 hover:bg-emerald-800"
+                variant="success"
                 onClick={() => void convert()}
               >
                 Dönüştür
@@ -334,19 +325,19 @@ export default function AdminLeadDetailPage(): JSX.Element {
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-slate-700 bg-[#1E293B] p-6">
-        <h2 className="text-lg font-semibold text-slate-100">Aktivite</h2>
+      <div className="rounded-lg border border-brand-navy/10 bg-white p-6 shadow-card">
+        <h2 className="text-lg font-semibold text-brand-navy">Aktivite</h2>
         <ul className="mt-4 space-y-3">
           {lead.activities.length === 0 ? (
-            <li className="text-sm text-slate-500">Kayıt yok</li>
+            <li className="text-sm text-brand-slate">Kayıt yok</li>
           ) : (
             lead.activities.map((a) => (
-              <li key={a.id} className="border-l-2 border-slate-600 pl-3 text-sm">
-                <span className="font-medium text-slate-200">{a.type}</span>
+              <li key={a.id} className="border-l-2 border-brand-gold/50 pl-3 text-sm">
+                <span className="font-medium text-brand-navy">{a.type}</span>
                 {a.message ? (
-                  <span className="text-slate-400"> — {a.message}</span>
+                  <span className="text-brand-slate"> — {a.message}</span>
                 ) : null}
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-brand-slate">
                   {new Date(a.createdAt).toLocaleString("en-GB")}
                   {a.user
                     ? ` · ${a.user.firstName} ${a.user.lastName}`
