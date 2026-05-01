@@ -1,3 +1,4 @@
+export { workerProfileHref } from "./profile-link";
 export { getWorkersList } from "./get-workers-list";
 export { deriveWorkerListStatus } from "./worker-status";
 export type { WorkerListDerivedStatus } from "./worker-status";

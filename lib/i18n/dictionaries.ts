@@ -116,6 +116,9 @@ const tr: Record<string, string> = {
   "workers.searchPlaceholder": "İsim, e-posta veya CoS numarası",
   "workers.visaExpiry": "Vize bitiş",
   "workerTable.detail": "Detay",
+  "workers.profileCta.short": "Profili Gör",
+  "workers.profileCta.tooltip":
+    "Çalışanın tüm bilgilerini, yüklenen belgeleri, vize ve sponsorluk durumunu görüntüle",
   "events.title": "Olay raporlama",
   "events.subtitle":
     "Sponsor raporlama son tarihleri (Birleşik Krallık iş günü; devamsızlıkta takvim günü).",
@@ -661,6 +664,9 @@ const en: Record<string, string> = {
   "workers.searchPlaceholder": "Name, email, CoS…",
   "workers.visaExpiry": "Visa expiry",
   "workerTable.detail": "Details",
+  "workers.profileCta.short": "View profile",
+  "workers.profileCta.tooltip":
+    "View this worker's full profile, uploaded documents, and visa/sponsorship status",
   "events.title": "Event reporting",
   "events.subtitle":
     "Sponsor reporting deadlines (UK working days; calendar days for no-show).",
