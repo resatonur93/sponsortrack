@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma, prismaBase } from "@/lib/prisma";
-import { tryNotifyExpiredDocumentById } from "@/lib/document-expiry-email-notify";
+import { processDocumentExpiryRemindersForDocumentId } from "@/lib/document-expiry-email-notify";
 import { documentUploadSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
 import { DocumentVaultFolder } from "@prisma/client";
@@ -104,8 +104,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           complianceEventId: d.complianceEventId ?? undefined,
         },
       });
-      void tryNotifyExpiredDocumentById(prismaBase, doc.id).catch((err) =>
-        logger.error("expired document notify after upload failed", err, {
+      void processDocumentExpiryRemindersForDocumentId(prismaBase, doc.id).catch((err) =>
+        logger.error("document expiry reminders after upload failed", err, {
           documentId: doc.id,
         })
       );

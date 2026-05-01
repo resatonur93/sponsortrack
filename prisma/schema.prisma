@@ -585,16 +585,24 @@ model Document {
 }
 
 // One row per (document, expiry calendar day) after an expiry notification email was sent.
+enum DocumentExpiryReminderKind {
+  BEFORE_30
+  BEFORE_7
+  EXPIRY_DAY
+  AFTER_EXPIRED
+}
+
 model DocumentExpiryEmailLog {
   id         String   @id @default(cuid())
   documentId String
   expiryDay  String
+  kind       DocumentExpiryReminderKind @default(AFTER_EXPIRED)
   workerId   String
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
   sentAt     DateTime @default(now())
 
-  @@unique([documentId, expiryDay])
+  @@unique([documentId, expiryDay, kind])
   @@index([tenantId])
 }
 
