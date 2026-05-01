@@ -56,8 +56,11 @@ export function WorkerForm(): JSX.Element {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const j = (await res.json().catch(() => ({}))) as { error?: string };
-      setSubmitError(j.error ?? "Kayıt başarısız");
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        errorTr?: string;
+      };
+      setSubmitError(j.errorTr ?? j.error ?? "Kayıt başarısız");
       return;
     }
     const json = (await res.json()) as { data: { id: string } };

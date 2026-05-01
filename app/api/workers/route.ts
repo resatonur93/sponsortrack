@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { workerCreateSchema } from "@/lib/schemas";
 import { visaNotificationsToCreate } from "@/lib/notification-rules";
 import { logger } from "@/lib/logger";
+import { nextResponseForPrismaUniqueViolation } from "@/lib/prisma-unique-response";
 import type { EmploymentStatus, Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -169,6 +170,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ data: worker }, { status: 201 });
     });
   } catch (error) {
+    const uniqueRes = nextResponseForPrismaUniqueViolation(error);
+    if (uniqueRes) return uniqueRes;
     logger.error("POST /api/workers failed", error);
     return NextResponse.json(
       { error: "Internal server error" },

@@ -12,6 +12,7 @@ import {
 } from "@prisma/client";
 import { createComplianceReportingEvent } from "@/lib/compliance-reporting-engine";
 import { normalizeEmail } from "@/lib/registration";
+import { nextResponseForPrismaUniqueViolation } from "@/lib/prisma-unique-response";
 
 export const dynamic = "force-dynamic";
 
@@ -513,6 +514,8 @@ export async function PUT(
       });
     });
   } catch (error) {
+    const uniqueRes = nextResponseForPrismaUniqueViolation(error);
+    if (uniqueRes) return uniqueRes;
     logger.error("PUT /api/workers/[id] failed", error);
     return NextResponse.json(
       { error: "Internal server error" },
