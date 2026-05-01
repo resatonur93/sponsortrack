@@ -14,7 +14,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     return await withTenant(user, req, async () => {
-      const data = await getComplianceDashboardSummary(prisma, new Date());
+      const data = await getComplianceDashboardSummary(
+        user.tenantId,
+        prisma,
+        new Date()
+      );
       return NextResponse.json(
         { data },
         {

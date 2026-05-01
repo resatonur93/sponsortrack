@@ -273,10 +273,11 @@ export async function buildLegacyDashboardPayload(
 
 export async function buildFullDashboard(
   prisma: PrismaTenantClient,
+  tenantId: string,
   now: Date = new Date()
 ): Promise<FullDashboardData> {
   const [complianceTraffic, core] = await Promise.all([
-    getComplianceDashboardSummary(prisma, now),
+    getComplianceDashboardSummary(tenantId, prisma, now),
     loadDashboardCore(prisma, now),
   ]);
   return {

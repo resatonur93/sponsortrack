@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     return await withTenant(user, req, async () => {
-      const data = await buildFullDashboard(prisma, new Date());
+      const data = await buildFullDashboard(prisma, user.tenantId, new Date());
       return NextResponse.json(
         { data },
         {

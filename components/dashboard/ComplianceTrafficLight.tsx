@@ -14,28 +14,27 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type {
   ComplianceAggregateRow,
-  ComplianceCategoryId,
-  ComplianceGroupedPersonItem,
+  ComplianceCategory,
   DashboardSummary,
   TrafficLightState,
 } from "@/lib/compliance/types";
 import { Badge } from "@/components/ui/badge";
 
-const CATEGORY_ICONS: Record<ComplianceCategoryId, LucideIcon> = {
+const CATEGORY_ICONS: Record<ComplianceCategory, LucideIcon> = {
   visa: Plane,
   sponsorship: BriefcaseBusiness,
   rightToWork: Fingerprint,
   documents: FileWarning,
 };
 
-function lightRingClass(light: TrafficLightState): string {
+function trafficCardShell(light: TrafficLightState): string {
   switch (light) {
     case "red":
-      return "ring-red-500/80 bg-red-50";
+      return "border-2 border-red-200 bg-red-50 hover:bg-red-50/95";
     case "amber":
-      return "ring-amber-500/80 bg-amber-50";
+      return "border-2 border-amber-200 bg-amber-50 hover:bg-amber-50/95";
     default:
-      return "ring-green-500/80 bg-emerald-50";
+      return "border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-50/95";
   }
 }
 
@@ -80,7 +79,7 @@ export function ComplianceTrafficLight({
     external ? traffic ?? null : null
   );
   const [loadFailed, setLoadFailed] = useState(false);
-  const [selected, setSelected] = useState<ComplianceCategoryId | null>(null);
+  const [selected, setSelected] = useState<ComplianceCategory | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     setLoadFailed(false);
@@ -113,18 +112,20 @@ export function ComplianceTrafficLight({
     [payload?.categories]
   );
 
-  const activeCategory = useMemo(() => {
-    if (!selected) return null;
-    return categories.find((c) => c.id === selected) ?? null;
-  }, [categories, selected]);
-
   const aggregateItems = useMemo(
     () => payload?.aggregateItems ?? [],
     [payload?.aggregateItems]
   );
 
+  const displayRows = useMemo(() => {
+    if (!selected) return aggregateItems;
+    return aggregateItems.filter((row) =>
+      row.categoryBadges.includes(selected)
+    );
+  }, [aggregateItems, selected]);
+
   const labelFor = useCallback(
-    (id: ComplianceCategoryId) => {
+    (id: ComplianceCategory) => {
       switch (id) {
         case "visa":
           return t("dashboard.complianceTraffic.visa");
@@ -170,7 +171,7 @@ export function ComplianceTrafficLight({
           <div className="h-6 w-40 animate-pulse rounded bg-brand-navy/15" />
           <div className="h-4 w-full max-w-md animate-pulse rounded bg-brand-navy/10" />
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -268,74 +269,6 @@ export function ComplianceTrafficLight({
     </details>
   );
 
-  const renderCategoryRow = (row: ComplianceGroupedPersonItem): JSX.Element => (
-    <details
-      key={`${row.category}-${row.workerId}`}
-      className={cn(
-        "group rounded-lg border border-brand-navy/10 shadow-sm",
-        rowSurfaceClass(row.worstSeverity),
-        "border-l-4",
-        rowBorderClass(row.worstSeverity)
-      )}
-    >
-      <summary className="relative flex cursor-pointer list-none flex-col gap-2 p-3 pr-10 marker:content-none [&::-webkit-details-marker]:hidden sm:flex-row sm:items-start sm:justify-between">
-        <ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 shrink-0 text-brand-navy/50 transition-transform group-open:rotate-180" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/workers/${row.workerId}`}
-              className="font-semibold text-brand-navy underline-offset-2 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {row.workerName}
-            </Link>
-            <Badge
-              variant="outline"
-              className="border-brand-navy/20 bg-white/80 text-xs text-brand-navy"
-            >
-              {labelFor(row.category)}
-            </Badge>
-          </div>
-          <p className="text-sm text-slate-800">
-            {headline(row.headlineTr, row.headlineEn)}
-          </p>
-          {row.extraCount > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {renderExtraCount(row.extraCount)}
-              <span className="text-[11px] text-slate-500">
-                {t("dashboard.complianceTraffic.expandDetails")}
-              </span>
-            </div>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge
-            variant="outline"
-            className={cn(
-              "w-fit",
-              row.worstSeverity === "critical"
-                ? "border-red-400 text-red-900"
-                : "border-amber-400 text-amber-950"
-            )}
-          >
-            {row.worstSeverity === "critical"
-              ? t("dashboard.complianceTraffic.severityCritical")
-              : t("dashboard.complianceTraffic.severityWarning")}
-          </Badge>
-        </div>
-      </summary>
-      {row.extraLinesTr.length ? (
-        <ul className="space-y-1 border-t border-brand-navy/10 px-3 py-2 pb-3 text-sm text-slate-700">
-          {(locale === "tr" ? row.extraLinesTr : row.extraLinesEn).map(
-            (line, idx) => (
-              <li key={`${row.workerId}-cat-${idx}`}>{line}</li>
-            )
-          )}
-        </ul>
-      ) : null}
-    </details>
-  );
-
   return (
     <section className={cn("space-y-4", className)}>
       <div>
@@ -361,9 +294,9 @@ export function ComplianceTrafficLight({
                 setSelected((s) => (s === cat.id ? null : cat.id))
               }
               className={cn(
-                "relative flex flex-col items-start gap-2 rounded-xl border border-brand-navy/12 p-3 text-left shadow-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2",
-                lightRingClass(cat.trafficLight),
-                isSelected && "ring-2 ring-brand-navy/40"
+                "relative flex min-h-[7.25rem] flex-col items-start gap-2 rounded-xl p-3 text-left shadow-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2",
+                trafficCardShell(cat.trafficLight),
+                isSelected && "ring-2 ring-brand-navy/40 ring-offset-2"
               )}
             >
               <div className="flex w-full items-start justify-between gap-2">
@@ -429,27 +362,19 @@ export function ComplianceTrafficLight({
           ) : null}
         </div>
 
-        {!selected ? (
-          aggregateItems.length === 0 ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/90 px-4 py-6 text-center text-sm text-emerald-950">
-              {t("dashboard.complianceTraffic.aggregateEmpty")}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {aggregateItems.map((row) => renderAggregateRow(row))}
-            </div>
-          )
-        ) : activeCategory ? (
-          activeCategory.items.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              {t("dashboard.complianceTraffic.noIssues")}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {activeCategory.items.map((row) => renderCategoryRow(row))}
-            </div>
-          )
-        ) : null}
+        {!selected && aggregateItems.length === 0 ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-8 text-center text-sm text-emerald-950">
+            {t("dashboard.complianceTraffic.aggregateEmpty")}
+          </div>
+        ) : selected && displayRows.length === 0 ? (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600">
+            {t("dashboard.complianceTraffic.noIssues")}
+          </p>
+        ) : (
+          <div className="max-h-[min(32rem,70vh)] space-y-2 overflow-y-auto pr-1">
+            {displayRows.map((row) => renderAggregateRow(row))}
+          </div>
+        )}
       </div>
     </section>
   );

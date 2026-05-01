@@ -52,7 +52,7 @@ const tr: Record<string, string> = {
   "dashboard.activeSponsorships": "Aktif sponsorluk",
   "dashboard.pendingNotifications": "Bekleyen bildirim",
   "dashboard.overdueNotifications": "Geciken bildirim",
-  "dashboard.missingDocs": "Eksik belge",
+  "dashboard.missingDocs": "Eksik belgeler",
   "dashboard.riskEngine": "Risk motoru",
   "dashboard.riskEngineFullRanking": "Tüm sıralama →",
   "dashboard.riskEngineEmptyBefore": "Henüz skor yok — gece cron (",

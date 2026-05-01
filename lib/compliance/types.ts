@@ -1,10 +1,13 @@
 /** Uyum trafiği kartları ve dashboard özeti için ortak tipler */
 
-export type ComplianceCategoryId =
+export type ComplianceCategory =
   | "visa"
   | "sponsorship"
   | "rightToWork"
   | "documents";
+
+/** @deprecated `ComplianceCategory` kullanın */
+export type ComplianceCategoryId = ComplianceCategory;
 
 export type TrafficLightState = "green" | "amber" | "red";
 
@@ -21,11 +24,11 @@ export type ComplianceIssueLine = {
   key: string;
 };
 
-/** Tek kategori içinde, tek çalışan satırı */
-export type ComplianceGroupedPersonItem = {
+/** Tek kategori içinde tek çalışan satırı (gruplanmış) */
+export type GroupedComplianceItem = {
   workerId: string;
   workerName: string;
-  category: ComplianceCategoryId;
+  category: ComplianceCategory;
   lines: ComplianceIssueLine[];
   worstSeverity: ComplianceTrafficSeverity;
   headlineTr: string;
@@ -35,15 +38,22 @@ export type ComplianceGroupedPersonItem = {
   extraLinesEn: string[];
 };
 
-export type TrafficLightCard = {
-  id: ComplianceCategoryId;
+/** @deprecated `GroupedComplianceItem` kullanın */
+export type ComplianceGroupedPersonItem = GroupedComplianceItem;
+
+/** Tek kategori için trafik lambası kartı */
+export type TrafficLightCardData = {
+  id: ComplianceCategory;
   trafficLight: TrafficLightState;
   score: TrafficLightScore;
   criticalCount: number;
   warningCount: number;
   detailHref: string;
-  items: ComplianceGroupedPersonItem[];
+  items: GroupedComplianceItem[];
 };
+
+/** @deprecated `TrafficLightCardData` kullanın */
+export type TrafficLightCard = TrafficLightCardData;
 
 export type ComplianceAggregateRow = {
   workerId: string;
@@ -51,13 +61,12 @@ export type ComplianceAggregateRow = {
   severity: ComplianceTrafficSeverity;
   headlineTr: string;
   headlineEn: string;
-  categoryBadges: ComplianceCategoryId[];
+  categoryBadges: ComplianceCategory[];
   extraCount: number;
-  /** Accordion / genişletme için */
   extraLines: Array<{
     tr: string;
     en: string;
-    category: ComplianceCategoryId;
+    category: ComplianceCategory;
   }>;
 };
 
@@ -65,7 +74,7 @@ export type DashboardSummary = {
   generatedAt: string;
   overallTrafficLight: TrafficLightState;
   overallScore: TrafficLightScore;
-  categories: TrafficLightCard[];
+  categories: TrafficLightCardData[];
   aggregateItems: ComplianceAggregateRow[];
 };
 

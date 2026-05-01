@@ -1,26 +1,41 @@
 import type { NotificationStatus, NotificationType } from "@prisma/client";
 import type { PrismaTenantClient } from "@/lib/prisma";
 import { daysBetween, startOfDay } from "@/lib/dates";
-import { evaluateMissingDocuments } from "@/lib/required-documents";
+import { evaluateMissingDocuments } from "./checklist";
 import { VISA_EXPIRING_TYPES } from "@/lib/recent-notifications";
 import type {
   ComplianceAggregateRow,
-  ComplianceCategoryId,
-  ComplianceGroupedPersonItem,
+  ComplianceCategory,
+  GroupedComplianceItem,
   ComplianceIssueLine,
   ComplianceTrafficSeverity,
   DashboardSummary,
-  TrafficLightCard,
+  TrafficLightCardData,
   TrafficLightScore,
   TrafficLightState,
 } from "./types";
 
-const DETAIL_HREF: Record<ComplianceCategoryId, string> = {
+const DETAIL_HREF: Record<ComplianceCategory, string> = {
   visa: "/notifications",
   sponsorship: "/notifications",
   rightToWork: "/notifications",
   documents: "/workers",
 };
+
+/** Rozet sırası — kartlar ile aynı */
+const CATEGORY_DISPLAY_ORDER: readonly ComplianceCategory[] = [
+  "visa",
+  "sponsorship",
+  "rightToWork",
+  "documents",
+] as const;
+
+function sortCategoriesForUi(cats: ComplianceCategory[]): ComplianceCategory[] {
+  return [...cats].sort(
+    (a, b) =>
+      CATEGORY_DISPLAY_ORDER.indexOf(a) - CATEGORY_DISPLAY_ORDER.indexOf(b)
+  );
+}
 
 const VISA_SET = new Set<NotificationType>(VISA_EXPIRING_TYPES);
 
@@ -85,8 +100,8 @@ function upsertLine(
 function toGroupedPerson(
   workerId: string,
   acc: WorkerAcc,
-  category: ComplianceCategoryId
-): ComplianceGroupedPersonItem {
+  category: ComplianceCategory
+): GroupedComplianceItem {
   const lines = dedupeSortedLines(acc.lines);
   const primary = lines[0];
   const rest = lines.slice(1);
@@ -108,8 +123,8 @@ function toGroupedPerson(
 
 function mapToGroupedItems(
   map: Map<string, WorkerAcc>,
-  category: ComplianceCategoryId
-): ComplianceGroupedPersonItem[] {
+  category: ComplianceCategory
+): GroupedComplianceItem[] {
   return Array.from(map.entries())
     .map(([workerId, v]) => toGroupedPerson(workerId, v, category))
     .sort((a, b) => {
@@ -122,8 +137,8 @@ function mapToGroupedItems(
 
 function summarizeCategory(
   map: Map<string, WorkerAcc>,
-  category: ComplianceCategoryId
-): TrafficLightCard {
+  category: ComplianceCategory
+): TrafficLightCardData {
   const items = mapToGroupedItems(map, category);
   const criticalCount = items.filter((i) => i.worstSeverity === "critical").length;
   const warningCount = items.filter((i) => i.worstSeverity === "warning").length;
@@ -503,12 +518,12 @@ function lineFromRtwDays(rtwD: number): ComplianceIssueLine | null {
 }
 
 /** Tüm kategorilerde tek çalışan satırı */
-export function buildAggregateRows(categories: TrafficLightCard[]): ComplianceAggregateRow[] {
-  type Tagged = ComplianceIssueLine & { category: ComplianceCategoryId };
+export function buildAggregateRows(categories: TrafficLightCardData[]): ComplianceAggregateRow[] {
+  type Tagged = ComplianceIssueLine & { category: ComplianceCategory };
 
   const byWorker = new Map<
     string,
-    { name: string; tagged: Tagged[]; badgeSet: Set<ComplianceCategoryId> }
+    { name: string; tagged: Tagged[]; badgeSet: Set<ComplianceCategory> }
   >();
 
   for (const cat of categories) {
@@ -553,7 +568,7 @@ export function buildAggregateRows(categories: TrafficLightCard[]): ComplianceAg
       severity: primary.severity,
       headlineTr: primary.tr,
       headlineEn: primary.en,
-      categoryBadges: Array.from(v.badgeSet).sort(),
+      categoryBadges: sortCategoriesForUi(Array.from(v.badgeSet.values())),
       extraCount: rest.length,
       extraLines: rest.map((r) => ({
         tr: r.tr,
@@ -569,7 +584,7 @@ export function buildAggregateRows(categories: TrafficLightCard[]): ComplianceAg
   });
 }
 
-export function scoreToOverallLight(categories: TrafficLightCard[]): {
+export function scoreToOverallLight(categories: TrafficLightCardData[]): {
   overallTrafficLight: TrafficLightState;
   overallScore: TrafficLightScore;
 } {
@@ -595,27 +610,28 @@ export async function computeTrafficDashboard(
   const rtwMap = new Map<string, WorkerAcc>();
   const docMap = new Map<string, WorkerAcc>();
 
-  const workers = await db.worker.findMany({
-    where: { employmentStatus: { not: "TERMINATED" } },
-    include: {
-      documents: { where: { isDeleted: false } },
-      rtwChecks: {
-        where: { nextCheckDueAt: { not: null } },
-        orderBy: { nextCheckDueAt: "asc" },
-        take: 1,
-        select: { nextCheckDueAt: true },
+  const [workers, notifs] = await Promise.all([
+    db.worker.findMany({
+      where: { employmentStatus: { not: "TERMINATED" } },
+      include: {
+        documents: { where: { isDeleted: false } },
+        rtwChecks: {
+          where: { nextCheckDueAt: { not: null } },
+          orderBy: { nextCheckDueAt: "asc" },
+          take: 1,
+          select: { nextCheckDueAt: true },
+        },
       },
-    },
-  });
-
-  const notifs = await db.notificationEvent.findMany({
-    where: { status: { in: ["PENDING", "OVERDUE"] } },
-    select: {
-      workerId: true,
-      eventType: true,
-      status: true,
-    },
-  });
+    }),
+    db.notificationEvent.findMany({
+      where: { status: { in: ["PENDING", "OVERDUE"] } },
+      select: {
+        workerId: true,
+        eventType: true,
+        status: true,
+      },
+    }),
+  ]);
 
   const nameOf = (w: (typeof workers)[number]) =>
     `${w.firstName} ${w.lastName}`.trim();
@@ -716,7 +732,7 @@ export async function computeTrafficDashboard(
     }
   }
 
-  const categories: TrafficLightCard[] = [
+  const categories: TrafficLightCardData[] = [
     summarizeCategory(visaMap, "visa"),
     summarizeCategory(sponsorMap, "sponsorship"),
     summarizeCategory(rtwMap, "rightToWork"),

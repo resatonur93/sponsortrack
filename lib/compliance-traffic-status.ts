@@ -2,13 +2,16 @@
 
 export type {
   ComplianceAggregateRow,
+  ComplianceCategory,
   ComplianceCategoryId as ComplianceTrafficCategoryId,
   ComplianceGroupedPersonItem,
   ComplianceIssueLine,
   ComplianceTrafficSeverity,
   ComplianceTrafficStatusPayload,
   DashboardSummary,
-  TrafficLightCard as ComplianceTrafficCategory,
+  GroupedComplianceItem,
+  TrafficLightCard,
+  TrafficLightCardData as ComplianceTrafficCategory,
   TrafficLightScore,
   TrafficLightState,
 } from "./compliance/types";
