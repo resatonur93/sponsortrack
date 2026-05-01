@@ -28,12 +28,12 @@ export function getSetupErrorHint(error: unknown): string {
   }
 
   if (/relation .* does not exist|table .* does not exist|no such table/i.test(message)) {
-    return "Tablolar oluşturulmamış. Bir kez `npx prisma db push` çalıştırın (şema bu veritabanına hiç uygulanmamış olabilir).";
+    return "Tablolar oluşturulmamış. Repoda migration var: `npm run db:deploy` veya `npx prisma migrate deploy`. Sadece boş/yerel deneme için `npm run db:push` (ön onarım script’i ile) kullanın.";
   }
 
   if (/certificate|SSL|TLS|self.?signed|sslmode/i.test(message)) {
     return "SSL/TLS sorunu. DATABASE_URL sonuna `?sslmode=require` ekleyin veya sağlayıcınızın önerdiği bağlantı parametrelerini kullanın.";
   }
 
-  return "Ayrıntı sunucu günlüğünde. Sırayla deneyin: 1) `npx prisma db push` 2) DATABASE_URL + SSL 3) uygulama ile DB’nin aynı ağda olduğundan emin olun.";
+  return "Ayrıntı sunucu günlüğünde. Sırayla deneyin: 1) `npx prisma migrate deploy` (veya `npm run db:deploy`) 2) DATABASE_URL + SSL 3) uygulama ile DB’nin aynı ağda olduğundan emin olun.";
 }

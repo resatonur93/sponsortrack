@@ -8,7 +8,8 @@
     "start": "prisma migrate deploy && next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "db:push": "prisma db push",
+    "db:repair:notification-type": "prisma db execute --file prisma/sql/repair-notification-type-enum.sql --schema prisma/schema.prisma",
+    "db:push": "npm run db:repair:notification-type && prisma db push",
     "db:deploy": "prisma migrate deploy",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
@@ -28,6 +29,7 @@
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
@@ -58,7 +60,6 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
-    "dotenv": "^17.4.2",
     "tsx": "^4.19.2"
   }
 }
