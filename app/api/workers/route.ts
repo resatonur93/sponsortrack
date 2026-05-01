@@ -5,9 +5,20 @@ import { workerCreateSchema } from "@/lib/schemas";
 import { visaNotificationsToCreate } from "@/lib/notification-rules";
 import { logger } from "@/lib/logger";
 import { nextResponseForPrismaUniqueViolation } from "@/lib/prisma-unique-response";
-import type { EmploymentStatus, Prisma } from "@prisma/client";
+import { getWorkersList } from "@/lib/workers/get-workers-list";
+import type { WorkerListFilter } from "@/lib/workers/types";
 
 export const dynamic = "force-dynamic";
+
+const WORKER_LIST_FILTERS = new Set<WorkerListFilter>([
+  "all",
+  "active",
+  "pending_onboarding",
+  "visa_expiring",
+  "visa_expired",
+  "suspended",
+  "terminated",
+]);
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -17,33 +28,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim();
-    const status = searchParams.get("status") as EmploymentStatus | null;
-    const visaExpiringSoon = searchParams.get("visaExpiringSoon") === "true";
+    const filterRaw = searchParams.get("filter");
+    const listFilter: WorkerListFilter =
+      filterRaw && WORKER_LIST_FILTERS.has(filterRaw as WorkerListFilter)
+        ? (filterRaw as WorkerListFilter)
+        : "all";
 
     return await withTenant(user, req, async () => {
-      const where: Prisma.WorkerWhereInput = {};
-      if (status) {
-        where.employmentStatus = status;
-      }
-      if (search) {
-        where.OR = [
-          { firstName: { contains: search, mode: "insensitive" } },
-          { lastName: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-          { cosReference: { contains: search, mode: "insensitive" } },
-        ];
-      }
-      if (visaExpiringSoon) {
-        const soon = new Date();
-        soon.setDate(soon.getDate() + 90);
-        where.visaExpiryDate = { not: null, lte: soon, gte: new Date() };
-      }
-
-      const workers = await prisma.worker.findMany({
-        where,
-        orderBy: { lastName: "asc" },
-      });
-      return NextResponse.json({ data: workers });
+      const data = await getWorkersList(
+        user.tenantId,
+        prisma,
+        { search: search || undefined, listFilter },
+        new Date()
+      );
+      return NextResponse.json({ data });
     });
   } catch (error) {
     logger.error("GET /api/workers failed", error);
@@ -166,12 +164,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
       }
 
-      logger.info("worker created", { workerId: worker.id, tenantId: user.tenantId });
+      logger.info("worker created", {
+        workerId: worker.id,
+        tenantId: user.tenantId,
+      });
       return NextResponse.json({ data: worker }, { status: 201 });
     });
-  } catch (error) {
-    const uniqueRes = nextResponseForPrismaUniqueViolation(error);
-    if (uniqueRes) return uniqueRes;
+  } catch (error: unknown) {
+    const prismaResp = nextResponseForPrismaUniqueViolation(error);
+    if (prismaResp) return prismaResp;
+
     logger.error("POST /api/workers failed", error);
     return NextResponse.json(
       { error: "Internal server error" },
