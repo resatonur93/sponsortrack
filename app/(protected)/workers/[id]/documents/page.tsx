@@ -135,19 +135,37 @@ async function uploadWithPresign(input: {
     }),
   });
   const presignJson = (await presign.json().catch(() => ({}))) as {
-    data?: { uploadUrl: string; fileUrl: string };
+    data?: {
+      uploadUrl: string;
+      fileUrl: string;
+      /** Supabase Storage: signed URL bekler multipart FormData ile PUT (@supabase/storage-js ile uyumlu). */
+      uploadTransport?: "supabase-formdata" | "s3-binary";
+    };
     error?: string;
   };
   if (!presign.ok || !presignJson.data) {
     throw new Error(presignJson.error ?? "Could not prepare upload");
   }
-  const put = await fetch(presignJson.data.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": mimeType },
-    body: input.file,
-  });
+
+  const transport = presignJson.data.uploadTransport ?? "s3-binary";
+  let put: Response;
+  if (transport === "supabase-formdata") {
+    const fd = new FormData();
+    fd.append("cacheControl", "3600");
+    fd.append("", input.file);
+    put = await fetch(presignJson.data.uploadUrl, { method: "PUT", body: fd });
+  } else {
+    put = await fetch(presignJson.data.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": mimeType },
+      body: input.file,
+    });
+  }
   if (!put.ok) {
-    throw new Error("Upload to storage failed");
+    const detail = await put.text().catch(() => "");
+    throw new Error(
+      detail ? `Upload to storage failed: ${detail.slice(0, 200)}` : "Upload to storage failed"
+    );
   }
   return {
     fileName: input.file.name,

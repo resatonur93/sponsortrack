@@ -4,12 +4,27 @@ import { DocumentFolder } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { isFileStorageConfigured } from "@/lib/file-storage";
 import {
   buildObjectKey,
   createPutUrl,
   isS3Configured,
   objectUrl,
 } from "@/lib/storage-presign";
+import {
+  createSupabaseSignedUploadUrl,
+  isSupabaseStorageConfigured,
+  supabasePublicObjectUrl,
+} from "@/lib/supabase-storage";
+
+type PresignUploadTransport = "supabase-formdata" | "s3-binary";
+
+type PresignResponseData = {
+  uploadUrl: string;
+  fileUrl: string;
+  objectKey: string;
+  uploadTransport: PresignUploadTransport;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -48,14 +63,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
 
-    if (!isS3Configured()) {
+    if (!isFileStorageConfigured()) {
       logger.warn(
-        "POST /api/storage/presign rejected: set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY"
+        "POST /api/storage/presign rejected: set Supabase (SUPABASE_STORAGE_BUCKET + SUPABASE_SERVICE_ROLE_KEY + project URL) or AWS S3 (S3_REGION, S3_BUCKET, …)"
       );
       return NextResponse.json(
         {
           error:
-            "File storage is not configured. Set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY on the server.",
+            "File storage is not configured. Use Supabase Storage (recommended here): SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET—or set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY.",
           code: "STORAGE_NOT_CONFIGURED",
         },
         { status: 503 }
@@ -77,12 +92,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         folder: d.folder,
         fileName: d.fileName,
       });
-      const uploadUrl = await createPutUrl({
-        objectKey,
-        contentType: d.mimeType,
-      });
-      const fileUrl = objectUrl(objectKey);
-      return NextResponse.json({ data: { uploadUrl, fileUrl, objectKey } });
+
+      let data: PresignResponseData;
+
+      if (isSupabaseStorageConfigured()) {
+        const { signedUrl } = await createSupabaseSignedUploadUrl(objectKey);
+        data = {
+          uploadUrl: signedUrl,
+          fileUrl: supabasePublicObjectUrl(objectKey),
+          objectKey,
+          uploadTransport: "supabase-formdata",
+        };
+      } else if (isS3Configured()) {
+        const uploadUrl = await createPutUrl({
+          objectKey,
+          contentType: d.mimeType,
+        });
+        const fileUrl = objectUrl(objectKey);
+        data = {
+          uploadUrl,
+          fileUrl,
+          objectKey,
+          uploadTransport: "s3-binary",
+        };
+      } else {
+        return NextResponse.json(
+          { error: "File storage backend misconfigured.", code: "STORAGE_NOT_CONFIGURED" },
+          { status: 503 }
+        );
+      }
+
+      return NextResponse.json({ data });
     });
   } catch (error) {
     logger.error("POST /api/storage/presign failed", error);
