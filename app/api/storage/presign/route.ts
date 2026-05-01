@@ -4,7 +4,12 @@ import { DocumentFolder } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { buildObjectKey, createPutUrl, objectUrl } from "@/lib/storage-presign";
+import {
+  buildObjectKey,
+  createPutUrl,
+  isS3Configured,
+  objectUrl,
+} from "@/lib/storage-presign";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +46,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const d = parsed.data;
     if (!allowedMimeTypes.has(d.mimeType)) {
       return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
+    }
+
+    if (!isS3Configured()) {
+      logger.warn(
+        "POST /api/storage/presign rejected: set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY"
+      );
+      return NextResponse.json(
+        {
+          error:
+            "File storage is not configured. Set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY on the server.",
+          code: "STORAGE_NOT_CONFIGURED",
+        },
+        { status: 503 }
+      );
     }
 
     return await withTenant(user, req, async () => {
