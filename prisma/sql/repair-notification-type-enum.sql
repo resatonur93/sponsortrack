@@ -68,4 +68,4 @@ BEGIN
       r.col
     );
   END LOOP;
-END $$;
+END $$ LANGUAGE plpgsql;

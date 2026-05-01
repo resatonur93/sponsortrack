@@ -54,6 +54,7 @@ export function getSmsDraft(
     SPONSORSHIP_ENDED: `[SMS taslak] ${who} için sponsorluk sonlandırma.${cos}${extra}`,
     NO_SHOW: `[SMS taslak] ${who} için 28 gün içinde işe başlamama (no show) değerlendirmesi.${cos}`,
     UNAUTHORISED_ABSENCE: `[SMS taslak] ${who} için izinsiz devamsızlık (10 ardışık iş günü kuralı kapsamında değerlendirme).${cos}${extra}`,
+    VISA_EXPIRING_90_DAYS: `[SMS taslak] ${who} vize süresi yaklaşıyor (90 gün, eski kayıt).${cos}`,
     VISA_EXPIRING_60_DAYS: `[SMS taslak] ${who} vize süresi yaklaşıyor (60 gün).${cos}`,
     VISA_EXPIRING_30_DAYS: `[SMS taslak] ${who} vize süresi yaklaşıyor (30 gün).${cos}`,
     VISA_EXPIRING_7_DAYS: `[SMS taslak] ${who} vize süresi kritik (7 gün).${cos}`,

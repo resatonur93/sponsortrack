@@ -204,6 +204,8 @@ const tr: Record<string, string> = {
   "notifications.type.MERGER_TUPE_RESTRUCTURING":
     "Birleşme, iş aktarımı veya yeniden yapılandırma",
   "notifications.type.INSOLVENCY_RELATED": "İflasla ilgili",
+  "notifications.type.VISA_EXPIRING_90_DAYS":
+    "Vize süresi doluyor (90 gün, eski)",
   "notifications.type.VISA_EXPIRING_60_DAYS":
     "Vize süresi doluyor (60 gün)",
   "notifications.type.VISA_EXPIRING_30_DAYS":
@@ -716,6 +718,8 @@ const en: Record<string, string> = {
   "notifications.type.MERGER_TUPE_RESTRUCTURING":
     "Merger, TUPE, or restructuring",
   "notifications.type.INSOLVENCY_RELATED": "Insolvency related",
+  "notifications.type.VISA_EXPIRING_90_DAYS":
+    "Visa expiring — 90 days (legacy)",
   "notifications.type.VISA_EXPIRING_60_DAYS":
     "Visa expiring — 60 days",
   "notifications.type.VISA_EXPIRING_30_DAYS":

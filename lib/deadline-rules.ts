@@ -33,6 +33,7 @@ export function getReportDeadlineForEvent(
     case "WORKER_MISSING_DOCUMENTS":
     case "SALARY_DISCREPANCY":
     case "DOCUMENT_EXPIRING":
+    case "VISA_EXPIRING_90_DAYS":
     case "VISA_EXPIRING_60_DAYS":
     case "VISA_EXPIRING_30_DAYS":
     case "VISA_EXPIRING_7_DAYS":

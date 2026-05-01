@@ -5,12 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "prisma migrate deploy && next start",
+    "start": "npm run db:repair:notification-type && prisma migrate deploy && next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:repair:notification-type": "prisma db execute --file prisma/sql/repair-notification-type-enum.sql --schema prisma/schema.prisma",
     "db:push": "npm run db:repair:notification-type && prisma db push",
-    "db:deploy": "prisma migrate deploy",
+    "db:deploy": "npm run db:repair:notification-type && prisma migrate deploy",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio"
