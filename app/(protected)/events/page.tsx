@@ -39,6 +39,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ManualComplianceEventSection } from "@/components/events/ManualComplianceEventSection";
+import { EventQuickEditDialog } from "@/components/events/EventQuickEditDialog";
+import { ClipboardList, Pencil, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const EVENT_TYPES: EventType[] = [
   "NO_SHOW_28_DAYS",
@@ -202,9 +206,7 @@ export default function EventsPage(): JSX.Element {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const [manualWorkerId, setManualWorkerId] = useState("");
-  const [manualType, setManualType] = useState<EventType>("SALARY_REDUCTION");
-  const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [quickEditRow, setQuickEditRow] = useState<EventRow | null>(null);
 
   const [hoSmsEvent, setHoSmsEvent] = useState<EventRow | null>(null);
   const [hoSmsDraft, setHoSmsDraft] = useState<HoSmsDraft | null>(null);
@@ -555,29 +557,19 @@ export default function EventsPage(): JSX.Element {
     }
   }
 
-  async function submitManual(): Promise<void> {
-    if (!manualWorkerId.trim()) {
-      alert(t("events.manualWorkerRequired"));
-      return;
-    }
-    setManualSubmitting(true);
-    const res = await fetch("/api/events", {
-      method: "POST",
+  async function deleteEvent(row: EventRow): Promise<void> {
+    if (!window.confirm(t("events.deleteConfirm"))) return;
+    const res = await fetch(`/api/events/${row.id}`, {
+      method: "DELETE",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workerId: manualWorkerId.trim(),
-        eventType: manualType,
-      }),
     });
-    setManualSubmitting(false);
     if (!res.ok) {
-      const j = (await res.json()) as { error?: string };
-      alert(j.error ?? t("events.manualCreateFallback"));
+      alert(t("events.deleteFailed"));
       return;
     }
-    setManualWorkerId("");
     void load();
+    if (detail?.id === row.id) setDetail(null);
+    setQuickEditRow(null);
   }
 
   if (error) {
@@ -591,15 +583,15 @@ export default function EventsPage(): JSX.Element {
         <p className="text-sm text-slate-600">{t("events.subtitle")}</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("events.filters")}</CardTitle>
+      <Card className="overflow-hidden border-slate-200/90 shadow-md ring-1 ring-slate-100">
+        <CardHeader className="border-b border-slate-100 bg-slate-50/70">
+          <CardTitle className="text-lg text-brand-navy">{t("events.filters")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
-          <div className="space-y-1">
+        <CardContent className="grid gap-5 pt-6 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+          <div className="space-y-2 lg:col-span-3">
             <Label>{t("events.filterStatus")}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="h-11 border-slate-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -612,10 +604,10 @@ export default function EventsPage(): JSX.Element {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2 lg:col-span-4">
             <Label>{t("events.filterEventType")}</Label>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[260px]">
+              <SelectTrigger className="h-11 border-slate-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -628,75 +620,43 @@ export default function EventsPage(): JSX.Element {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2 lg:col-span-2">
             <Label>{t("events.dateFrom")}</Label>
             <Input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-[160px]"
+              className="h-11 border-slate-200"
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2 lg:col-span-2">
             <Label>{t("events.dateTo")}</Label>
             <Input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-[160px]"
+              className="h-11 border-slate-200"
             />
           </div>
-          <Button type="button" onClick={() => void load()} disabled={loading}>
-            {t("common.apply")}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("events.manualTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1 space-y-1">
-            <Label>{t("events.workerId")}</Label>
-            <Input
-              value={manualWorkerId}
-              onChange={(e) => setManualWorkerId(e.target.value)}
-              placeholder={t("events.placeholderCuid")}
-            />
-          </div>
-          <div className="w-full space-y-1 sm:w-64">
-            <Label>{t("events.type")}</Label>
-            <Select
-              value={manualType}
-              onValueChange={(v) => setManualType(v as EventType)}
+          <div className="flex lg:col-span-1">
+            <Button
+              type="button"
+              className="h-11 w-full shrink-0 font-semibold lg:w-auto"
+              onClick={() => void load()}
+              disabled={loading}
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {EVENT_TYPES.map((et) => (
-                  <SelectItem key={et} value={et}>
-                    {eventTypeDisplay(et, t)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {t("common.apply")}
+            </Button>
           </div>
-          <Button
-            type="button"
-            disabled={manualSubmitting}
-            onClick={() => void submitManual()}
-          >
-            {t("events.create")}
-          </Button>
         </CardContent>
       </Card>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <ManualComplianceEventSection onCreated={() => void load()} />
+
+      <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-md ring-1 ring-slate-100">
         <Table>
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur">
+            <TableRow className="border-slate-200 hover:bg-transparent">
               <TableHead>{t("events.colType")}</TableHead>
               <TableHead>{t("events.colWorker")}</TableHead>
               <TableHead>{t("events.colEventDate")}</TableHead>
@@ -709,53 +669,89 @@ export default function EventsPage(): JSX.Element {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-slate-500">
+                <TableCell colSpan={7} className="py-14 text-center text-sm text-slate-500">
                   {t("common.loading")}
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-slate-500">
-                  {t("events.noEvents")}
+                <TableCell colSpan={7} className="p-0">
+                  <div className="flex flex-col items-center px-8 py-16 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-brand-navy">
+                      <ClipboardList className="h-7 w-7 opacity-70" aria-hidden />
+                    </div>
+                    <p className="mt-4 text-base font-semibold text-brand-navy">
+                      {t("events.emptyStateTitle")}
+                    </p>
+                    <p className="mt-2 max-w-md text-sm text-slate-600">
+                      {t("events.emptyStateHint")}
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((r) => (
-                <TableRow key={r.id} id={`event-${r.id}`}>
-                  <TableCell className="max-w-[200px] truncate text-xs font-medium">
-                    {eventTypeDisplay(r.eventType, t)}
+                <TableRow
+                  key={r.id}
+                  id={`event-${r.id}`}
+                  className="border-slate-100 transition-colors hover:bg-slate-50/80"
+                >
+                  <TableCell className="align-top font-medium">
+                    <span className="line-clamp-2 text-sm leading-snug text-slate-900">
+                      {eventTypeDisplay(r.eventType, t)}
+                    </span>
                   </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/workers/${r.worker.id}`}
-                      className="text-brand-navy underline"
-                    >
-                      {r.worker.firstName} {r.worker.lastName}
-                    </Link>
-                    <div className="text-xs text-slate-500">{r.worker.email}</div>
+                  <TableCell className="align-top">
+                    <div className="flex gap-3">
+                      <Link
+                        href={`/workers/${r.worker.id}`}
+                        className="flex shrink-0 items-center justify-center rounded-full bg-brand-navy/10 h-10 w-10 text-xs font-bold text-brand-navy ring-2 ring-brand-navy/15 hover:bg-brand-navy/20"
+                      >
+                        {workerInitials(r.worker)}
+                      </Link>
+                      <div className="min-w-0">
+                        <Link
+                          href={`/workers/${r.worker.id}`}
+                          className="font-semibold text-brand-navy hover:underline"
+                        >
+                          {r.worker.firstName} {r.worker.lastName}
+                        </Link>
+                        <div className="truncate text-xs text-slate-600">{r.worker.email}</div>
+                        <div className="font-mono text-[10px] text-slate-500">
+                          {r.worker.cosReference}
+                        </div>
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-sm">
+                  <TableCell className="whitespace-nowrap align-top text-sm tabular-nums text-slate-800">
                     {formatEventDate(r.eventDate, localeTag)}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-sm">
+                  <TableCell className="whitespace-nowrap align-top text-sm tabular-nums text-slate-700">
                     {formatEventDate(r.reportDeadline, localeTag)}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(r.status)}>
+                  <TableCell className="align-top">
+                    <Badge
+                      variant={statusVariant(r.status)}
+                      className={cn("text-[11px] font-bold", statusBadgeClass(r.status))}
+                    >
                       {eventStatusDisplay(r.status, t)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[140px]">
-                    <Badge variant="outline" className="whitespace-normal text-[10px]">
+                  <TableCell className="max-w-[150px] align-top">
+                    <Badge
+                      variant="outline"
+                      className="border-slate-200 bg-white text-[10px] font-semibold uppercase leading-snug text-slate-700"
+                    >
                       {workflowStateDisplay(r.workflowState, t)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-wrap justify-end gap-1">
+                  <TableCell className="text-right align-top">
+                    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                       <Button
                         type="button"
                         size="sm"
-                        variant="outline"
+                        variant="default"
+                        className="gap-1.5 font-semibold"
                         onClick={() => setDetail(r)}
                       >
                         {t("events.details")}
@@ -763,7 +759,28 @@ export default function EventsPage(): JSX.Element {
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
+                        className="gap-1.5 border-slate-200"
+                        onClick={() => setQuickEditRow(r)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        {t("events.actionEdit")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50"
+                        onClick={() => void deleteEvent(r)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        {t("events.actionDelete")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
                         variant="secondary"
+                        className="text-xs font-medium"
                         onClick={() => openHoSmsModal(r)}
                       >
                         {t("events.generateSms")}
@@ -772,6 +789,7 @@ export default function EventsPage(): JSX.Element {
                         type="button"
                         size="sm"
                         variant="outline"
+                        className="text-xs"
                         disabled={
                           r.status === "CANCELLED" ||
                           r.status === "REPORTED" ||
@@ -790,6 +808,8 @@ export default function EventsPage(): JSX.Element {
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
+                        className="text-xs"
                         disabled={
                           r.status === "CANCELLED" ||
                           r.status === "REPORTED" ||
@@ -810,6 +830,28 @@ export default function EventsPage(): JSX.Element {
           </TableBody>
         </Table>
       </div>
+
+      <EventQuickEditDialog
+        open={quickEditRow !== null}
+        onOpenChange={(o) => {
+          if (!o) setQuickEditRow(null);
+        }}
+        target={
+          quickEditRow
+            ? { id: quickEditRow.id, status: quickEditRow.status, notes: quickEditRow.notes }
+            : null
+        }
+        dialogTitle={t("events.quickEditTitle")}
+        statusFieldLabel={t("events.fieldStatus")}
+        labelNotes={t("events.labelNotes")}
+        placeholderNotes={t("events.workflowNotesPlaceholder")}
+        saveLabel={t("events.saveChanges")}
+        cancelLabel={t("common.cancel")}
+        savingLabel={t("events.saving")}
+        saveFailedLabel={t("events.reportUpdateFailed")}
+        statusLabel={(s) => eventStatusDisplay(s, t)}
+        onSaved={() => void load()}
+      />
 
       {detail ? (
         <Card className="border-brand-navy/30">
@@ -1140,6 +1182,29 @@ export default function EventsPage(): JSX.Element {
       </Dialog>
     </div>
   );
+}
+
+function workerInitials(worker: EventRow["worker"]): string {
+  return `${worker.firstName?.[0] ?? ""}${worker.lastName?.[0] ?? ""}`.toUpperCase() || "?";
+}
+
+function statusBadgeClass(s: EventStatus): string {
+  switch (s) {
+    case "PENDING":
+      return "shadow-sm ring-2 ring-amber-400/55";
+    case "UNDER_REVIEW":
+      return "shadow-sm ring-2 ring-sky-400/50";
+    case "APPROVED":
+      return "shadow-sm ring-2 ring-brand-navy/25";
+    case "REPORTED":
+      return "shadow-sm ring-2 ring-emerald-400/50";
+    case "OVERDUE":
+      return "shadow-sm ring-2 ring-red-500/60";
+    case "CANCELLED":
+      return "opacity-75";
+    default:
+      return "";
+  }
 }
 
 function statusVariant(

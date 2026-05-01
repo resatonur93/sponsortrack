@@ -110,6 +110,7 @@ export async function getWorkersList(
   const rows = await db.worker.findMany({
     where,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    ...(filters.search?.trim() ? { take: 100 } : {}),
     select: {
       id: true,
       firstName: true,

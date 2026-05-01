@@ -121,3 +121,36 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: Params
+): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    return await withTenant(user, req, async () => {
+      const existing = await prisma.complianceEvent.findFirst({
+        where: { id: params.id, tenantId: user.tenantId },
+      });
+      if (!existing) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
+      await prisma.complianceEvent.delete({
+        where: { id: params.id },
+      });
+
+      return NextResponse.json({ ok: true });
+    });
+  } catch (e) {
+    logger.error("DELETE /api/events/[id] failed", e);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
