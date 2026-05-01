@@ -39,7 +39,7 @@ export async function processMissingDocumentNotifications(
       (m) => m.reason === "missing" || m.reason === "expired"
     );
     for (const m of missing) {
-      const key = `${w.id}-MISSING_DOC-${m.documentType}-${week}`;
+      const key = `${w.id}-MISSING_DOC-${m.slotId}-${week}`;
       try {
         const payload = buildComplianceEventData({
           workerId: w.id,
@@ -52,6 +52,7 @@ export async function processMissingDocumentNotifications(
           workerName: `${w.firstName} ${w.lastName}`,
           cosReference: w.cosReference,
           metadata: {
+            slotId: m.slotId,
             documentType: m.documentType,
             urgency: m.urgency,
             reason: m.reason,

@@ -8,8 +8,13 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 type ChecklistItem = {
+  slotId: string;
   documentType: DocumentType;
+  documentTypesAccepted: DocumentType[];
   label: string;
+  description: string;
+  isMandatory?: boolean;
+  deadlineDays?: number | null;
   status: "ok" | "missing" | "expired" | "expiring_soon";
   urgency: "HIGH" | "MEDIUM" | "LOW" | null;
   latest: {
@@ -124,7 +129,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
           {items.map((row) => (
             <li
-              key={row.documentType}
+              key={row.slotId}
               className={cn(
                 "flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between",
                 row.status === "missing" && "bg-red-50/50",
@@ -137,7 +142,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-slate-900">{row.label}</span>
                   <Badge variant="outline" className="font-mono text-[10px]">
-                    {row.documentType}
+                    {row.documentTypesAccepted.join(" · ")}
                   </Badge>
                   <Badge variant={statusBadgeVariant(row.status)}>
                     {statusLabel[row.status]}
@@ -158,6 +163,9 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
                   <p className="mt-1 text-xs text-red-800">
                     {t("docChecklist.notUploadedYet")}
                   </p>
+                ) : null}
+                {row.description ? (
+                  <p className="mt-1 text-xs text-slate-500">{row.description}</p>
                 ) : null}
               </div>
             </li>

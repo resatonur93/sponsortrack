@@ -121,11 +121,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         labels: string[];
       }[] = [];
       for (const w of workersForDocs) {
-        const miss = evaluateMissingDocuments(w, w.documents, now).filter(
-          (m) => m.reason === "missing" || m.reason === "expired"
-        );
-        missingDocumentIssues += miss.length;
-        const highs = miss.filter((m) => m.urgency === "HIGH");
+        const missAll = evaluateMissingDocuments(w, w.documents, now);
+        missingDocumentIssues += missAll.length;
+        const highs = missAll.filter((m) => m.urgency === "HIGH");
         if (highs.length > 0) {
           highPriorityMissing.push({
             workerId: w.id,
@@ -133,14 +131,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             labels: highs.map((h) => h.label),
           });
         }
-        if (miss.length > 0) {
+        if (missAll.length > 0) {
           missingDocumentsTable.push({
             workerId: w.id,
             name: `${w.firstName} ${w.lastName}`,
-            highCount: miss.filter((m) => m.urgency === "HIGH").length,
-            mediumCount: miss.filter((m) => m.urgency === "MEDIUM").length,
-            lowCount: miss.filter((m) => m.urgency === "LOW").length,
-            labels: miss.map((m) => m.label),
+            highCount: missAll.filter((m) => m.urgency === "HIGH").length,
+            mediumCount: missAll.filter((m) => m.urgency === "MEDIUM").length,
+            lowCount: missAll.filter((m) => m.urgency === "LOW").length,
+            labels: missAll.map((m) => m.label),
           });
         }
       }

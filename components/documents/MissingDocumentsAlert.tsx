@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 export type MissingDoc = {
+  slotId?: string;
   documentType: string;
   label: string;
   urgency: "HIGH" | "MEDIUM" | "LOW";
@@ -16,12 +17,27 @@ export function MissingDocumentsAlert(props: {
 }): JSX.Element | null {
   if (props.items.length === 0) return null;
 
+  const critical = props.items.some((m) => m.urgency === "HIGH");
+
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
-      <p className="font-semibold text-red-900">Eksik / riskli zorunlu belgeler</p>
+    <div
+      className={`rounded-lg border p-4 text-sm ${
+        critical
+          ? "border-red-200 bg-red-50"
+          : "border-amber-200 bg-amber-50"
+      }`}
+    >
+      <p
+        className={`font-semibold ${critical ? "text-red-900" : "text-amber-950"}`}
+      >
+        Eksik / riskli zorunlu belgeler
+      </p>
       <ul className="mt-2 space-y-1">
         {props.items.map((m) => (
-          <li key={`${m.documentType}-${m.reason}`} className="flex flex-wrap items-center gap-2">
+          <li
+            key={`${m.slotId ?? m.documentType}-${m.reason}`}
+            className="flex flex-wrap items-center gap-2"
+          >
             <Badge
               variant={
                 m.urgency === "HIGH"

@@ -16,6 +16,9 @@ const TYPE_TR: Record<DocumentType, string> = {
   PROOF_OF_ADDRESS: "Adres kanıtı",
   NMC_REGISTRATION: "NMC kaydı",
   VESSEL_ASSIGNMENT_LETTER: "Görevlendirme mektubu (gemi)",
+  PAYSLIP_PAYMENT_PROOF: "Bordro / ödeme kanıtı",
+  CONTACT_DETAILS_RECORD: "İletişim bilgileri kaydı",
+  RECRUITMENT_FILE: "İşe alım dosyası (CV / ilan / mülakat)",
 };
 
 const TYPE_EN: Record<DocumentType, string> = {
@@ -34,6 +37,9 @@ const TYPE_EN: Record<DocumentType, string> = {
   PROOF_OF_ADDRESS: "Proof of address",
   NMC_REGISTRATION: "NMC registration",
   VESSEL_ASSIGNMENT_LETTER: "Vessel assignment letter",
+  PAYSLIP_PAYMENT_PROOF: "Payslip / payment evidence",
+  CONTACT_DETAILS_RECORD: "Contact details record",
+  RECRUITMENT_FILE: "Recruitment file (CV / advert / interview)",
 };
 
 const VAULT_TR: Record<DocumentVaultFolder, string> = {
