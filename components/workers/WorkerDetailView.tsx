@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DocumentTimeline } from "@/components/documents/DocumentTimeline";
+import { WorkerDocumentsVaultBanner } from "@/components/workers/WorkerDocumentsVaultBanner";
 import { WorkerDocumentChecklist } from "@/components/workers/WorkerDocumentChecklist";
 import { RoleComplianceCard } from "@/components/workers/RoleComplianceCard";
 import { SalaryVerificationCard } from "@/components/workers/SalaryVerificationCard";
@@ -645,22 +646,10 @@ export function WorkerDetailView(): JSX.Element {
           ) : null}
         </TabsContent>
 
-        <TabsContent value="documents" className="space-y-6">
-          <WorkerDocumentChecklist workerId={id} refreshKey={0} />
+        <TabsContent value="documents" className="space-y-8">
+          <WorkerDocumentsVaultBanner workerId={id} />
 
-          <Card className="border-brand-navy/15 bg-slate-50/60">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-              <div>
-                <p className="text-sm font-medium text-slate-800">
-                  {t("workerDetail.docsVaultTitle")}
-                </p>
-                <p className="text-xs text-slate-600">{t("workerDetail.docsVaultHint")}</p>
-              </div>
-              <Button size="sm" asChild>
-                <Link href={`/workers/${id}/documents`}>{t("workerDetail.docsVaultBtn")}</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <WorkerDocumentChecklist workerId={id} refreshKey={0} />
 
           <DocumentTimeline workerId={id} />
         </TabsContent>
