@@ -1,0 +1,4 @@
+# Default Nixpacks sets NPM_CONFIG_PRODUCTION=false; some hosts override it and skip
+# devDependencies, which breaks `next build` (TypeScript, eslint) and `postinstall` if Prisma is dev-only.
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
