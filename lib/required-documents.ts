@@ -1,6 +1,19 @@
 import type { Document, DocumentType, Worker } from "@prisma/client";
-import type { PrismaClient } from "@prisma/client";
 import { addDays, startOfDay } from "@/lib/dates";
+
+/** Shape needed for compliance fetch — works with base PrismaClient and tenant `$extends` client */
+type WorkerWithDocuments = Worker & {
+  documents: Document[];
+};
+
+export type ComplianceChecklistDb = {
+  worker: {
+    findUnique(args: {
+      where: { id: string };
+      include: { documents: { where: { isDeleted: boolean } } };
+    }): Promise<WorkerWithDocuments | null>;
+  };
+};
 
 /** UK sponsor appendix-style route tagging */
 export type VisaComplianceRoute =
@@ -351,8 +364,11 @@ export function evaluateMissingDocuments(
   documents: Document[],
   now: Date = new Date()
 ): MissingDocumentItem[] {
+  type NonOk = DocumentChecklistItem & {
+    status: Exclude<DocumentChecklistItem["status"], "ok">;
+  };
   return buildDocumentChecklist(worker, documents, now)
-    .filter((i) => i.status !== "ok")
+    .filter((i): i is NonOk => i.status !== "ok")
     .map((i) => ({
       slotId: i.slotId,
       documentType: i.documentType,
@@ -376,7 +392,7 @@ export type ComplianceChecklistBundle = {
  * Worker + document fetch with tenant-scoped Prisma client; returns structured Appendix D checklist.
  */
 export async function getComplianceChecklist(
-  db: Pick<PrismaClient, "worker">,
+  db: ComplianceChecklistDb,
   workerId: string,
   now: Date = new Date()
 ): Promise<ComplianceChecklistBundle | null> {
