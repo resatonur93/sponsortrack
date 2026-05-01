@@ -12,6 +12,7 @@ import { processEscalationNotifications } from "@/lib/compliance-reminders";
 import { processMissingDocumentNotifications } from "@/lib/missing-documents-cron";
 import { processExpiredDocumentEmails } from "@/lib/document-expiry-email-notify";
 import { closeStaleDocumentExpiringNotifications } from "@/lib/document-expiring-notification-closure";
+import { processVisaAndSponsorshipExpiries } from "@/lib/notification-expiry-email";
 
 /**
  * Runs daily maintenance: overdue notifications, visa/document upserts, kademeli hatırlatmalar.
@@ -26,6 +27,8 @@ export async function runDailyCron(): Promise<{
   missingDocEvents: number;
   documentExpiryEmailsSent: number;
   documentExpiryEmailSkippedNoSmtp: boolean;
+  notificationExpiryEmailsSent: number;
+  notificationExpiryEmailSkippedNoSmtp: boolean;
   documentExpiringNotificationsClosed: number;
 }> {
   const now = new Date();
@@ -248,6 +251,11 @@ export async function runDailyCron(): Promise<{
   const { sent: documentExpiryEmailsSent, skippedNoSmtp: documentExpiryEmailSkippedNoSmtp } =
     await processExpiredDocumentEmails(prismaBase, now);
 
+  const {
+    sent: notificationExpiryEmailsSent,
+    skippedNoSmtp: notificationExpiryEmailSkippedNoSmtp,
+  } = await processVisaAndSponsorshipExpiries(prismaBase, now);
+
   const documentExpiringNotificationsClosed =
     await closeStaleDocumentExpiringNotifications(prismaBase, { now });
 
@@ -261,6 +269,8 @@ export async function runDailyCron(): Promise<{
     missingDocEvents,
     documentExpiryEmailsSent,
     documentExpiryEmailSkippedNoSmtp,
+    notificationExpiryEmailsSent,
+    notificationExpiryEmailSkippedNoSmtp,
     documentExpiringNotificationsClosed,
   };
 }

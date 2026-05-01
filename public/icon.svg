@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
-  <!-- Background Shield -->
-  <path d="M128 24C128 24 64 48 48 80C32 112 40 168 128 232C216 168 224 112 208 80C192 48 128 24 128 24Z" fill="#4338CA" />
-  <!-- Checkmark / Track Path -->
-  <path d="M84 136L116 168L172 104" stroke="#34D399" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
-</svg>

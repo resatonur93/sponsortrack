@@ -32,6 +32,7 @@ model Tenant {
   policies        Policy[]
   acknowledgements Acknowledgement[]
   documentExpiryEmailLogs DocumentExpiryEmailLog[]
+  notificationEmailLogs NotificationEmailLog[]
 }
 
 model User {
@@ -625,6 +626,32 @@ model DocumentExpiryEmailLog {
 
   @@unique([documentId, expiryDay, kind])
   @@index([tenantId])
+}
+
+/// Grouping key for visa / RTW recheck / sponsorship / CoS anchors (distinct from Postgres enum name prefixes).
+enum NotificationComplianceAnchorDomain {
+  VISA_EXPIRY
+  RIGHT_TO_WORK_RECHECK
+  SPONSORSHIP_END
+  COS_EXPIRY
+}
+
+/// Idempotency after a TR+EN SMTP send for sponsor compliance date reminders (cf. DocumentExpiryEmailLog).
+model NotificationEmailLog {
+  id                  String                             @id @default(cuid())
+  tenantId            String
+  tenant              Tenant                             @relation(fields: [tenantId], references: [id])
+  workerId            String
+  /// When the send was driven by `NotificationEvent` (due-day); null for anchor-only cron sends.
+  notificationEventId String?
+  anchorDomain        NotificationComplianceAnchorDomain
+  anchorDay           String
+  reminderKind        DocumentExpiryReminderKind
+  sentAt              DateTime                           @default(now())
+
+  @@unique([workerId, anchorDomain, anchorDay, reminderKind])
+  @@index([tenantId])
+  @@index([notificationEventId])
 }
 
 model DocumentVault {

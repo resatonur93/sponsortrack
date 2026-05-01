@@ -2,6 +2,9 @@ import type { PrismaClient } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { getEscalationLevel } from "@/lib/escalation";
 
+// Visa / RTW / sponsorship reminder e-postaları günlük `runDailyCron` içinde
+// (`processVisaAndSponsorshipExpiries`) işlenir; bu modül escalation (LEVEL_3 konsol) için.
+
 type Meta = { level3EmailPrepared?: boolean };
 
 /**
