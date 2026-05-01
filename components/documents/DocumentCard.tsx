@@ -112,7 +112,9 @@ export function DocumentCard(props: {
             </Button>
           ) : null}
           <Button type="button" size="sm" variant="secondary" asChild>
-            <Link href={`/workers/${props.workerId}/documents`}>Vault'ta sürüm yükle</Link>
+            <Link href={`/workers/${props.workerId}/documents`}>
+              {"Vault'ta sürüm yükle"}
+            </Link>
           </Button>
         </div>
       </CardContent>
