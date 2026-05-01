@@ -131,7 +131,7 @@ function ProfileCtaButton({
       )}
       asChild
     >
-      <Link href={href} aria-label={tooltip} title={tooltip} className={cn(layout === "card" && "rounded-md")}>
+      <Link href={href} aria-label={tooltip} className={cn(layout === "card" && "rounded-md")}>
         <Eye className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
         <span>{label}</span>
         <ArrowRight className="h-4 w-4 shrink-0 opacity-90" aria-hidden />

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type EnrichedRecord = SalaryRecord & { expectedForPeriod: number };
 
@@ -30,6 +31,8 @@ export function SalaryVerificationCard({
 }: {
   workerId: string;
 }): JSX.Element {
+  const { t, locale } = useTranslation();
+  const dateTag = locale === "tr" ? "tr-TR" : "en-GB";
   const [data, setData] = useState<ApiGet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +51,7 @@ export function SalaryVerificationCard({
         { credentials: "include" }
       );
       if (!res.ok) {
-        setError("Could not load salary records");
+        setError(t("workerDetail.salary.loadError"));
         return;
       }
       const json = (await res.json()) as { data: ApiGet };
@@ -56,7 +59,7 @@ export function SalaryVerificationCard({
     } finally {
       setLoading(false);
     }
-  }, [workerId]);
+  }, [workerId, t]);
 
   useEffect(() => {
     void load();
@@ -65,7 +68,7 @@ export function SalaryVerificationCard({
   const chartRows =
     data?.records.map((r, idx) => ({
       key: `${r.id}-${idx}`,
-      label: new Date(r.periodEnd).toLocaleDateString("en-GB", {
+      label: new Date(r.periodEnd).toLocaleDateString(dateTag, {
         month: "short",
         year: "2-digit",
       }),
@@ -80,7 +83,7 @@ export function SalaryVerificationCard({
     const c = parseInt(contractedSalary.replace(/\D/g, ""), 10);
     const a = parseInt(actualPaid.replace(/\D/g, ""), 10);
     if (!periodStart || !periodEnd || Number.isNaN(c) || Number.isNaN(a)) {
-      setError("Fill period and numeric salaries");
+      setError(t("workerDetail.salary.fillError"));
       return;
     }
     setSaving(true);
@@ -137,35 +140,37 @@ export function SalaryVerificationCard({
 
   if (loading && !data) {
     return (
-      <Card className="border-slate-200">
-        <CardContent className="py-6 text-sm text-slate-600">
-          Loading salary verification…
+      <Card className="border-slate-200/90 shadow-sm">
+        <CardContent className="py-8 text-sm text-slate-600">
+          {t("workerDetail.salary.loading")}
         </CardContent>
       </Card>
     );
   }
 
+  const cosAmountFormatted =
+    data?.cosAnnualSalaryGbp !== undefined && data.cosAnnualSalaryGbp !== null
+      ? `£${data.cosAnnualSalaryGbp.toLocaleString(dateTag)}`
+      : "—";
+
   return (
-    <Card className="border-slate-200">
-      <CardHeader className="space-y-1 pb-2">
-        <CardTitle className="text-base">Salary verification</CardTitle>
-        <p className="text-xs text-slate-600">
-          CoS annual (worker record):{" "}
-          <span className="font-semibold text-slate-800">
-            £{data?.cosAnnualSalaryGbp?.toLocaleString("en-GB") ?? "—"}
-          </span>{" "}
-          · Compares pro-rated expectation per period to actual paid (tolerance
-          £100).
+    <Card className="border-slate-200/90 shadow-md">
+      <CardHeader className="space-y-2 border-b border-slate-100 bg-slate-50/50 pb-4">
+        <CardTitle className="text-lg font-semibold text-brand-navy">
+          {t("workerDetail.salary.title")}
+        </CardTitle>
+        <p className="text-xs leading-relaxed text-slate-600">
+          {t("workerDetail.salary.subtitle").replace("{amount}", cosAmountFormatted)}
         </p>
         {error ? (
           <p className="text-sm text-red-700">{error}</p>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-8 pt-6">
         {chartRows.length > 0 ? (
-          <div className="h-64 w-full rounded-lg border border-brand-navy/12 bg-brand-surface/70 p-2">
-            <p className="mb-2 text-xs font-medium text-slate-600">
-              Last 12 months — pro-rated expected vs actual paid
+          <div className="h-64 w-full rounded-xl border border-brand-navy/12 bg-brand-surface/80 p-3 shadow-inner">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("workerDetail.salary.chartTitle")}
             </p>
             <ResponsiveContainer width="100%" height="85%">
               <BarChart data={chartRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -197,16 +202,15 @@ export function SalaryVerificationCard({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
-            No salary periods in the last 12 months. Add a record below or
-            upload CSV.
+          <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-4 text-sm text-slate-600">
+            {t("workerDetail.salary.noData")}
           </p>
         )}
 
         {anomalies.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase text-slate-500">
-              Anomalies (this worker)
+          <div className="space-y-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              {t("workerDetail.salary.anomaliesTitle")}
             </p>
             <ul className="space-y-2">
               {anomalies.map((r) => (
@@ -216,13 +220,14 @@ export function SalaryVerificationCard({
                 >
                   <div>
                     <Badge variant="danger" className="mb-1">
-                      Underpayment / mismatch
+                      {t("workerDetail.salary.anomalyBadge")}
                     </Badge>
                     <p className="text-slate-800">
-                      {new Date(r.periodStart).toLocaleDateString("en-GB")} –{" "}
-                      {new Date(r.periodEnd).toLocaleDateString("en-GB")}: paid
-                      £{r.actualPaid.toLocaleString("en-GB")}, expected ~£
-                      {r.expectedForPeriod.toLocaleString("en-GB")}
+                      {new Date(r.periodStart).toLocaleDateString(dateTag)} –{" "}
+                      {new Date(r.periodEnd).toLocaleDateString(dateTag)}
+                      {": "}
+                      £{r.actualPaid.toLocaleString(dateTag)}, ~£
+                      {r.expectedForPeriod.toLocaleString(dateTag)}
                     </p>
                     {r.discrepancyReason ? (
                       <p className="mt-1 text-xs text-red-900">
@@ -236,14 +241,17 @@ export function SalaryVerificationCard({
           </div>
         ) : null}
 
-        <div className="grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-2">
-          <form className="space-y-3" onSubmit={(e) => void submitManual(e)}>
-            <p className="text-xs font-semibold uppercase text-slate-500">
-              Manual entry
+        <div className="grid gap-6 border-t border-slate-100 pt-6 md:grid-cols-2">
+          <form
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            onSubmit={(e) => void submitManual(e)}
+          >
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              {t("workerDetail.salary.manualEntry")}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs">Period start</Label>
+                <Label className="text-xs">{t("workerDetail.salary.periodStart")}</Label>
                 <Input
                   type="date"
                   value={periodStart}
@@ -252,7 +260,7 @@ export function SalaryVerificationCard({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Period end</Label>
+                <Label className="text-xs">{t("workerDetail.salary.periodEnd")}</Label>
                 <Input
                   type="date"
                   value={periodEnd}
@@ -263,7 +271,7 @@ export function SalaryVerificationCard({
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs">CoS annual (£)</Label>
+                <Label className="text-xs">{t("workerDetail.salary.contractedAnnual")}</Label>
                 <Input
                   inputMode="numeric"
                   value={contractedSalary}
@@ -273,7 +281,7 @@ export function SalaryVerificationCard({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Actual paid (£)</Label>
+                <Label className="text-xs">{t("workerDetail.salary.actualPaid")}</Label>
                 <Input
                   inputMode="numeric"
                   value={actualPaid}
@@ -284,18 +292,16 @@ export function SalaryVerificationCard({
               </div>
             </div>
             <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Saving…" : "Add record"}
+              {saving ? t("workerDetail.saving") : t("workerDetail.salary.addRecord")}
             </Button>
           </form>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase text-slate-500">
-              CSV upload
+          <div className="space-y-3 rounded-xl border border-dashed border-brand-navy/20 bg-brand-surface/50 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-brand-navy">
+              {t("workerDetail.salary.csvUpload")}
             </p>
-            <p className="text-xs text-slate-600">
-              Columns: periodStart, periodEnd, contractedSalary, actualPaid
-              [, currency, hoursWorked, overtime, evidenceUrl]. Header row
-              optional.
+            <p className="text-xs leading-relaxed text-slate-600">
+              {t("workerDetail.salary.csvHint")}
             </p>
             <Input
               type="file"

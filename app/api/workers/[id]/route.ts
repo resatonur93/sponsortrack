@@ -58,6 +58,9 @@ export async function GET(
               email: true,
             },
           },
+          roleCompliance: {
+            select: { lastReviewed: true, reviewedBy: true },
+          },
           documents: { where: { isDeleted: false }, orderBy: { uploadDate: "desc" } },
           notifications: { orderBy: { dueDate: "desc" }, take: 150 },
           changeLogs: { orderBy: { createdAt: "desc" }, take: 100 },
