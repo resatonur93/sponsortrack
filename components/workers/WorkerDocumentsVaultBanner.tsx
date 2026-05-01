@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FolderOpen } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
 
 export function WorkerDocumentsVaultBanner({
   workerId,
@@ -15,49 +15,54 @@ export function WorkerDocumentsVaultBanner({
   const { t } = useTranslation();
   const href = `/workers/${workerId}/documents`;
   const tooltip = t("workerDetail.docsVaultTooltip");
+  const ctaAria = t("workerDetail.docsVaultCtaAria");
 
   return (
     <Card
-      className="overflow-hidden border-2 border-brand-navy/25 bg-gradient-to-br from-brand-navy/[0.12] via-white to-brand-surface shadow-lg shadow-brand-navy/10"
+      className={cn(
+        "overflow-hidden border border-slate-200/95 bg-white shadow-sm",
+        "ring-1 ring-slate-900/[0.04]"
+      )}
       aria-labelledby={`vault-banner-title-${workerId}`}
     >
-      <CardContent className="p-6 sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
-          <div className="max-w-xl space-y-3">
-            <Badge
-              variant="default"
-              className="w-fit border border-white/40 bg-brand-navy text-[11px] tracking-wide shadow-sm"
-            >
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+          <div className="min-w-0 max-w-xl space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               {t("workerDetail.docsVaultEyebrow")}
-            </Badge>
+            </p>
             <div>
               <h3
                 id={`vault-banner-title-${workerId}`}
-                className="text-xl font-semibold tracking-tight text-brand-navy sm:text-2xl"
+                className="text-lg font-semibold tracking-tight text-brand-navy sm:text-xl"
               >
                 {t("workerDetail.docsVaultTitle")}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 {t("workerDetail.docsVaultHint")}
               </p>
             </div>
           </div>
-          <Button
-            asChild
-            size="lg"
-            variant="default"
-            className="h-14 w-full shrink-0 gap-3 px-8 text-base font-semibold shadow-md ring-2 ring-brand-gold/30 ring-offset-2 ring-offset-white hover:ring-brand-gold/50 lg:h-16 lg:min-w-[17rem]"
-          >
-            <Link
-              href={href}
-              title={tooltip}
-              aria-label={t("workerDetail.docsVaultCtaAria")}
+
+          <div className="shrink-0 lg:pt-1">
+            <Button
+              asChild
+              size="default"
+              variant="default"
+              className={cn(
+                "h-11 min-h-[2.75rem] w-full justify-center px-7 text-sm font-semibold shadow-sm",
+                "sm:w-auto sm:justify-center lg:min-w-[15.5rem]",
+                "transition-all duration-200 hover:bg-brand-navy hover:shadow-md hover:brightness-[1.02]",
+                "active:scale-[0.99]",
+                "focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
+              )}
             >
-              <FolderOpen className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
-              <span>{t("workerDetail.docsVaultBtn")}</span>
-              <ArrowRight className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
-            </Link>
-          </Button>
+              <Link href={href} title={tooltip} aria-label={ctaAria}>
+                <FolderOpen className="mr-2 h-4 w-4 shrink-0 opacity-95" aria-hidden />
+                <span>{t("workerDetail.docsVaultBtn")}</span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -84,12 +84,13 @@ export function detectAnomalies(input: {
     }
   }
 
-  const visaTypeChanges = input.changeLogs.filter(
-    (c) =>
-      c.changeCategory === "OTHER" &&
-      /visa/i.test(c.summary) &&
-      c.createdAt >= sixMonthsAgo
-  );
+  const visaTypeChanges = input.changeLogs.filter((c) => {
+    if (c.createdAt < sixMonthsAgo) return false;
+    if (c.changeCategory === "VISA") return true;
+    return (
+      c.changeCategory === "OTHER" && /visa/i.test(c.summary)
+    );
+  });
   if (visaTypeChanges.length >= 3) {
     findings.push({
       code: "RAPID_VISA_RELATED_CHANGES",

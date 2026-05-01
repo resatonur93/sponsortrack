@@ -780,7 +780,10 @@ model WorkerChangeLog {
 
 enum ChangeCategory {
   ADDRESS
+  VISA
+  CONTRACT
   PHONE_EMAIL
+  CONTACT
   SALARY
   WORK_LOCATION
   ROLE_TITLE
