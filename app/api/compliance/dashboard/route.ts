@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { buildLegacyDashboardPayload } from "@/lib/dashboard-response";
+import { buildFullDashboard } from "@/lib/dashboard-response";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     return await withTenant(user, req, async () => {
-      const data = await buildLegacyDashboardPayload(prisma, new Date());
+      const data = await buildFullDashboard(prisma, new Date());
       return NextResponse.json(
         { data },
         {
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       );
     });
   } catch (error) {
-    logger.error("GET /api/dashboard failed", error);
+    logger.error("GET /api/compliance/dashboard failed", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

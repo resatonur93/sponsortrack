@@ -5,7 +5,7 @@ import { ComplianceTrafficLight } from "@/components/dashboard/ComplianceTraffic
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RecentEvents } from "@/components/dashboard/RecentEvents";
-import type { RiskResult } from "@/lib/risk-score";
+import type { FullDashboardData } from "@/lib/dashboard-response";
 import type {
   AlertLevel,
   AlertType,
@@ -34,7 +34,7 @@ import {
 
 const URGENT_POPUP_SESSION_KEY = "st-dashboard-urgent-v1";
 
-function dashboardHasUrgentSignals(d: DashboardPayload): boolean {
+function dashboardHasUrgentSignals(d: FullDashboardData): boolean {
   if (d.stats.overdueNotifications > 0) return true;
   if (d.highPriorityMissing?.length) return true;
   return d.recentAlerts.some(
@@ -42,58 +42,11 @@ function dashboardHasUrgentSignals(d: DashboardPayload): boolean {
   );
 }
 
-type DashboardPayload = {
-  stats: {
-    totalWorkers: number;
-    activeSponsorships: number;
-    pendingNotifications: number;
-    overdueNotifications: number;
-    missingDocumentIssues: number;
-  };
-  highPriorityMissing: {
-    workerId: string;
-    name: string;
-    labels: string[];
-  }[];
-  missingDocumentsTable: {
-    workerId: string;
-    name: string;
-    highCount: number;
-    mediumCount: number;
-    lowCount: number;
-    labels: string[];
-  }[];
-  risk: RiskResult;
-  recentEvents: {
-    id: string;
-    eventType: NotificationType;
-    status: string;
-    dueDate: string;
-    createdAt?: string;
-    worker: { firstName: string; lastName: string; id: string };
-  }[];
-  recentAlerts: {
-    id: string;
-    level: AlertLevel;
-    alertType: AlertType;
-    message: string;
-    isRead: boolean;
-    worker: { id: string; firstName: string; lastName: string } | null;
-  }[];
-};
-
-type RiskEngineSummary = {
-  byLevel: Record<RiskLevel, number>;
-  workerScores: number;
-  lastCalculatedAt: string | null;
-};
-
 export default function DashboardPage(): JSX.Element {
   const { t, locale } = useTranslation();
-  const [data, setData] = useState<DashboardPayload | null>(null);
+  const [data, setData] = useState<FullDashboardData | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
-  const [riskEngine, setRiskEngine] = useState<RiskEngineSummary | null>(null);
   const [urgentPopupOpen, setUrgentPopupOpen] = useState(false);
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
@@ -101,7 +54,7 @@ export default function DashboardPage(): JSX.Element {
     let cancelled = false;
     void (async () => {
       setLoadFailed(false);
-      const res = await fetch("/api/dashboard", {
+      const res = await fetch("/api/compliance/dashboard", {
         credentials: "include",
         cache: "no-store",
       });
@@ -111,25 +64,13 @@ export default function DashboardPage(): JSX.Element {
         setData(null);
         return;
       }
-      const json = (await res.json()) as { data: DashboardPayload };
+      const json = (await res.json()) as { data: FullDashboardData };
       setData(json.data);
     })();
     return () => {
       cancelled = true;
     };
   }, [retryTick]);
-
-  useEffect(() => {
-    void (async () => {
-      const res = await fetch("/api/risk-scores/summary", {
-        credentials: "include",
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const json = (await res.json()) as { data: RiskEngineSummary };
-      setRiskEngine(json.data);
-    })();
-  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -189,7 +130,7 @@ export default function DashboardPage(): JSX.Element {
             />
           ))}
         </div>
-        <div className="h-40 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card" />
+        <ComplianceTrafficLight traffic={null} />
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="h-48 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card" />
           <div className="h-48 animate-pulse rounded-lg border border-brand-navy/10 bg-white shadow-card" />
@@ -263,7 +204,7 @@ export default function DashboardPage(): JSX.Element {
         <h1 className="text-2xl font-bold text-brand-navy">{t("dashboard.title")}</h1>
         <p className="text-slate-600">{t("dashboard.subtitle")}</p>
       </div>
-      <ComplianceTrafficLight />
+      <ComplianceTrafficLight traffic={data.complianceTraffic} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatsCard title={t("dashboard.totalWorkers")} value={data.stats.totalWorkers} />
         <StatsCard
@@ -284,52 +225,48 @@ export default function DashboardPage(): JSX.Element {
         />
       </div>
 
-      {riskEngine ? (
-        <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold text-brand-navy">
-              {t("dashboard.riskEngine")}
-            </h2>
-            <Link
-              href="/risk-report"
-              className="text-sm font-medium text-brand-navy underline"
-            >
-              {t("dashboard.riskEngineFullRanking")}
-            </Link>
-          </div>
-          {riskEngine.workerScores === 0 ? (
-            <p className="text-sm text-slate-600">
-              {t("dashboard.riskEngineEmptyBefore")}
-              <code className="text-xs">/api/cron/risk-scores</code>
-              {t("dashboard.riskEngineEmptyAfter")}
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(
-                ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]
-              ).map((lvl) => (
-                <div
-                  key={lvl}
-                  className="rounded-md border border-brand-navy/12 bg-brand-surface px-3 py-2"
-                >
-                  <p className="text-xs font-medium text-brand-navy/60">
-                    {t(`risk.${lvl}`)}
-                  </p>
-                  <p className="text-lg font-semibold tabular-nums text-brand-navy">
-                    {riskEngine.byLevel[lvl]}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-          {riskEngine.lastCalculatedAt ? (
-            <p className="mt-2 text-xs text-slate-500">
-              {t("dashboard.lastCalculated")}{" "}
-              {new Date(riskEngine.lastCalculatedAt).toLocaleString(localeTag)}
-            </p>
-          ) : null}
+      <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-brand-navy">
+            {t("dashboard.riskEngine")}
+          </h2>
+          <Link
+            href="/risk-report"
+            className="text-sm font-medium text-brand-navy underline"
+          >
+            {t("dashboard.riskEngineFullRanking")}
+          </Link>
         </div>
-      ) : null}
+        {data.riskEngine.workerScores === 0 ? (
+          <p className="text-sm text-slate-600">
+            {t("dashboard.riskEngineEmptyBefore")}
+            <code className="text-xs">/api/cron/risk-scores</code>
+            {t("dashboard.riskEngineEmptyAfter")}
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]).map((lvl) => (
+              <div
+                key={lvl}
+                className="rounded-md border border-brand-navy/12 bg-brand-surface px-3 py-2"
+              >
+                <p className="text-xs font-medium text-brand-navy/60">
+                  {t(`risk.${lvl}`)}
+                </p>
+                <p className="text-lg font-semibold tabular-nums text-brand-navy">
+                  {data.riskEngine.byLevel[lvl]}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        {data.riskEngine.lastCalculatedAt ? (
+          <p className="mt-2 text-xs text-slate-500">
+            {t("dashboard.lastCalculated")}{" "}
+            {new Date(data.riskEngine.lastCalculatedAt).toLocaleString(localeTag)}
+          </p>
+        ) : null}
+      </div>
 
       {data.highPriorityMissing && data.highPriorityMissing.length > 0 ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { computeComplianceTrafficStatus } from "@/lib/compliance-traffic-status";
+import { getComplianceDashboardSummary } from "@/lib/compliance/dashboard-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     return await withTenant(user, req, async () => {
-      const data = await computeComplianceTrafficStatus(prisma, new Date());
+      const data = await getComplianceDashboardSummary(prisma, new Date());
       return NextResponse.json(
         { data },
         {
