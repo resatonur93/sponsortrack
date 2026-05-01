@@ -1015,6 +1015,7 @@ const en: Record<string, string> = {
   "events.actionDelete": "Delete",
   "events.deleteConfirm": "Permanently delete this event?",
   "events.deleteFailed": "Could not delete.",
+  "events.saving": "Saving…",
   "events.quickEditTitle": "Edit event",
   "events.fieldStatus": "Status",
   "events.saveChanges": "Save changes",
