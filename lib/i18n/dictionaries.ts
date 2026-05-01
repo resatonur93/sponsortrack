@@ -204,12 +204,24 @@ const tr: Record<string, string> = {
   "notifications.type.MERGER_TUPE_RESTRUCTURING":
     "Birleşme, iş aktarımı veya yeniden yapılandırma",
   "notifications.type.INSOLVENCY_RELATED": "İflasla ilgili",
-  "notifications.type.VISA_EXPIRING_90_DAYS":
-    "Vize süresi doluyor (90 gün)",
+  "notifications.type.VISA_EXPIRING_60_DAYS":
+    "Vize süresi doluyor (60 gün)",
   "notifications.type.VISA_EXPIRING_30_DAYS":
     "Vize süresi doluyor (30 gün)",
   "notifications.type.VISA_EXPIRING_7_DAYS":
     "Vize süresi doluyor (7 gün)",
+  "notifications.type.RIGHT_TO_WORK_RECHECK_60_DAYS":
+    "Çalışma hakkı yeniden kontrolü (60 gün)",
+  "notifications.type.RIGHT_TO_WORK_RECHECK_30_DAYS":
+    "Çalışma hakkı yeniden kontrolü (30 gün)",
+  "notifications.type.RIGHT_TO_WORK_RECHECK_7_DAYS":
+    "Çalışma hakkı yeniden kontrolü (7 gün)",
+  "notifications.type.SPONSORSHIP_ENDING_60_DAYS":
+    "Sponsorluk bitişi yaklaşıyor (60 gün)",
+  "notifications.type.SPONSORSHIP_ENDING_30_DAYS":
+    "Sponsorluk bitişi yaklaşıyor (30 gün)",
+  "notifications.type.SPONSORSHIP_ENDING_7_DAYS":
+    "Sponsorluk bitişi yaklaşıyor (7 gün)",
   "notifications.type.DOCUMENT_EXPIRING": "Belge süresi doluyor",
   "notifications.type.WORKER_MISSING_DOCUMENTS":
     "Çalışanda eksik belgeler",
@@ -701,12 +713,24 @@ const en: Record<string, string> = {
   "notifications.type.MERGER_TUPE_RESTRUCTURING":
     "Merger, TUPE, or restructuring",
   "notifications.type.INSOLVENCY_RELATED": "Insolvency related",
-  "notifications.type.VISA_EXPIRING_90_DAYS":
-    "Visa expiring — 90 days",
+  "notifications.type.VISA_EXPIRING_60_DAYS":
+    "Visa expiring — 60 days",
   "notifications.type.VISA_EXPIRING_30_DAYS":
     "Visa expiring — 30 days",
   "notifications.type.VISA_EXPIRING_7_DAYS":
     "Visa expiring — 7 days",
+  "notifications.type.RIGHT_TO_WORK_RECHECK_60_DAYS":
+    "Right to Work re-check — 60 days",
+  "notifications.type.RIGHT_TO_WORK_RECHECK_30_DAYS":
+    "Right to Work re-check — 30 days",
+  "notifications.type.RIGHT_TO_WORK_RECHECK_7_DAYS":
+    "Right to Work re-check — 7 days",
+  "notifications.type.SPONSORSHIP_ENDING_60_DAYS":
+    "Sponsorship ending — 60 days",
+  "notifications.type.SPONSORSHIP_ENDING_30_DAYS":
+    "Sponsorship ending — 30 days",
+  "notifications.type.SPONSORSHIP_ENDING_7_DAYS":
+    "Sponsorship ending — 7 days",
   "notifications.type.DOCUMENT_EXPIRING":
     "Document expiring",
   "notifications.type.WORKER_MISSING_DOCUMENTS":

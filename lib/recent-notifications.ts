@@ -1,7 +1,7 @@
 import type { NotificationType } from "@prisma/client";
 
 export const VISA_EXPIRING_TYPES: NotificationType[] = [
-  "VISA_EXPIRING_90_DAYS",
+  "VISA_EXPIRING_60_DAYS",
   "VISA_EXPIRING_30_DAYS",
   "VISA_EXPIRING_7_DAYS",
 ];
@@ -11,7 +11,7 @@ const VISA_EXPIRING_SET = new Set(VISA_EXPIRING_TYPES);
 const VISA_EXPIRING_URGENCY: Partial<Record<NotificationType, number>> = {
   VISA_EXPIRING_7_DAYS: 3,
   VISA_EXPIRING_30_DAYS: 2,
-  VISA_EXPIRING_90_DAYS: 1,
+  VISA_EXPIRING_60_DAYS: 1,
 };
 
 export function isVisaExpiringNotificationType(t: NotificationType): boolean {

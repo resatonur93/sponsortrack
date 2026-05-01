@@ -70,6 +70,8 @@ type DocMailPayload = {
 
 function kindMatchesCalendar(kind: DocumentExpiryReminderKind, d: number): boolean {
   switch (kind) {
+    case "BEFORE_60":
+      return d === 60;
     case "BEFORE_30":
       return d === 30;
     case "BEFORE_7":
@@ -91,6 +93,12 @@ function subjectAndLead(
 ): { subject: string; bodyIntroTr: string; bodyIntroEn: string } {
   const who = `${docTitleTr} — ${company} / ${workerLabel}`;
   switch (kind) {
+    case "BEFORE_60":
+      return {
+        subject: `[SponsorTrack] Belge: 60 gün kala · ${who}`,
+        bodyIntroTr: "Bir çalışan belgesinin süresinin dolmasına UTC takvimine göre 60 gün kalmıştır.",
+        bodyIntroEn: "A worker document expires in 60 calendar days (UTC date comparison).",
+      };
     case "BEFORE_30":
       return {
         subject: `[SponsorTrack] Belge: 30 gün kala · ${who}`,
@@ -206,6 +214,7 @@ async function trySendReminderForLoadedDoc(
 }
 
 const REMINDER_KINDS: DocumentExpiryReminderKind[] = [
+  "BEFORE_60",
   "BEFORE_30",
   "BEFORE_7",
   "EXPIRY_DAY",
@@ -295,7 +304,7 @@ async function documentIdsExpiredBeforeToday(
   return rows.map((r) => r.id);
 }
 
-/** Cron / toplu: 30 gün önce, 7 gün önce, son gün ve süresi dolmuş için (her biri yalnızca bir kez loglanır). */
+/** Cron / toplu: 60/30/7 gün önce, son gün ve süresi dolmuş için (her biri yalnızca bir kez loglanır). */
 export async function processExpiredDocumentEmails(
   db: PrismaClient,
   now: Date = new Date()
@@ -309,6 +318,7 @@ export async function processExpiredDocumentEmails(
 
   const today = startOfDay(now);
   const buckets = await Promise.all([
+    documentIdsWithExpiryUtcDay(db, addDays(today, 60)),
     documentIdsWithExpiryUtcDay(db, addDays(today, 30)),
     documentIdsWithExpiryUtcDay(db, addDays(today, 7)),
     documentIdsWithExpiryUtcDay(db, today),

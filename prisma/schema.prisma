@@ -533,9 +533,15 @@ enum NotificationType {
   KEY_PERSONNEL_CHANGE
   MERGER_TUPE_RESTRUCTURING
   INSOLVENCY_RELATED
-  VISA_EXPIRING_90_DAYS
+  VISA_EXPIRING_60_DAYS
   VISA_EXPIRING_30_DAYS
   VISA_EXPIRING_7_DAYS
+  RIGHT_TO_WORK_RECHECK_60_DAYS
+  RIGHT_TO_WORK_RECHECK_30_DAYS
+  RIGHT_TO_WORK_RECHECK_7_DAYS
+  SPONSORSHIP_ENDING_60_DAYS
+  SPONSORSHIP_ENDING_30_DAYS
+  SPONSORSHIP_ENDING_7_DAYS
   DOCUMENT_EXPIRING
   WORKER_MISSING_DOCUMENTS
   SALARY_DISCREPANCY
@@ -556,7 +562,9 @@ model Document {
   vaultFolder         DocumentVaultFolder @default(OTHER)
   fileName            String
   fileUrl             String
-  fileData            String?        @db.Text
+  mimeType            String?
+  sizeBytes           Int?
+  fileHash            String?
   metadata            Json?
   version             Int            @default(1)
   replacesDocumentId  String?
@@ -586,6 +594,7 @@ model Document {
 
 // One row per (document, expiry calendar day) after an expiry notification email was sent.
 enum DocumentExpiryReminderKind {
+  BEFORE_60
   BEFORE_30
   BEFORE_7
   EXPIRY_DAY
@@ -613,7 +622,9 @@ model DocumentVault {
   folder           DocumentFolder
   fileName         String
   fileUrl          String
-  fileData         String?        @db.Text
+  mimeType         String?
+  sizeBytes        Int?
+  fileHash         String?
   version          Int            @default(1)
   previousVersions Json?
   uploadedBy       String

@@ -19,6 +19,18 @@ const EVIDENCE: Partial<Record<NotificationType, string>> = {
     "Eksik belgenin tamamlanmış kopyası ve vault’a yüklenmiş sürüm.",
   SALARY_DISCREPANCY:
     "Bordro çıktısı, beklenen ve gerçekleşen maaş karşılaştırması, düzeltme notu.",
+  RIGHT_TO_WORK_RECHECK_60_DAYS:
+    "Son Right to Work check kaydı, bir sonraki kontrol planı ve kanıt dosyası.",
+  RIGHT_TO_WORK_RECHECK_30_DAYS:
+    "Son Right to Work check kaydı, bir sonraki kontrol planı ve kanıt dosyası.",
+  RIGHT_TO_WORK_RECHECK_7_DAYS:
+    "Son Right to Work check kaydı, bir sonraki kontrol planı ve kanıt dosyası.",
+  SPONSORSHIP_ENDING_60_DAYS:
+    "Sponsorluk bitiş tarihi kaydı, uzatma/çıkış planı ve iç onay notu.",
+  SPONSORSHIP_ENDING_30_DAYS:
+    "Sponsorluk bitiş tarihi kaydı, uzatma/çıkış planı ve iç onay notu.",
+  SPONSORSHIP_ENDING_7_DAYS:
+    "Sponsorluk bitiş tarihi kaydı, uzatma/çıkış planı ve iç onay notu.",
 };
 
 export function getEvidenceHint(type: NotificationType): string {
@@ -42,9 +54,15 @@ export function getSmsDraft(
     SPONSORSHIP_ENDED: `[SMS taslak] ${who} için sponsorluk sonlandırma.${cos}${extra}`,
     NO_SHOW: `[SMS taslak] ${who} için 28 gün içinde işe başlamama (no show) değerlendirmesi.${cos}`,
     UNAUTHORISED_ABSENCE: `[SMS taslak] ${who} için izinsiz devamsızlık (10 ardışık iş günü kuralı kapsamında değerlendirme).${cos}${extra}`,
-    VISA_EXPIRING_90_DAYS: `[SMS taslak] ${who} vize süresi yaklaşıyor (90 gün).${cos}`,
+    VISA_EXPIRING_60_DAYS: `[SMS taslak] ${who} vize süresi yaklaşıyor (60 gün).${cos}`,
     VISA_EXPIRING_30_DAYS: `[SMS taslak] ${who} vize süresi yaklaşıyor (30 gün).${cos}`,
     VISA_EXPIRING_7_DAYS: `[SMS taslak] ${who} vize süresi kritik (7 gün).${cos}`,
+    RIGHT_TO_WORK_RECHECK_60_DAYS: `[SMS taslak] ${who} için Right to Work yeniden kontrol tarihi 60 gün içinde.${cos}`,
+    RIGHT_TO_WORK_RECHECK_30_DAYS: `[SMS taslak] ${who} için Right to Work yeniden kontrol tarihi 30 gün içinde.${cos}`,
+    RIGHT_TO_WORK_RECHECK_7_DAYS: `[SMS taslak] ${who} için Right to Work yeniden kontrol tarihi kritik (7 gün).${cos}`,
+    SPONSORSHIP_ENDING_60_DAYS: `[SMS taslak] ${who} için sponsorluk bitiş tarihi 60 gün içinde.${cos}`,
+    SPONSORSHIP_ENDING_30_DAYS: `[SMS taslak] ${who} için sponsorluk bitiş tarihi 30 gün içinde.${cos}`,
+    SPONSORSHIP_ENDING_7_DAYS: `[SMS taslak] ${who} için sponsorluk bitiş tarihi kritik (7 gün).${cos}`,
     DOCUMENT_EXPIRING: `[SMS taslak] ${who} için süresi dolmakta olan belge.${cos}`,
     WORKER_MISSING_DOCUMENTS: `[SMS taslak] ${who} için zorunlu belge eksik.${cos} Lütfen vault’u güncelleyin.`,
     SALARY_DISCREPANCY: `[SMS taslak] ${who} bordro uyumsuzluğu.${cos} Kontrol ve düzeltme gerekir.`,

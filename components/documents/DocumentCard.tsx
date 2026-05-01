@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Document } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 export type TimelineRow = {
@@ -47,8 +46,6 @@ export function DocumentCard(props: {
 }): JSX.Element {
   const { document: doc, display, status } = props.row;
   const [busy, setBusy] = useState(false);
-  const [showVersion, setShowVersion] = useState(false);
-  const [fileName, setFileName] = useState("");
 
   async function verify(): Promise<void> {
     setBusy(true);
@@ -59,36 +56,6 @@ export function DocumentCard(props: {
       body: JSON.stringify({ verificationNote: null }),
     });
     setBusy(false);
-    props.onUpdated();
-  }
-
-  async function addVersion(e: React.FormEvent): Promise<void> {
-    e.preventDefault();
-    if (!fileName.trim()) return;
-    setBusy(true);
-    await fetch("/api/documents", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workerId: props.workerId,
-        documentType: doc.documentType,
-        vaultFolder: doc.vaultFolder,
-        fileName: fileName.trim(),
-        fileUrl: `placeholder://${encodeURIComponent(fileName.trim())}`,
-        replacesDocumentId: doc.id,
-        expiryDate: doc.expiryDate
-          ? new Date(doc.expiryDate as string | Date).toISOString().slice(0, 10)
-          : undefined,
-        metadata:
-          doc.metadata && typeof doc.metadata === "object"
-            ? (doc.metadata as Record<string, unknown>)
-            : undefined,
-      }),
-    });
-    setBusy(false);
-    setShowVersion(false);
-    setFileName("");
     props.onUpdated();
   }
 
@@ -144,30 +111,10 @@ export function DocumentCard(props: {
               Verify
             </Button>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => setShowVersion((v) => !v)}
-          >
-            Add Version
+          <Button type="button" size="sm" variant="secondary" asChild>
+            <Link href={`/workers/${props.workerId}/documents`}>Vault'ta sürüm yükle</Link>
           </Button>
         </div>
-        {showVersion ? (
-          <form onSubmit={addVersion} className="space-y-2 rounded border border-slate-200 p-3">
-            <Label>Yeni dosya adı</Label>
-            <Input
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="new-scan.pdf"
-              required
-            />
-            <Button type="submit" size="sm" disabled={busy}>
-              Sürüm yükle
-            </Button>
-          </form>
-        ) : null}
       </CardContent>
     </Card>
   );

@@ -1,6 +1,11 @@
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { visaNotificationsToCreate } from "@/lib/notification-rules";
+import {
+  dateWindowNotificationsToCreate,
+  RTW_RECHECK_WINDOWS,
+  SPONSORSHIP_END_WINDOWS,
+  visaNotificationsToCreate,
+} from "@/lib/notification-rules";
 import { startOfDay } from "@/lib/dates";
 import { getEvidenceHint, getSmsDraft } from "@/lib/compliance-templates";
 import { processEscalationNotifications } from "@/lib/compliance-reminders";
@@ -14,6 +19,8 @@ import { closeStaleDocumentExpiringNotifications } from "@/lib/document-expiring
 export async function runDailyCron(): Promise<{
   overdueUpdated: number;
   visaEventsCreated: number;
+  rtwRecheckEventsCreated: number;
+  sponsorshipEndingEventsCreated: number;
   documentEventsCreated: number;
   escalationLevel3: number;
   missingDocEvents: number;
@@ -24,6 +31,8 @@ export async function runDailyCron(): Promise<{
   const now = new Date();
   let overdueUpdated = 0;
   let visaEventsCreated = 0;
+  let rtwRecheckEventsCreated = 0;
+  let sponsorshipEndingEventsCreated = 0;
   let documentEventsCreated = 0;
 
   const pendingOverdue = await prismaBase.notificationEvent.updateMany({
@@ -77,6 +86,100 @@ export async function runDailyCron(): Promise<{
         visaEventsCreated += 1;
       } catch (e) {
         logger.error("visa notification upsert failed", e, { workerId: w.id });
+      }
+    }
+  }
+
+  const rtwWorkers = await prismaBase.worker.findMany({
+    where: {
+      employmentStatus: { not: "TERMINATED" },
+      rtwChecks: { some: { nextCheckDueAt: { not: null } } },
+    },
+    select: {
+      id: true,
+      tenantId: true,
+      firstName: true,
+      lastName: true,
+      cosReference: true,
+      rtwChecks: {
+        where: { nextCheckDueAt: { not: null } },
+        orderBy: { nextCheckDueAt: "asc" },
+        take: 1,
+        select: { id: true, nextCheckDueAt: true },
+      },
+    },
+  });
+  for (const w of rtwWorkers) {
+    const nextDue = w.rtwChecks[0]?.nextCheckDueAt;
+    if (!nextDue) continue;
+    const rows = dateWindowNotificationsToCreate({
+      workerId: w.id,
+      tenantId: w.tenantId,
+      targetDate: nextDue,
+      windows: RTW_RECHECK_WINDOWS,
+      idKey: `rtw:${w.rtwChecks[0].id}`,
+      metadataKey: "rtwNextCheckDueAt",
+      workerLabel: {
+        firstName: w.firstName,
+        lastName: w.lastName,
+        cosReference: w.cosReference,
+      },
+    });
+    for (const row of rows) {
+      try {
+        await prismaBase.notificationEvent.upsert({
+          where: { idempotencyKey: row.idempotencyKey as string },
+          create: row,
+          update: {},
+        });
+        rtwRecheckEventsCreated += 1;
+      } catch (e) {
+        logger.error("rtw recheck notification upsert failed", e, { workerId: w.id });
+      }
+    }
+  }
+
+  const sponsorshipWorkers = await prismaBase.worker.findMany({
+    where: {
+      employmentStatus: { not: "TERMINATED" },
+      sponsorshipEndDate: { not: null },
+    },
+    select: {
+      id: true,
+      tenantId: true,
+      sponsorshipEndDate: true,
+      firstName: true,
+      lastName: true,
+      cosReference: true,
+    },
+  });
+  for (const w of sponsorshipWorkers) {
+    if (!w.sponsorshipEndDate) continue;
+    const rows = dateWindowNotificationsToCreate({
+      workerId: w.id,
+      tenantId: w.tenantId,
+      targetDate: w.sponsorshipEndDate,
+      windows: SPONSORSHIP_END_WINDOWS,
+      idKey: "sponsorship-end",
+      metadataKey: "sponsorshipEndDate",
+      workerLabel: {
+        firstName: w.firstName,
+        lastName: w.lastName,
+        cosReference: w.cosReference,
+      },
+    });
+    for (const row of rows) {
+      try {
+        await prismaBase.notificationEvent.upsert({
+          where: { idempotencyKey: row.idempotencyKey as string },
+          create: row,
+          update: {},
+        });
+        sponsorshipEndingEventsCreated += 1;
+      } catch (e) {
+        logger.error("sponsorship ending notification upsert failed", e, {
+          workerId: w.id,
+        });
       }
     }
   }
@@ -151,6 +254,8 @@ export async function runDailyCron(): Promise<{
   return {
     overdueUpdated,
     visaEventsCreated,
+    rtwRecheckEventsCreated,
+    sponsorshipEndingEventsCreated,
     documentEventsCreated,
     escalationLevel3: level3Logged,
     missingDocEvents,

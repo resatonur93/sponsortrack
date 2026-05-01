@@ -95,22 +95,67 @@ function expiryBadge(expiry: Date | string | null | undefined): {
   };
 }
 
-async function fileToPayload(file: File): Promise<{
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function sha256(file: File): Promise<string> {
+  const ab = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", ab);
+  return toHex(digest);
+}
+
+async function uploadWithPresign(input: {
+  workerId: string;
+  folder: DocumentFolder;
+  file: File;
+}): Promise<{
   fileName: string;
   fileUrl: string;
-  fileData: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  fileHash: string;
 }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const comma = result.indexOf(",");
-      const base64 = comma >= 0 ? result.slice(comma + 1) : null;
-      resolve({ fileName: file.name, fileUrl: result, fileData: base64 });
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
+  const mimeType = input.file.type || "application/octet-stream";
+  const sizeBytes = input.file.size;
+  const fileHash = await sha256(input.file);
+  const presign = await fetch("/api/storage/presign", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workerId: input.workerId,
+      folder: input.folder,
+      fileName: input.file.name,
+      mimeType,
+      sizeBytes,
+      fileHash,
+    }),
   });
+  const presignJson = (await presign.json().catch(() => ({}))) as {
+    data?: { uploadUrl: string; fileUrl: string };
+    error?: string;
+  };
+  if (!presign.ok || !presignJson.data) {
+    throw new Error(presignJson.error ?? "Could not prepare upload");
+  }
+  const put = await fetch(presignJson.data.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": mimeType },
+    body: input.file,
+  });
+  if (!put.ok) {
+    throw new Error("Upload to storage failed");
+  }
+  return {
+    fileName: input.file.name,
+    fileUrl: presignJson.data.fileUrl,
+    mimeType,
+    sizeBytes,
+    fileHash,
+  };
 }
 
 export default function WorkerDocumentVaultPage(): JSX.Element {
@@ -184,16 +229,18 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
     try {
       const expStr = expiryByFolder[folder];
       for (const file of list) {
-        const { fileName, fileUrl, fileData } = await fileToPayload(file);
+        const upload = await uploadWithPresign({ workerId, folder, file });
         const res = await fetch(`/api/workers/${workerId}/documents`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             folder,
-            fileName,
-            fileUrl,
-            fileData,
+            fileName: upload.fileName,
+            fileUrl: upload.fileUrl,
+            mimeType: upload.mimeType,
+            sizeBytes: upload.sizeBytes,
+            fileHash: upload.fileHash,
             expiryDate: expStr && expStr !== "" ? expStr : undefined,
           }),
         });
@@ -249,12 +296,22 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
     setVersionSaving(true);
     setError(null);
     try {
-      const { fileName, fileUrl, fileData } = await fileToPayload(versionFile);
+      const upload = await uploadWithPresign({
+        workerId,
+        folder: versionTarget.folder,
+        file: versionFile,
+      });
       const res = await fetch(`/api/documents/${versionTarget.id}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName, fileUrl, fileData }),
+        body: JSON.stringify({
+          fileName: upload.fileName,
+          fileUrl: upload.fileUrl,
+          mimeType: upload.mimeType,
+          sizeBytes: upload.sizeBytes,
+          fileHash: upload.fileHash,
+        }),
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };

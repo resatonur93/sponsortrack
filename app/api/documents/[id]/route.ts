@@ -19,7 +19,9 @@ type VersionSnapshot = {
   version: number;
   fileName: string;
   fileUrl: string;
-  fileData?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  fileHash?: string | null;
   uploadedBy: string;
   createdAt: string;
   expiryDate?: string | null;
@@ -68,7 +70,9 @@ export async function PUT(
         version: existing.version,
         fileName: existing.fileName,
         fileUrl: existing.fileUrl,
-        fileData: existing.fileData,
+        mimeType: existing.mimeType,
+        sizeBytes: existing.sizeBytes,
+        fileHash: existing.fileHash,
         uploadedBy: existing.uploadedBy,
         createdAt: existing.createdAt.toISOString(),
         expiryDate: existing.expiryDate?.toISOString() ?? null,
@@ -79,12 +83,12 @@ export async function PUT(
         version: existing.version + 1,
         fileName: d.fileName,
         fileUrl: d.fileUrl,
+        mimeType: d.mimeType,
+        sizeBytes: d.sizeBytes,
+        fileHash: d.fileHash,
         previousVersions: history as Prisma.InputJsonValue,
         uploadedBy: user.id,
       };
-      if (d.fileData !== undefined) {
-        data.fileData = d.fileData;
-      }
 
       if (d.expiryDate !== undefined) {
         data.expiryDate =

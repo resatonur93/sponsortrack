@@ -92,8 +92,6 @@ export default function WorkerDetailPage(): JSX.Element {
   const id = params.id as string;
   const [data, setData] = useState<WorkerDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [docRefresh, setDocRefresh] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tenantUsers, setTenantUsers] = useState<TenantUserOption[]>([]);
@@ -199,44 +197,6 @@ export default function WorkerDetailPage(): JSX.Element {
       credentials: "include",
     });
     if (res.ok) void load();
-  }
-
-  async function onUpload(e: React.FormEvent<HTMLFormElement>): Promise<void> {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const fileName = String(fd.get("fileName") ?? "");
-    const documentType = String(fd.get("documentType") ?? "PASSPORT");
-    const vaultFolder = String(fd.get("vaultFolder") ?? "OTHER");
-    if (!fileName) return;
-    setUploading(true);
-    const metaRaw = String(fd.get("metadataJson") ?? "").trim();
-    let metadata: Record<string, unknown> | undefined;
-    if (metaRaw) {
-      try {
-        metadata = JSON.parse(metaRaw) as Record<string, unknown>;
-      } catch {
-        alert(t("workerDetail.invalidJson"));
-        setUploading(false);
-        return;
-      }
-    }
-    await fetch("/api/documents", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workerId: id,
-        documentType,
-        vaultFolder,
-        fileName,
-        fileUrl: `placeholder://${encodeURIComponent(fileName)}`,
-        metadata,
-      }),
-    });
-    setUploading(false);
-    e.currentTarget.reset();
-    void load();
-    setDocRefresh((x) => x + 1);
   }
 
   if (!data) {
@@ -552,7 +512,7 @@ export default function WorkerDetailPage(): JSX.Element {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
-          <WorkerDocumentChecklist workerId={id} refreshKey={docRefresh} />
+          <WorkerDocumentChecklist workerId={id} refreshKey={0} />
 
           <Card className="border-brand-navy/15 bg-slate-50/60">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
@@ -568,91 +528,7 @@ export default function WorkerDetailPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("workerDetail.uploadNew")}</CardTitle>
-              <p className="text-xs text-slate-600">{t("workerDetail.uploadHint")}</p>
-            </CardHeader>
-            <CardContent>
-          <form
-            onSubmit={onUpload}
-            className="grid gap-3 lg:grid-cols-2"
-          >
-            <div>
-              <Label>{t("workerDetail.labelFileName")}</Label>
-              <Input name="fileName" required placeholder="ornek-pasaport.pdf" />
-            </div>
-            <div>
-              <Label>{t("workerDetail.labelDocType")}</Label>
-              <select
-                name="documentType"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
-                defaultValue="PASSPORT"
-              >
-                {[
-                  "PASSPORT",
-                  "BRP",
-                  "EVISA",
-                  "SHARE_CODE",
-                  "VISA",
-                  "COS",
-                  "ATAS_CERTIFICATE",
-                  "NMC_REGISTRATION",
-                  "VESSEL_ASSIGNMENT_LETTER",
-                  "RIGHT_TO_WORK",
-                  "EMPLOYMENT_CONTRACT",
-                  "PROOF_OF_ADDRESS",
-                ].map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>{t("workerDetail.labelVaultFolder")}</Label>
-              <select
-                name="vaultFolder"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
-                defaultValue="IDENTITY_IMMIGRATION"
-              >
-                {[
-                  "IDENTITY_IMMIGRATION",
-                  "RIGHT_TO_WORK",
-                  "COS_APPLICATION",
-                  "EMPLOYMENT_CONTRACT",
-                  "PAYROLL_SALARY",
-                  "ABSENCE_LEAVE",
-                  "ADDRESS_CONTACT",
-                  "ROLE_ORG_CHART",
-                  "RECRUITMENT_VACANCY",
-                  "REPORTING_SUBMISSIONS",
-                  "COMPLIANCE_VISIT_PACK",
-                  "OTHER",
-                ].map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="lg:col-span-2">
-              <Label>{t("workerDetail.labelMetadata")}</Label>
-              <textarea
-                name="metadataJson"
-                className="min-h-[72px] w-full rounded-md border border-slate-300 p-2 font-mono text-xs"
-                placeholder='{"number":"1234","expiryDate":"2030-01-01"}'
-              />
-            </div>
-            <div className="flex items-end lg:col-span-2">
-              <Button type="submit" disabled={uploading}>
-                {uploading ? t("workerDetail.uploading") : t("workerDetail.upload")}
-              </Button>
-            </div>
-          </form>
-            </CardContent>
-          </Card>
-          <DocumentTimeline key={docRefresh} workerId={id} />
+          <DocumentTimeline workerId={id} />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6">

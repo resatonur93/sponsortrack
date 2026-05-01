@@ -33,9 +33,15 @@ export function getReportDeadlineForEvent(
     case "WORKER_MISSING_DOCUMENTS":
     case "SALARY_DISCREPANCY":
     case "DOCUMENT_EXPIRING":
-    case "VISA_EXPIRING_90_DAYS":
+    case "VISA_EXPIRING_60_DAYS":
     case "VISA_EXPIRING_30_DAYS":
     case "VISA_EXPIRING_7_DAYS":
+    case "RIGHT_TO_WORK_RECHECK_60_DAYS":
+    case "RIGHT_TO_WORK_RECHECK_30_DAYS":
+    case "RIGHT_TO_WORK_RECHECK_7_DAYS":
+    case "SPONSORSHIP_ENDING_60_DAYS":
+    case "SPONSORSHIP_ENDING_30_DAYS":
+    case "SPONSORSHIP_ENDING_7_DAYS":
       return addWorkingDays(occurredAt, 10);
     default:
       return addWorkingDays(occurredAt, 10);

@@ -24,9 +24,21 @@ export type VisaWindowSpec = {
 };
 
 export const VISA_WINDOWS: VisaWindowSpec[] = [
-  { type: "VISA_EXPIRING_90_DAYS", daysBefore: 90 },
+  { type: "VISA_EXPIRING_60_DAYS", daysBefore: 60 },
   { type: "VISA_EXPIRING_30_DAYS", daysBefore: 30 },
   { type: "VISA_EXPIRING_7_DAYS", daysBefore: 7 },
+];
+
+export const RTW_RECHECK_WINDOWS: VisaWindowSpec[] = [
+  { type: "RIGHT_TO_WORK_RECHECK_60_DAYS", daysBefore: 60 },
+  { type: "RIGHT_TO_WORK_RECHECK_30_DAYS", daysBefore: 30 },
+  { type: "RIGHT_TO_WORK_RECHECK_7_DAYS", daysBefore: 7 },
+];
+
+export const SPONSORSHIP_END_WINDOWS: VisaWindowSpec[] = [
+  { type: "SPONSORSHIP_ENDING_60_DAYS", daysBefore: 60 },
+  { type: "SPONSORSHIP_ENDING_30_DAYS", daysBefore: 30 },
+  { type: "SPONSORSHIP_ENDING_7_DAYS", daysBefore: 7 },
 ];
 
 export function visaNotificationsToCreate(
@@ -61,4 +73,42 @@ export function visaNotificationsToCreate(
     });
   }
   return results;
+}
+
+export function dateWindowNotificationsToCreate(input: {
+  workerId: string;
+  tenantId: string;
+  targetDate: Date;
+  windows: VisaWindowSpec[];
+  idKey: string;
+  metadataKey: string;
+  workerLabel?: { firstName: string; lastName: string; cosReference: string };
+}): Prisma.NotificationEventCreateManyInput[] {
+  const day = startOfDay(input.targetDate);
+  const dayStr = day.toISOString().slice(0, 10);
+  const workerName = input.workerLabel
+    ? `${input.workerLabel.firstName} ${input.workerLabel.lastName}`
+    : "Worker";
+  const cosRef = input.workerLabel?.cosReference ?? "";
+
+  return input.windows.map((w) => {
+    const due = startOfDay(addDays(day, -w.daysBefore));
+    const occurredAt = new Date();
+    return {
+      workerId: input.workerId,
+      tenantId: input.tenantId,
+      eventType: w.type,
+      idempotencyKey: `worker:${input.workerId}:${w.type}:${input.idKey}:${dayStr}`,
+      dueDate: due,
+      reportDeadlineAt: due,
+      occurredAt,
+      status: "PENDING",
+      smsDraft: getSmsDraft(w.type, { workerName, cosRef }),
+      evidenceRequired: getEvidenceHint(w.type),
+      metadata: {
+        [input.metadataKey]: day.toISOString(),
+        windowDays: w.daysBefore,
+      },
+    };
+  });
 }
