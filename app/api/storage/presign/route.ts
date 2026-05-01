@@ -75,7 +75,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error:
-            "File storage is not configured. For Supabase: set NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_STORAGE_BUCKET—or set all S3_* vars. NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is not used for uploads.",
+            "File storage is not configured. For Supabase set SUPABASE_URL (same project URL — fixes Docker/runtime), SUPABASE_SERVICE_ROLE_KEY (service_role JWT), SUPABASE_STORAGE_BUCKET — or NEXT_PUBLIC_SUPABASE_URL if present at npm run build. Publishable keys are not used—or set all S3_* vars.",
           code: "STORAGE_NOT_CONFIGURED",
           missingSupabaseEnv: missingSupabase,
           missingS3Env: missingS3,

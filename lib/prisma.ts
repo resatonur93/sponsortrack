@@ -209,6 +209,9 @@ export const prisma = prismaBase.$extends({
   },
 });
 
+/** Tenant-scoped Prisma client (`import { prisma }`) — API aggregate’leri için tip. */
+export type PrismaTenantClient = typeof prisma;
+
 async function fetchPrevious(
   model: string,
   where: unknown,

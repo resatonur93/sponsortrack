@@ -1,35 +1,50 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const PROJECT_URL =
-  process.env.SUPABASE_URL?.trim() ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-const BUCKET = process.env.SUPABASE_STORAGE_BUCKET?.trim();
-
-export function isSupabaseStorageConfigured(): boolean {
-  return Boolean(PROJECT_URL && SERVICE_ROLE && BUCKET);
+/** Sunucuda her istekte okunur — modül yüklemede gömülü kalmaz. */
+function supabaseProjectUrl(): string | undefined {
+  const u =
+    process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  return u || undefined;
 }
 
-/** Teşhis: bucket / service_role / URL hangisi eksik (env adları — secret değerleri dönmez). */
+function supabaseServiceRole(): string | undefined {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || undefined;
+}
+
+function supabaseBucket(): string | undefined {
+  return process.env.SUPABASE_STORAGE_BUCKET?.trim() || undefined;
+}
+
+export function isSupabaseStorageConfigured(): boolean {
+  return Boolean(
+    supabaseProjectUrl() && supabaseServiceRole() && supabaseBucket()
+  );
+}
+
+/**
+ * Docker/Nixpacks: `NEXT_PUBLIC_*` sıkça `npm run build` sırasında gömülür; build ortamında
+ * yoksa üretimde boş kalabilir. Bunun için aynı URL’yi **SUPABASE_URL** ile çalışma anında da verin.
+ */
 export function getSupabaseStorageMissingEnvVars(): string[] {
   const missing: string[] = [];
-  if (!process.env.SUPABASE_URL?.trim() && !process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
-    missing.push("NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL");
+  if (!supabaseProjectUrl()) {
+    missing.push(
+      "SUPABASE_URL (recommended — runtime) or NEXT_PUBLIC_SUPABASE_URL (must exist at build if used alone)"
+    );
   }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
-    missing.push("SUPABASE_SERVICE_ROLE_KEY");
-  }
-  if (!process.env.SUPABASE_STORAGE_BUCKET?.trim()) {
-    missing.push("SUPABASE_STORAGE_BUCKET");
-  }
+  if (!supabaseServiceRole()) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseBucket()) missing.push("SUPABASE_STORAGE_BUCKET");
   return missing;
 }
 
 function adminClient(): SupabaseClient {
-  if (!isSupabaseStorageConfigured()) {
+  const url = supabaseProjectUrl();
+  const key = supabaseServiceRole();
+  const bucket = supabaseBucket();
+  if (!url || !key || !bucket) {
     throw new Error("Supabase storage is not configured");
   }
-  return createClient(PROJECT_URL!, SERVICE_ROLE!, {
+  return createClient(url, key, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -42,8 +57,9 @@ export async function createSupabaseSignedUploadUrl(
   objectKey: string
 ): Promise<{ signedUrl: string }> {
   const sb = adminClient();
+  const bucketId = supabaseBucket()!;
   const { data, error } = await sb.storage
-    .from(BUCKET!)
+    .from(bucketId)
     .createSignedUploadUrl(objectKey);
   if (error) throw error;
   if (!data?.signedUrl) throw new Error("Signed upload URL not returned");
@@ -53,6 +69,7 @@ export async function createSupabaseSignedUploadUrl(
 /** Genel URL; bucket Supabase panelde public olmalı (doğrudan `<a href>` için). */
 export function supabasePublicObjectUrl(objectKey: string): string {
   const sb = adminClient();
-  const { data } = sb.storage.from(BUCKET!).getPublicUrl(objectKey);
+  const bucketId = supabaseBucket()!;
+  const { data } = sb.storage.from(bucketId).getPublicUrl(objectKey);
   return data.publicUrl;
 }

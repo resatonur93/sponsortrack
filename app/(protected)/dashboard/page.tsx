@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ComplianceTrafficLight } from "@/components/dashboard/ComplianceTrafficLight";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RecentEvents } from "@/components/dashboard/RecentEvents";
@@ -262,6 +263,7 @@ export default function DashboardPage(): JSX.Element {
         <h1 className="text-2xl font-bold text-brand-navy">{t("dashboard.title")}</h1>
         <p className="text-slate-600">{t("dashboard.subtitle")}</p>
       </div>
+      <ComplianceTrafficLight />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatsCard title={t("dashboard.totalWorkers")} value={data.stats.totalWorkers} />
         <StatsCard
