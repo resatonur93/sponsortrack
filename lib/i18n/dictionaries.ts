@@ -299,6 +299,9 @@ const tr: Record<string, string> = {
   "notifications.status.documentEnded": "Bitti",
   "notifications.badge.completed": "Tamamlandı",
   "notifications.badge.cancelled": "İptal edildi",
+  "notifications.badge.overdue": "Gecikmiş",
+  "notifications.badge.dueToday": "Bugün (son tarih)",
+  "notifications.badge.daysLeftSuffix": "gün kaldı",
   "policies.title": "Politika merkezi",
   "policies.subtitle":
     "Sponsor rehberi ve eğitim materyalleri. Onaylar kullanıcı bazında tutulur.",
@@ -810,6 +813,9 @@ const en: Record<string, string> = {
   "notifications.status.documentEnded": "Closed (expired)",
   "notifications.badge.completed": "Completed",
   "notifications.badge.cancelled": "Cancelled",
+  "notifications.badge.overdue": "Overdue",
+  "notifications.badge.dueToday": "Due today",
+  "notifications.badge.daysLeftSuffix": "days left",
   "policies.title": "Policy hub",
   "policies.subtitle":
     "Sponsor guidance and training. Acknowledgements are tracked per user.",

@@ -19,13 +19,14 @@ export function EscalationBadge(props: {
   reportDeadlineAt: Date | string | null;
   dueDate: Date | string;
   status: NotificationStatus;
-  /** Overrides default “completed” label (e.g. document validity ended). */
+  /** Overrides default completed label (e.g. document validity ended). */
   completedLabel?: string | null;
 }): JSX.Element {
   const { t } = useTranslation();
 
   if (props.status === "COMPLETED") {
-    const label = props.completedLabel?.trim() || t("notifications.badge.completed");
+    const label =
+      props.completedLabel?.trim() || t("notifications.badge.completed");
     return (
       <span className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
         {label}
@@ -49,11 +50,11 @@ export function EscalationBadge(props: {
 
   let text: string;
   if (props.status === "OVERDUE") {
-    text = `?? ${t("notifications.badge.overdue")}`;
+    text = t("notifications.badge.overdue");
   } else if (d <= 0) {
-    text = `?? ${t("notifications.badge.dueToday")}`;
+    text = t("notifications.badge.dueToday");
   } else {
-    text = `?? ${t("notifications.badge.daysLeft", `${d} gün`)}: ${d}`;
+    text = `${d} ${t("notifications.badge.daysLeftSuffix")}`;
   }
 
   return (
