@@ -13,6 +13,7 @@
     "db:deploy": "npm run db:repair:notification-type && prisma migrate deploy",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:clean-test-alerts": "tsx scripts/clean-test-alerts.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

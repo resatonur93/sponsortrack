@@ -4,6 +4,8 @@ import { processVisaAndSponsorshipExpiries as runNotificationExpiryEmails } from
 
 /**
  * Günlük cron parçası: vize / RTW / sponsorluk / CoS hatırlatma e-postaları.
+ * İdempotent: gönderiler `NotificationEmailLog` üzerinde `@@unique(workerId, anchorDomain, anchorDay, reminderKind)`
+ * ile tekilleştirilir; aynı gün/tekrar çalıştırmada aynı e-postayı üretmez.
  * Uygulama mantığı `notification-expiry-email.ts` içinde; burada yalnızca giriş-çıkış logları.
  */
 export async function processVisaAndSponsorshipExpiries(

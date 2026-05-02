@@ -454,6 +454,8 @@ const tr: Record<string, string> = {
   "alerts.devToolsTitle": "Geliştirme",
   "alerts.pipelineSuccess":
     "Pipeline tamam: günlük cron + escalation. Yeni uyarı: {upserts}, günlük vize olayı: {visa}.",
+  "alerts.fetchCapHint":
+    "Çok fazla uyarı kaydı var; özet en fazla ilk 800 satıra göre hesaplanıyor. Filtre daraltarak veya `dedupe=none` ile ham listeyi inceleyin.",
   "alerts.markReadFailed": "Okundu işaretlenemedi.",
   "alerts.detailTitle": "Uyarı detayı",
   "alerts.fieldType": "Tip",
@@ -1742,6 +1744,8 @@ const en: Record<string, string> = {
   "alerts.devToolsTitle": "Development",
   "alerts.pipelineSuccess":
     "Pipeline OK: daily cron + escalation. New alert upserts: {upserts}, visa events from daily: {visa}.",
+  "alerts.fetchCapHint":
+    "Large alert backlog; rollup uses at most the first 800 matching rows. Narrow filters or pass dedupe=none for the raw slice.",
   "alerts.markReadFailed": "Could not mark as read.",
   "alerts.detailTitle": "Alert details",
   "alerts.fieldType": "Type",
