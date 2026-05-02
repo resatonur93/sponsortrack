@@ -95,11 +95,21 @@ export async function validateAndTouchAuthSession(params: {
       where: { tenantId, isActive: true },
     });
     if (active.length > 0) {
-      const passes = active.some((r: AllowedIpRule) =>
-        clientMatchesIpRule(params.resolvedClientIp.trim(), r.cidr)
-      );
-      if (!passes) {
-        return failAndRevoke("IP_WHITELIST", row.id);
+      const ip = params.resolvedClientIp.trim();
+      const ipUnknown =
+        !ip || ip === "0.0.0.0" || ip.toLowerCase() === "unknown";
+      if (ipUnknown) {
+        logger.warn(
+          "session guard: IP whitelist active but client IP missing from proxy headers — skipping IP re-check",
+          { tenantId, userId }
+        );
+      } else {
+        const passes = active.some((r: AllowedIpRule) =>
+          clientMatchesIpRule(ip, r.cidr)
+        );
+        if (!passes) {
+          return failAndRevoke("IP_WHITELIST", row.id);
+        }
       }
     }
   }

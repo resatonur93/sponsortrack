@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getServerSession } from "next-auth";
 import type { NextRequest } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import { readClientIpFromHeaders } from "@/lib/security/ip-match";
 import { validateAndTouchAuthSession } from "@/lib/security/session-guard";
 import { runWithTenantContext, type TenantContext } from "@/lib/tenant-context";
@@ -44,6 +45,25 @@ export async function getSessionUser(
   const ip = readClientIpFromHeaders(hdrs);
   const authSid = session.user.authSid;
 
+  /**
+   * Güvenlik özelliği öncesi üretilmiş JWT’lerde `authSid` yoktur; kullanıcıyı tamamen
+   * dışarı atmamak için bu geçiş döneminde guard atlanır — bir sonraki girişte satır oluşur.
+   */
+  if (!authSid?.trim()) {
+    logger.warn("getSessionUser: session without authSid — legacy JWT path", {
+      userId: session.user.id,
+    });
+    return {
+      id: session.user.id,
+      email: session.user.email ?? "",
+      role: session.user.role,
+      tenantId: session.user.tenantId,
+      firstName: session.user.firstName,
+      lastName: session.user.lastName,
+      authSid: undefined,
+    };
+  }
+
   const guard = await validateAndTouchAuthSession({
     tenantId: session.user.tenantId,
     userId: session.user.id,
@@ -62,7 +82,7 @@ export async function getSessionUser(
     tenantId: session.user.tenantId,
     firstName: session.user.firstName,
     lastName: session.user.lastName,
-    authSid: authSid ?? undefined,
+    authSid,
   };
 }
 

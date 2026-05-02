@@ -53,6 +53,22 @@ export function clientMatchesIpRule(clientIp: string, ruleCidr: string): boolean
 }
 
 export function readClientIpFromHeaders(hdrs: Headers): string {
+  const cf = hdrs.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  const trueClient = hdrs.get("true-client-ip")?.trim();
+  if (trueClient) return trueClient;
+  const fwd = hdrs.get("forwarded");
+  if (fwd) {
+    const forPart = fwd.split(",").find((p) => /for\s*=/i.test(p));
+    const m = forPart ? /for\s*=\s*"?([^";,\s]+)/i.exec(forPart) : null;
+    if (m?.[1]) {
+      let v = m[1].trim().replace(/^::ffff:/i, "");
+      if (v.startsWith("[") && v.includes("]")) {
+        v = v.slice(1, v.indexOf("]"));
+      }
+      if (v && v !== "unknown") return v;
+    }
+  }
   const xff = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim();
   if (xff) return xff;
   const xr = hdrs.get("x-real-ip")?.trim();
