@@ -34,6 +34,10 @@ model Tenant {
   documentExpiryEmailLogs DocumentExpiryEmailLog[]
   notificationEmailLogs NotificationEmailLog[]
   leadFormSettings      LeadFormSettings?
+  securitySettings      TenantSecuritySettings?
+  allowedIpRules        AllowedIpRule[]
+  authSessions          UserAuthSession[]
+  trustedDevices        UserTrustedDevice[]
 }
 
 model User {
@@ -54,8 +58,80 @@ model User {
   workflowStepsAssigned WorkflowStep[] @relation("WorkflowStepAssignee")
   workflowStepsActioned WorkflowStep[] @relation("WorkflowStepActionedBy")
   policyAcknowledgements Acknowledgement[]
+  authSessions           UserAuthSession[]
+  trustedDevices         UserTrustedDevice[]
 
   @@unique([email])
+  @@index([tenantId])
+}
+
+/// AO tarafından yönetilen kiracı güvenlik parametreleri.
+model TenantSecuritySettings {
+  id                        String   @id @default(cuid())
+  tenantId                  String   @unique
+  tenant                    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Yalnızca tanımlı IP aralıklarından giriş (SYSTEM_ADMIN için istisna)
+  enforceIpWhitelist        Boolean  @default(false)
+  /// Sunucuda son aktiviteden sonra oturumu geçersiz sayma (dk); null → denetimsiz bu kural yoktur
+  sessionIdleTimeoutMinutes Int?
+  /// Oturum kaydı oluşturulmasından sonra maks süre (dk); JWT’den bağımsız ek sınır
+  sessionAbsoluteMaxMinutes Int?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model AllowedIpRule {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  label     String
+  /// Tek IPv4, "10.1.2.3" veya CIDR örn "10.0.0.0/24"; IPv6 şimdilik düz adres eşleşmesi
+  cidr      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, sortOrder])
+}
+
+/// İzlenen tarayıcı oturumları (JWT `authSid` ile eşleşir).
+model UserAuthSession {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String    @unique
+  userAgent    String?   @db.Text
+  deviceLabel  String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([tenantId, userId, revokedAt])
+  @@index([lastSeenAt])
+}
+
+/// Kullanıcı + tarayıcı parmak izi (User-Agent hash) bazlı cihaz kaydı.
+model UserTrustedDevice {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprint  String
+  label        String
+  trusted      Boolean   @default(false)
+  lastIp       String?
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  trustedAt    DateTime?
+
+  @@unique([userId, fingerprint])
   @@index([tenantId])
 }
 

@@ -10,6 +10,8 @@ declare module "next-auth" {
       firstName: string;
       lastName: string;
       canAccessAdminPanel: boolean;
+      /** JWT ile eşleşen sunucu oturumu kimliği — güvenlik API’leri */
+      authSid?: string;
     } & DefaultSession["user"];
   }
 
@@ -29,5 +31,6 @@ declare module "next-auth/jwt" {
     firstName: string;
     lastName: string;
     email?: string | null;
+    authSid?: string;
   }
 }

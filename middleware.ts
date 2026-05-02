@@ -29,6 +29,13 @@ export default withAuth(
       method === "PUT" &&
       /^\/api\/alerts\/[^/]+\/(read|dismiss)\/?$/.test(path);
     if (
+      path.startsWith("/api/settings") &&
+      !canAccessAdminPanel(token?.email, token?.role)
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (
       token?.role === "LEVEL_2_USER" &&
       method !== "GET" &&
       method !== "HEAD" &&
@@ -119,5 +126,7 @@ export const config = {
     "/policies/:path*",
     "/api/policies",
     "/api/policies/:path*",
+    "/api/settings",
+    "/api/settings/:path*",
   ],
 };

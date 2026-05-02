@@ -2,10 +2,15 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { headers } from "next/headers";
+import { Role } from "@prisma/client";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { normalizeEmail } from "@/lib/registration";
 import { canAccessAdminPanel } from "@/lib/admin-panel-access";
+import { readClientIpFromHeaders } from "@/lib/security/ip-match";
+import { bootstrapAuthArtifactsOnSignIn } from "@/lib/security/bootstrap-jwt-session";
+import { isTenantLoginIpAllowed } from "@/lib/security/tenant-login-ip";
 
 const credentialsSchema = z.object({
   email: z.string().trim().email(),
@@ -39,6 +44,21 @@ export const authOptions: NextAuthOptions = {
         if (!ok) {
           return null;
         }
+
+        if (user.role !== Role.SYSTEM_ADMIN) {
+          try {
+            const hdrs = await headers();
+            const ip = readClientIpFromHeaders(hdrs);
+            const allowed = await isTenantLoginIpAllowed({
+              tenantId: user.tenantId,
+              resolvedClientIp: ip,
+            });
+            if (!allowed) return null;
+          } catch {
+            logger.warn("login IP whitelist headers unavailable — allowing");
+          }
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -61,6 +81,15 @@ export const authOptions: NextAuthOptions = {
         token.firstName = user.firstName;
         token.lastName = user.lastName;
         token.email = user.email;
+        try {
+          token.authSid = await bootstrapAuthArtifactsOnSignIn({
+            id: user.id,
+            tenantId: user.tenantId as string,
+          });
+        } catch (e) {
+          logger.error("bootstrapAuthArtifactsOnSignIn failed", e);
+          delete token.authSid;
+        }
       }
       return token;
     },
@@ -76,6 +105,7 @@ export const authOptions: NextAuthOptions = {
           session.user.email,
           session.user.role
         );
+        session.user.authSid = token.authSid;
       }
       return session;
     },
