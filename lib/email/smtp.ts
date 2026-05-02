@@ -70,6 +70,8 @@ export async function sendSmtpMailDetailed(input: {
   subject: string;
   text: string;
   html?: string;
+  cc?: string;
+  bcc?: string;
 }): Promise<SendSmtpMailResult> {
   const transport = getTransport();
   if (!transport) {
@@ -84,6 +86,8 @@ export async function sendSmtpMailDetailed(input: {
     await transport.sendMail({
       from,
       to: input.to,
+      cc: input.cc?.trim() || undefined,
+      bcc: input.bcc?.trim() || undefined,
       subject: input.subject,
       text: input.text,
       html: input.html,
@@ -113,6 +117,8 @@ export async function sendSmtpMail(input: {
   subject: string;
   text: string;
   html?: string;
+  cc?: string;
+  bcc?: string;
 }): Promise<boolean> {
   const r = await sendSmtpMailDetailed(input);
   return r.ok;

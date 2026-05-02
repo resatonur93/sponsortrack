@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadFormSettingsPanel } from "@/components/admin/settings/LeadFormSettingsPanel";
+import { NotificationSettingsPanel } from "@/components/admin/settings/NotificationSettingsPanel";
 import { SecuritySettingsPanel } from "@/components/admin/settings/SecuritySettingsPanel";
 import { AdminPageHeader, AdminSurfaceCard } from "@/components/admin/shell/AdminPageShell";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -41,7 +42,7 @@ export default function AdminSettingsPage(): JSX.Element {
   const router = useRouter();
 
   const [settingsTab, setSettingsTab] = useState<
-    "general" | "leadForms" | "security"
+    "general" | "leadForms" | "notifications" | "security"
   >("general");
 
   const [smtpTo, setSmtpTo] = useState("");
@@ -115,6 +116,10 @@ export default function AdminSettingsPage(): JSX.Element {
           <TabsTrigger value="leadForms" className="gap-2">
             <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
             {t("admin.settings.tabs.leadForms")}
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4 shrink-0" aria-hidden />
+            {t("admin.settings.tabs.notifications")}
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Shield className="h-4 w-4 shrink-0 text-brand-navy" aria-hidden />
@@ -237,6 +242,10 @@ export default function AdminSettingsPage(): JSX.Element {
 
         <TabsContent value="leadForms" className="mt-6 focus-visible:ring-0">
           <LeadFormSettingsPanel />
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-6 focus-visible:ring-0">
+          <NotificationSettingsPanel />
         </TabsContent>
 
         <TabsContent value="security" className="mt-6 focus-visible:ring-0">

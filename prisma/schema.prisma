@@ -38,6 +38,76 @@ model Tenant {
   allowedIpRules        AllowedIpRule[]
   authSessions          UserAuthSession[]
   trustedDevices        UserTrustedDevice[]
+  notificationConfig    NotificationConfig?
+  emailTemplates        EmailTemplate[]
+}
+
+/// Kiracı başına otomatik uyum / belge e-posta hatırlatıcı takvimi ve dağıtım listeleri.
+model NotificationConfig {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  emailEnabled Boolean @default(true)
+  /// Virgülle ayrılmış ek CC adresleri (AO + yöneticiler `to` ile çözümlenmeye devam eder).
+  ccRecipients  String? @db.Text
+  bccRecipients String? @db.Text
+
+  sendAfterExpired Boolean @default(true)
+
+  visaRemind60Enabled      Boolean @default(true)
+  visaRemind60Days         Int     @default(60)
+  visaRemind30Enabled      Boolean @default(true)
+  visaRemind30Days         Int     @default(30)
+  visaRemind7Enabled       Boolean @default(true)
+  visaRemind7Days          Int     @default(7)
+  visaRemindLastDayEnabled Boolean @default(true)
+
+  sponsorshipRemind60Enabled      Boolean @default(true)
+  sponsorshipRemind60Days         Int     @default(60)
+  sponsorshipRemind30Enabled      Boolean @default(true)
+  sponsorshipRemind30Days         Int     @default(30)
+  sponsorshipRemind7Enabled       Boolean @default(true)
+  sponsorshipRemind7Days          Int     @default(7)
+  sponsorshipRemindLastDayEnabled Boolean @default(false)
+
+  rtwRemind60Enabled      Boolean @default(true)
+  rtwRemind60Days         Int     @default(60)
+  rtwRemind30Enabled      Boolean @default(true)
+  rtwRemind30Days         Int     @default(30)
+  rtwRemind7Enabled       Boolean @default(true)
+  rtwRemind7Days          Int     @default(7)
+  rtwRemindLastDayEnabled Boolean @default(false)
+
+  documentRemind60Enabled      Boolean @default(true)
+  documentRemind60Days         Int     @default(60)
+  documentRemind30Enabled      Boolean @default(true)
+  documentRemind30Days         Int     @default(30)
+  documentRemind7Enabled       Boolean @default(true)
+  documentRemind7Days          Int     @default(7)
+  documentRemindLastDayEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model EmailTemplate {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  templateKey   String
+  subjectTr     String
+  subjectEn     String
+  bodyTr        String   @db.Text
+  bodyEn        String   @db.Text
+  variableHints String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, templateKey])
+  @@index([tenantId])
 }
 
 model User {

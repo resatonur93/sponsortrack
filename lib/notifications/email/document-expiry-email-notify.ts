@@ -1,16 +1,29 @@
-import { Prisma, type DocumentExpiryReminderKind, type PrismaClient } from "@prisma/client";
-import { addDays, daysBetween, startOfDay } from "@/lib/dates";
-import { logger } from "@/lib/logger";
-import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
 import {
+  Prisma,
+  type DocumentExpiryReminderKind,
+  type NotificationConfig,
+  type PrismaClient,
+} from "@prisma/client";
+import { addDays, daysBetween, startOfDay } from "@/lib/dates";
+import {
+  documentTypeTitleEn,
   documentTypeTitleTr,
   formatDocumentHumanSummary,
 } from "@/lib/documents/document-email-labels";
+import { joinSmtpRecipients } from "@/lib/email/recipient-parse";
+import { logger } from "@/lib/logger";
+import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
 import {
-  DOCUMENT_EXPIRY_REMINDER_KINDS,
-  expiryReminderKindMatchesCalendar,
-} from "./expiry-reminder-calendar";
+  collectDocumentExpiryScanUtcDays,
+  documentReminderRules,
+  reminderKindMatchesConfiguredOffset,
+} from "@/lib/notifications/notification-reminder-rules";
 import { resolveDocumentExpiryRecipients } from "./ao-recipients";
+import { applyTemplateVars } from "./apply-template-vars";
+import { documentExpiryDefaultStrings } from "./default-templates";
+import { DOCUMENT_EXPIRY_REMINDER_KINDS } from "./expiry-reminder-calendar";
+import { coerceEffectiveNotificationConfig } from "./notification-settings-store";
+import { documentExpiryTemplateKey } from "./template-keys";
 
 function expiryDayKey(expiryDate: Date): string {
   return startOfDay(expiryDate).toISOString().slice(0, 10);
@@ -33,67 +46,22 @@ type DocMailPayload = {
   tenant: { companyName: string };
 };
 
-function subjectAndLead(
-  kind: DocumentExpiryReminderKind,
-  company: string,
-  workerLabel: string,
-  docTitleTr: string
-): { subject: string; bodyIntroTr: string; bodyIntroEn: string } {
-  const who = `${docTitleTr} — ${company} / ${workerLabel}`;
-  switch (kind) {
-    case "BEFORE_60":
-      return {
-        subject: `[SponsorTrack] Belge: 60 gün kala · ${who}`,
-        bodyIntroTr: "Bir çalışan belgesinin süresinin dolmasına UTC takvimine göre 60 gün kalmıştır.",
-        bodyIntroEn: "A worker document expires in 60 calendar days (UTC date comparison).",
-      };
-    case "BEFORE_30":
-      return {
-        subject: `[SponsorTrack] Belge: 30 gün kala · ${who}`,
-        bodyIntroTr: "Bir çalışan belgesinin süresinin dolmasına UTC takvimine göre 30 gün kalmıştır.",
-        bodyIntroEn: "A worker document expires in 30 calendar days (UTC date comparison).",
-      };
-    case "BEFORE_7":
-      return {
-        subject: `[SponsorTrack] Belge: 7 gün kala · ${who}`,
-        bodyIntroTr: "Bir çalışan belgesinin süresinin dolmasına UTC takvimine göre 7 gün kalmıştır.",
-        bodyIntroEn: "A worker document expires in 7 calendar days (UTC date comparison).",
-      };
-    case "EXPIRY_DAY":
-      return {
-        subject: `[SponsorTrack] Belge: son geçerlilik günü · ${who}`,
-        bodyIntroTr:
-          "Bu belge için bitiş tarihinin takvimde bugün olduğu bildirilir (UTC gün karşılaştırması).",
-        bodyIntroEn: "Today is the document’s expiry calendar day (UTC date comparison).",
-      };
-    case "AFTER_EXPIRED":
-      return {
-        subject: `[SponsorTrack] Süresi doldu: ${docTitleTr} · ${company} / ${workerLabel}`,
-        bodyIntroTr: "Aşağıdaki çalışan belgesinin süresi (bitiş tarihi) geçmiştir.",
-        bodyIntroEn: "The following worker document has passed its expiry date.",
-      };
-    default:
-      return {
-        subject: `[SponsorTrack] Belge · ${who}`,
-        bodyIntroTr: "Belge bildirimi.",
-        bodyIntroEn: "Document notification.",
-      };
-  }
-}
-
 async function trySendReminderForLoadedDoc(
   db: PrismaClient,
   doc: DocMailPayload,
   kind: DocumentExpiryReminderKind,
-  now: Date
+  now: Date,
+  config: NotificationConfig
 ): Promise<boolean> {
   if (!doc.expiryDate || doc.worker.employmentStatus === "TERMINATED") {
     return false;
   }
+  if (!config.emailEnabled) return false;
 
   const today = startOfDay(now);
   const d = daysBetween(today, startOfDay(doc.expiryDate));
-  if (!expiryReminderKindMatchesCalendar(kind, d)) return false;
+  const rules = documentReminderRules(config);
+  if (!reminderKindMatchesConfiguredOffset(kind, d, rules)) return false;
 
   const expiryDay = expiryDayKey(doc.expiryDate);
   const exists = await db.documentExpiryEmailLog.findUnique({
@@ -106,23 +74,67 @@ async function trySendReminderForLoadedDoc(
   const recipients = await resolveDocumentExpiryRecipients(db, doc.tenantId);
   if (recipients.length === 0) return false;
 
-  const to = recipients.join(", ");
   const baseRaw = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const baseUrl = baseRaw.replace(/\/$/, "");
   const workerLabel = `${doc.worker.firstName} ${doc.worker.lastName}`;
   const docTitleTr = documentTypeTitleTr(doc.documentType);
-  const { subject, bodyIntroTr, bodyIntroEn } = subjectAndLead(
-    kind,
-    doc.tenant.companyName,
-    workerLabel,
-    docTitleTr
-  );
+  const docTitleEn = documentTypeTitleEn(doc.documentType);
+  const templateKey = documentExpiryTemplateKey(kind);
+  const tpl = await db.emailTemplate.findUnique({
+    where: { tenantId_templateKey: { tenantId: doc.tenantId, templateKey } },
+  });
+
+  const vars: Record<string, string> = {
+    workerName: workerLabel,
+    companyName: doc.tenant.companyName,
+    expiryDate: expiryDay,
+    cosReference: doc.worker.cosReference,
+    workerUrl: `${baseUrl}/workers/${doc.workerId}`,
+    notificationsUrl: `${baseUrl}/notifications`,
+    anchorLabelTr: "Belge bitiş tarihi (UTC)",
+    anchorLabelEn: "Document expiry calendar day (UTC)",
+    documentTypeTr: docTitleTr,
+    documentTypeEn: docTitleEn,
+    fileName: doc.fileName,
+    documentId: doc.id,
+  };
+
+  let subjectTrRaw: string;
+  let subjectEnRaw: string;
+  let bodyTrRaw: string;
+  let bodyEnRaw: string;
+  if (tpl) {
+    subjectTrRaw = tpl.subjectTr;
+    subjectEnRaw = tpl.subjectEn;
+    bodyTrRaw = tpl.bodyTr;
+    bodyEnRaw = tpl.bodyEn;
+  } else {
+    const tier =
+      kind === "BEFORE_60"
+        ? rules.d60.days
+        : kind === "BEFORE_30"
+          ? rules.d30.days
+          : kind === "BEFORE_7"
+            ? rules.d7.days
+            : undefined;
+    const fb = documentExpiryDefaultStrings(kind, tier);
+    subjectTrRaw = fb.subjectTr;
+    subjectEnRaw = fb.subjectEn;
+    bodyTrRaw = fb.bodyTr;
+    bodyEnRaw = fb.bodyEn;
+  }
+
+  const subject =
+    applyTemplateVars(subjectTrRaw, vars).trim() ||
+    applyTemplateVars(subjectEnRaw, vars).trim();
+  const bodyTr = applyTemplateVars(bodyTrRaw, vars);
+  const bodyEn = applyTemplateVars(bodyEnRaw, vars);
   const docBlock = formatDocumentHumanSummary(doc.documentType, doc.vaultFolder);
 
   const text = [
-    bodyIntroTr,
+    bodyTr,
     "",
-    bodyIntroEn,
+    bodyEn,
     "",
     "────────────────",
     "",
@@ -139,7 +151,13 @@ async function trySendReminderForLoadedDoc(
     "Bu SponsorTrack sisteminden otomatik gönderilmiştir. / Automated message from SponsorTrack.",
   ].join("\n");
 
-  const ok = await sendSmtpMail({ to, subject, text });
+  const ok = await sendSmtpMail({
+    to: recipients.join(", "),
+    subject,
+    text,
+    cc: joinSmtpRecipients(config.ccRecipients),
+    bcc: joinSmtpRecipients(config.bccRecipients),
+  });
   if (!ok) return false;
 
   try {
@@ -198,10 +216,15 @@ export async function processDocumentExpiryRemindersForDocumentId(
   const doc = await loadDocMailPayload(db, documentId);
   if (!doc) return 0;
 
+  const ncRow = await db.notificationConfig.findUnique({
+    where: { tenantId: doc.tenantId },
+  });
+  const config = coerceEffectiveNotificationConfig(doc.tenantId, ncRow);
+
   let sent = 0;
   for (const kind of DOCUMENT_EXPIRY_REMINDER_KINDS) {
     try {
-      if (await trySendReminderForLoadedDoc(db, doc, kind, now)) sent += 1;
+      if (await trySendReminderForLoadedDoc(db, doc, kind, now, config)) sent += 1;
     } catch (e) {
       logger.error("document expiry reminder email failed", e, { documentId, kind });
     }
@@ -244,7 +267,7 @@ async function documentIdsExpiredBeforeToday(
   return rows.map((r) => r.id);
 }
 
-/** Cron / toplu: 60/30/7 gün önce, son gün ve süresi dolmuş için (her biri yalnızca bir kez loglanır). */
+/** Cron / toplu: kiracı yapılandırmasındaki gün ofsetleri + son gün + süresi dolmuş. */
 export async function processExpiredDocumentEmails(
   db: PrismaClient,
   now: Date = new Date()
@@ -257,15 +280,15 @@ export async function processExpiredDocumentEmails(
   }
 
   const today = startOfDay(now);
-  const buckets = await Promise.all([
-    documentIdsWithExpiryUtcDay(db, addDays(today, 60)),
-    documentIdsWithExpiryUtcDay(db, addDays(today, 30)),
-    documentIdsWithExpiryUtcDay(db, addDays(today, 7)),
-    documentIdsWithExpiryUtcDay(db, today),
-    documentIdsExpiredBeforeToday(db, today),
-  ]);
+  const ncRows = await db.notificationConfig.findMany();
+  const scanDays = collectDocumentExpiryScanUtcDays(today, ncRows);
 
-  const ids = Array.from(new Set(buckets.flat()));
+  const buckets = await Promise.all(
+    scanDays.map((d) => documentIdsWithExpiryUtcDay(db, d))
+  );
+  const expiredBefore = await documentIdsExpiredBeforeToday(db, today);
+
+  const ids = Array.from(new Set([...buckets.flat(), ...expiredBefore]));
   let sent = 0;
   for (const id of ids) {
     try {

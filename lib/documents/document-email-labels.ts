@@ -76,6 +76,10 @@ export function documentTypeTitleTr(dt: DocumentType): string {
   return TYPE_TR[dt] ?? dt;
 }
 
+export function documentTypeTitleEn(dt: DocumentType): string {
+  return TYPE_EN[dt] ?? dt;
+}
+
 export function formatDocumentHumanSummary(
   documentType: DocumentType,
   vaultFolder: DocumentVaultFolder

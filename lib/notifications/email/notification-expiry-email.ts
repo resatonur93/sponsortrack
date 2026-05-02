@@ -1,19 +1,28 @@
 import {
   DocumentExpiryReminderKind,
   NotificationComplianceAnchorDomain,
+  type NotificationConfig,
   type NotificationEvent,
   type NotificationType,
   Prisma,
   type PrismaClient,
 } from "@prisma/client";
 import { addDays, daysBetween, startOfDay } from "@/lib/dates";
+import { joinSmtpRecipients } from "@/lib/email/recipient-parse";
 import { logger } from "@/lib/logger";
 import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
-import { resolveComplianceReminderRecipients } from "./ao-recipients";
 import {
-  DOCUMENT_EXPIRY_REMINDER_KINDS,
-  expiryReminderKindMatchesCalendar,
-} from "./expiry-reminder-calendar";
+  anchorDomainReminderRules,
+  isReminderKindEnabledForTier,
+  reminderKindMatchesConfiguredOffset,
+  type ReminderRuleSlice,
+} from "@/lib/notifications/notification-reminder-rules";
+import { resolveComplianceReminderRecipients } from "./ao-recipients";
+import { applyTemplateVars } from "./apply-template-vars";
+import { complianceDefaultStrings } from "./default-templates";
+import { DOCUMENT_EXPIRY_REMINDER_KINDS } from "./expiry-reminder-calendar";
+import { coerceEffectiveNotificationConfig } from "./notification-settings-store";
+import { complianceAnchorTemplateKey } from "./template-keys";
 
 /**
  * Sends TR+EN compliance emails for visa, RTW recheck due dates, sponsorship end, and CoS expiry anchors.
@@ -114,52 +123,19 @@ function domainLabels(domain: NotificationComplianceAnchorDomain): {
   }
 }
 
-function subjectAndBodyLead(
-  kind: DocumentExpiryReminderKind,
-  company: string,
-  workerLabel: string,
-  domain: NotificationComplianceAnchorDomain
-): { subject: string; bodyIntroTr: string; bodyIntroEn: string } {
-  const { trTopic, enTopic } = domainLabels(domain);
-  const whoTr = `${trTopic} · ${company} · ${workerLabel}`;
-  const whoEn = `${enTopic} — ${company} — ${workerLabel}`;
+function tierDaysForKind(
+  rules: ReminderRuleSlice,
+  kind: DocumentExpiryReminderKind
+): number | undefined {
   switch (kind) {
     case "BEFORE_60":
-      return {
-        subject: `[SponsorTrack] Hatırlatma: ${trTopic} — 60 gün · ${workerLabel}`,
-        bodyIntroTr: `${whoTr} için kritik tarihe UTC takvimine göre 60 gün kalmıştır.`,
-        bodyIntroEn: `${whoEn}: 60 calendar days remain until the UTC anchor date.`,
-      };
+      return rules.d60.days;
     case "BEFORE_30":
-      return {
-        subject: `[SponsorTrack] Hatırlatma: ${trTopic} — 30 gün · ${workerLabel}`,
-        bodyIntroTr: `${whoTr} için kritik tarihe UTC takvimine göre 30 gün kalmıştır.`,
-        bodyIntroEn: `${whoEn}: 30 calendar days remain until the UTC anchor date.`,
-      };
+      return rules.d30.days;
     case "BEFORE_7":
-      return {
-        subject: `[SponsorTrack] KRİTİK: ${trTopic} — 7 gün · ${workerLabel}`,
-        bodyIntroTr: `${whoTr} için kritik tarihe UTC takvimine göre 7 gün kalmıştır.`,
-        bodyIntroEn: `${whoEn}: 7 calendar days remain until the UTC anchor date.`,
-      };
-    case "EXPIRY_DAY":
-      return {
-        subject: `[SponsorTrack] BUGÜN: ${trTopic} · ${workerLabel}`,
-        bodyIntroTr: `${whoTr} için bağlayıcı UTC takvim günü bugündür.`,
-        bodyIntroEn: `${whoEn}: today is the scheduled UTC anchor calendar day.`,
-      };
-    case "AFTER_EXPIRED":
-      return {
-        subject: `[SponsorTrack] Geciken aksiyon: ${trTopic} · ${workerLabel}`,
-        bodyIntroTr: `${whoTr} için kritik tarih geçmiştir; uyum ve raporlama adımlarını gözden geçirin.`,
-        bodyIntroEn: `${whoEn}: the UTC anchor date has passed — review sponsorship / reporting duties.`,
-      };
+      return rules.d7.days;
     default:
-      return {
-        subject: `[SponsorTrack] ${trTopic} · ${workerLabel}`,
-        bodyIntroTr: "Uyumluluk hatırlatması.",
-        bodyIntroEn: "Compliance reminder.",
-      };
+      return undefined;
   }
 }
 
@@ -195,6 +171,7 @@ async function sendComplianceAnchorEmail(opts: {
   db: PrismaClient;
   now: Date;
   tenantId: string;
+  config: NotificationConfig;
   worker: WorkerBrief;
   tenant: TenantBrief;
   lineManager: ManagerBrief;
@@ -213,6 +190,7 @@ async function sendComplianceAnchorEmail(opts: {
     worker,
     tenant,
     tenantId,
+    config,
     anchorDate,
     anchorDomain,
     reminderKind,
@@ -222,11 +200,17 @@ async function sendComplianceAnchorEmail(opts: {
   } = opts;
 
   if (!isSmtpConfigured()) return false;
+  if (!config.emailEnabled) return false;
   if (worker.employmentStatus === "TERMINATED") return false;
 
   const today = startOfDay(now);
   const d = daysBetween(today, startOfDay(anchorDate));
-  if (!skipCalendarCheck && !expiryReminderKindMatchesCalendar(reminderKind, d)) return false;
+  const rules = anchorDomainReminderRules(anchorDomain, config);
+  if (!skipCalendarCheck) {
+    if (!reminderKindMatchesConfiguredOffset(reminderKind, d, rules)) return false;
+  } else if (!isReminderKindEnabledForTier(reminderKind, rules)) {
+    return false;
+  }
 
   const anchorDay = anchorDayIso(anchorDate);
 
@@ -254,13 +238,50 @@ async function sendComplianceAnchorEmail(opts: {
   const baseRaw = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const baseUrl = baseRaw.replace(/\/$/, "");
   const workerLabel = `${worker.firstName} ${worker.lastName}`;
-  const { subject, bodyIntroTr, bodyIntroEn } = subjectAndBodyLead(
-    reminderKind,
-    tenant.companyName,
-    workerLabel,
-    anchorDomain
-  );
   const { anchorLabelTr, anchorLabelEn } = domainLabels(anchorDomain);
+  const templateKey = complianceAnchorTemplateKey(anchorDomain, reminderKind);
+  const tpl = await db.emailTemplate.findUnique({
+    where: { tenantId_templateKey: { tenantId, templateKey } },
+  });
+
+  const vars: Record<string, string> = {
+    workerName: workerLabel,
+    companyName: tenant.companyName,
+    expiryDate: anchorDay,
+    cosReference: worker.cosReference,
+    workerUrl: `${baseUrl}/workers/${worker.id}`,
+    notificationsUrl: `${baseUrl}/notifications`,
+    anchorLabelTr,
+    anchorLabelEn,
+  };
+
+  let subjectTrRaw: string;
+  let subjectEnRaw: string;
+  let bodyTrRaw: string;
+  let bodyEnRaw: string;
+  if (tpl) {
+    subjectTrRaw = tpl.subjectTr;
+    subjectEnRaw = tpl.subjectEn;
+    bodyTrRaw = tpl.bodyTr;
+    bodyEnRaw = tpl.bodyEn;
+  } else {
+    const fb = complianceDefaultStrings(
+      anchorDomain,
+      reminderKind,
+      tierDaysForKind(rules, reminderKind)
+    );
+    subjectTrRaw = fb.subjectTr;
+    subjectEnRaw = fb.subjectEn;
+    bodyTrRaw = fb.bodyTr;
+    bodyEnRaw = fb.bodyEn;
+  }
+
+  const subject =
+    applyTemplateVars(subjectTrRaw, vars).trim() ||
+    applyTemplateVars(subjectEnRaw, vars).trim();
+  const bodyTr = applyTemplateVars(bodyTrRaw, vars);
+  const bodyEn = applyTemplateVars(bodyEnRaw, vars);
+
   let managerNote = "";
   if (mgrExtras.length) {
     managerNote = [
@@ -271,9 +292,9 @@ async function sendComplianceAnchorEmail(opts: {
   }
 
   const text = [
-    bodyIntroTr,
+    bodyTr,
     "",
-    bodyIntroEn,
+    bodyEn,
     "",
     "────────────────",
     "",
@@ -299,7 +320,13 @@ async function sendComplianceAnchorEmail(opts: {
     "Bu SponsorTrack bildirimi otomatik gönderilmiştir. / Automated message from SponsorTrack.",
   ].join("\n");
 
-  const ok = await sendSmtpMail({ to: recipients.join(", "), subject, text });
+  const ok = await sendSmtpMail({
+    to: recipients.join(", "),
+    subject,
+    text,
+    cc: joinSmtpRecipients(config.ccRecipients),
+    bcc: joinSmtpRecipients(config.bccRecipients),
+  });
   if (!ok) return false;
 
   try {
@@ -392,10 +419,16 @@ export async function sendExpiryNotificationEmail(
 
   const { anchorDomain, reminderKind } = mapped;
 
+  const ncRow = await db.notificationConfig.findUnique({
+    where: { tenantId: full.tenantId },
+  });
+  const config = coerceEffectiveNotificationConfig(full.tenantId, ncRow);
+
   return sendComplianceAnchorEmail({
     db,
     now,
     tenantId: full.tenantId,
+    config,
     worker: {
       id: full.worker.id,
       tenantId: full.worker.tenantId,
@@ -472,19 +505,39 @@ export async function processVisaAndSponsorshipExpiries(
     now: now.toISOString(),
   });
 
+  const tenantIdSet = Array.from(new Set(workers.map((w) => w.tenantId)));
+  const ncRows = await db.notificationConfig.findMany({
+    where: { tenantId: { in: tenantIdSet } },
+  });
+  const configByTenantId = new Map<string, NotificationConfig>();
+  for (const tid of tenantIdSet) {
+    const row = ncRows.find((r) => r.tenantId === tid) ?? null;
+    configByTenantId.set(tid, coerceEffectiveNotificationConfig(tid, row));
+  }
+
+  const todayAnchor = startOfDay(now);
+
   async function sweepAnchors(params: {
     anchorDate: Date;
     anchorDomain: NotificationComplianceAnchorDomain;
     worker: (typeof workers)[0];
   }): Promise<void> {
     const { anchorDate, anchorDomain, worker } = params;
+    const config = configByTenantId.get(worker.tenantId);
+    if (!config) return;
+
+    const d = daysBetween(todayAnchor, startOfDay(anchorDate));
+    const rules = anchorDomainReminderRules(anchorDomain, config);
+
     for (const kind of DOCUMENT_EXPIRY_REMINDER_KINDS) {
+      if (!reminderKindMatchesConfiguredOffset(kind, d, rules)) continue;
       try {
         if (
           await sendComplianceAnchorEmail({
             db,
             now,
             tenantId: worker.tenantId,
+            config,
             worker,
             tenant: worker.tenant,
             lineManager: worker.lineManager,
@@ -493,6 +546,7 @@ export async function processVisaAndSponsorshipExpiries(
             anchorDomain,
             reminderKind: kind,
             notificationEventId: null,
+            skipCalendarCheck: true,
           })
         )
           sent += 1;
