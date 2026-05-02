@@ -22,11 +22,15 @@ export default withAuth(
     const isPolicyAcknowledgePost =
       method === "POST" &&
       /^\/api\/policies\/[^/]+\/acknowledge\/?$/.test(path);
+    const isNotificationMarkReadMutation =
+      (method === "PUT" || method === "POST") &&
+      /^\/api\/notifications\/[^/]+\/read\/?$/.test(path);
     if (
       token?.role === "LEVEL_2_USER" &&
       method !== "GET" &&
       method !== "HEAD" &&
-      !isPolicyAcknowledgePost
+      !isPolicyAcknowledgePost &&
+      !isNotificationMarkReadMutation
     ) {
       return NextResponse.json(
         { error: "Forbidden: read-only role" },

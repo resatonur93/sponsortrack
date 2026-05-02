@@ -365,20 +365,34 @@ export default function NotificationsPage(): JSX.Element {
   async function markNotificationRead(rowId: string): Promise<void> {
     setMarkingReadId(rowId);
     try {
-      const res = await fetch(`/api/notifications/${rowId}/read`, {
+      let res = await fetch(`/api/notifications/${rowId}/read`, {
         method: "PUT",
         credentials: "include",
       });
+      if (res.status === 405) {
+        res = await fetch(`/api/notifications/${rowId}/read`, {
+          method: "POST",
+          credentials: "include",
+        });
+      }
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: Row;
+        error?: string;
+      };
       if (!res.ok) {
-        window.alert(t("notifications.markReadFailed"));
+        window.alert(
+          [t("notifications.markReadFailed"), json.error].filter(Boolean).join("\n\n")
+        );
         return;
       }
-      const json = (await res.json()) as { data: Row };
-      if (json.data) {
-        setRows((prev) => prev.map((r) => (r.id === rowId ? json.data : r)));
+      const next = json.data;
+      if (next) {
+        setRows((prev) => prev.map((r) => (r.id === rowId ? next : r)));
         setDetailRow((d) =>
-          d?.id === rowId && json.data ? { ...d, ...json.data, worker: json.data.worker ?? d.worker } : d
+          d?.id === rowId ? { ...d, ...next, worker: next.worker ?? d.worker } : d
         );
+      } else {
+        await reloadNotifications();
       }
     } finally {
       setMarkingReadId(null);
