@@ -10,6 +10,10 @@ import {
   documentTypeTitleTr,
   formatDocumentHumanSummary,
 } from "@/lib/documents/document-email-labels";
+import {
+  buildExpiryReminderEmailHtml,
+  buildExpiryReminderPlainTextFallback,
+} from "@/lib/emails/templates/expiry-reminder-template";
 import { joinSmtpRecipients } from "@/lib/email/recipient-parse";
 import { logger } from "@/lib/logger";
 import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
@@ -131,12 +135,56 @@ async function trySendReminderForLoadedDoc(
   const bodyEn = applyTemplateVars(bodyEnRaw, vars);
   const docBlock = formatDocumentHumanSummary(doc.documentType, doc.vaultFolder);
 
+  const tierAdvance =
+    kind === "BEFORE_60"
+      ? rules.d60.days
+      : kind === "BEFORE_30"
+        ? rules.d30.days
+        : kind === "BEFORE_7"
+          ? rules.d7.days
+          : undefined;
+
+  const enrichedHtml = buildExpiryReminderEmailHtml({
+    baseUrl,
+    variant: "document",
+    reminderKind: kind,
+    daysRemaining: d,
+    expiryDateISO: expiryDay,
+    workerName: workerLabel,
+    workerId: doc.workerId,
+    companyName: doc.tenant.companyName,
+    cosReference: doc.worker.cosReference,
+    customTitleTr: applyTemplateVars(subjectTrRaw, vars).trim(),
+    customTitleEn: applyTemplateVars(subjectEnRaw, vars).trim(),
+    tierAdvanceDays: tierAdvance,
+    documentLabelTr: docTitleTr,
+    documentLabelEn: docTitleEn,
+    fileName: doc.fileName,
+  });
+
   const text = [
+    buildExpiryReminderPlainTextFallback({
+      baseUrl,
+      variant: "document",
+      reminderKind: kind,
+      daysRemaining: d,
+      expiryDateISO: expiryDay,
+      workerName: workerLabel,
+      workerId: doc.workerId,
+      companyName: doc.tenant.companyName,
+      cosReference: doc.worker.cosReference,
+      customTitleTr: applyTemplateVars(subjectTrRaw, vars).trim(),
+      customTitleEn: applyTemplateVars(subjectEnRaw, vars).trim(),
+      tierAdvanceDays: tierAdvance,
+      documentLabelTr: docTitleTr,
+      documentLabelEn: docTitleEn,
+      fileName: doc.fileName,
+    }),
+    "",
+    "────────────────",
     bodyTr,
     "",
     bodyEn,
-    "",
-    "────────────────",
     "",
     docBlock,
     `Dosya adı / File name: ${doc.fileName}`,
@@ -147,6 +195,7 @@ async function trySendReminderForLoadedDoc(
     `CoS referansı / CoS reference: ${doc.worker.cosReference}`,
     `Belge kaydı (ID) / Document ID: ${doc.id}`,
     `Çalışan sayfası / Worker record: ${baseUrl}/workers/${doc.workerId}`,
+    `Belge kasası / Document vault: ${baseUrl}/workers/${doc.workerId}/documents`,
     "",
     "Bu SponsorTrack sisteminden otomatik gönderilmiştir. / Automated message from SponsorTrack.",
   ].join("\n");
@@ -155,6 +204,7 @@ async function trySendReminderForLoadedDoc(
     to: recipients.join(", "),
     subject,
     text,
+    html: enrichedHtml,
     cc: joinSmtpRecipients(config.ccRecipients),
     bcc: joinSmtpRecipients(config.bccRecipients),
   });

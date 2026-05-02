@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminSurfaceCard } from "@/components/admin/shell/AdminPageShell";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import type { ExpiryReminderVisualVariant } from "@/lib/emails/templates/expiry-reminder-template";
 import { applyTemplateVars } from "@/lib/notifications/email/apply-template-vars";
 
 function clampReminderDay(n: number): number {
@@ -114,6 +115,8 @@ export function NotificationSettingsPanel(): JSX.Element {
   const [testMsg, setTestMsg] = useState<{ variant: "ok" | "err"; text: string } | null>(
     null
   );
+  const [htmlDemoVariant, setHtmlDemoVariant] =
+    useState<ExpiryReminderVisualVariant>("visa");
 
   const [editTpl, setEditTpl] = useState<EmailTemplate | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -235,7 +238,7 @@ export function NotificationSettingsPanel(): JSX.Element {
     }
   }
 
-  async function sendTestMail(): Promise<void> {
+  async function postTestMail(body: Record<string, string>): Promise<void> {
     setTestBusy(true);
     setTestMsg(null);
     try {
@@ -243,14 +246,19 @@ export function NotificationSettingsPanel(): JSX.Element {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(testTo.trim() ? { to: testTo.trim() } : {}),
+        body: JSON.stringify(body),
       });
       const json = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         error?: string;
       };
       if (res.ok && json.ok) {
-        setTestMsg({ variant: "ok", text: t("admin.settings.notifications.testSent") });
+        setTestMsg({
+          variant: "ok",
+          text: body.htmlPreviewVariant
+            ? t("admin.settings.notifications.testHtmlSent")
+            : t("admin.settings.notifications.testSent"),
+        });
       } else {
         setTestMsg({
           variant: "err",
@@ -262,6 +270,17 @@ export function NotificationSettingsPanel(): JSX.Element {
     } finally {
       setTestBusy(false);
     }
+  }
+
+  async function sendTestMail(): Promise<void> {
+    await postTestMail(testTo.trim() ? { to: testTo.trim() } : {});
+  }
+
+  async function sendHtmlReminderDemo(): Promise<void> {
+    await postTestMail({
+      ...(testTo.trim() ? { to: testTo.trim() } : {}),
+      htmlPreviewVariant: htmlDemoVariant,
+    });
   }
 
   const previewSubject =
@@ -373,6 +392,42 @@ export function NotificationSettingsPanel(): JSX.Element {
                 )}
                 {t("admin.settings.notifications.testSend")}
               </Button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notif-html-demo">{t("admin.settings.notifications.htmlDemoLabel")}</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  id="notif-html-demo"
+                  className={cn(
+                    "min-h-[40px] min-w-[200px] rounded-md border border-brand-navy/15 bg-white px-3 text-sm font-medium text-brand-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/20"
+                  )}
+                  value={htmlDemoVariant}
+                  onChange={(e) =>
+                    setHtmlDemoVariant(e.target.value as ExpiryReminderVisualVariant)
+                  }
+                >
+                  <option value="visa">{t("admin.settings.notifications.htmlDemoVisa")}</option>
+                  <option value="cos">{t("admin.settings.notifications.htmlDemoCos")}</option>
+                  <option value="sponsorship">{t("admin.settings.notifications.htmlDemoSponsorship")}</option>
+                  <option value="rtw">{t("admin.settings.notifications.htmlDemoRtw")}</option>
+                  <option value="document">{t("admin.settings.notifications.htmlDemoDoc")}</option>
+                </select>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={testBusy || !cfg.emailEnabled}
+                  className="gap-2"
+                  onClick={() => void sendHtmlReminderDemo()}
+                >
+                  {testBusy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden />
+                  )}
+                  {t("admin.settings.notifications.testHtmlSend")}
+                </Button>
+              </div>
+              <p className="text-xs text-brand-slate">{t("admin.settings.notifications.htmlDemoHint")}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="notif-test-to">{t("admin.settings.notifications.testOptionalTo")}</Label>

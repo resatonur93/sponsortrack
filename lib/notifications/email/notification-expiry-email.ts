@@ -8,6 +8,11 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 import { addDays, daysBetween, startOfDay } from "@/lib/dates";
+import {
+  buildExpiryReminderEmailHtml,
+  buildExpiryReminderPlainTextFallback,
+  expiryVariantFromAnchorDomain,
+} from "@/lib/emails/templates/expiry-reminder-template";
 import { joinSmtpRecipients } from "@/lib/email/recipient-parse";
 import { logger } from "@/lib/logger";
 import { isSmtpConfigured, sendSmtpMail } from "@/lib/email/smtp";
@@ -291,12 +296,41 @@ async function sendComplianceAnchorEmail(opts: {
     ].join("\n");
   }
 
+  const htmlEnvelope = buildExpiryReminderEmailHtml({
+    baseUrl,
+    variant: expiryVariantFromAnchorDomain(anchorDomain),
+    reminderKind,
+    daysRemaining: d,
+    expiryDateISO: anchorDay,
+    workerName: workerLabel,
+    workerId: worker.id,
+    companyName: tenant.companyName,
+    cosReference: worker.cosReference,
+    customTitleTr: applyTemplateVars(subjectTrRaw, vars).trim(),
+    customTitleEn: applyTemplateVars(subjectEnRaw, vars).trim(),
+    tierAdvanceDays: tierDaysForKind(rules, reminderKind),
+  });
+
   const text = [
+    buildExpiryReminderPlainTextFallback({
+      baseUrl,
+      variant: expiryVariantFromAnchorDomain(anchorDomain),
+      reminderKind,
+      daysRemaining: d,
+      expiryDateISO: anchorDay,
+      workerName: workerLabel,
+      workerId: worker.id,
+      companyName: tenant.companyName,
+      cosReference: worker.cosReference,
+      customTitleTr: applyTemplateVars(subjectTrRaw, vars).trim(),
+      customTitleEn: applyTemplateVars(subjectEnRaw, vars).trim(),
+      tierAdvanceDays: tierDaysForKind(rules, reminderKind),
+    }),
+    "",
+    "────────────────",
     bodyTr,
     "",
     bodyEn,
-    "",
-    "────────────────",
     "",
     `${anchorLabelTr}: ${anchorDay}`,
     `${anchorLabelEn}: ${anchorDay}`,
@@ -305,6 +339,7 @@ async function sendComplianceAnchorEmail(opts: {
     `Çalışan / Worker: ${workerLabel}`,
     `CoS referansı / CoS reference: ${worker.cosReference}`,
     `Çalışan sayfası / Worker record: ${baseUrl}/workers/${worker.id}`,
+    `Çalışan belge kasası / Document vault: ${baseUrl}/workers/${worker.id}/documents`,
     `Bildirimler / Notifications: ${baseUrl}/notifications`,
     ...(notificationEventId
       ? [
@@ -324,6 +359,7 @@ async function sendComplianceAnchorEmail(opts: {
     to: recipients.join(", "),
     subject,
     text,
+    html: htmlEnvelope,
     cc: joinSmtpRecipients(config.ccRecipients),
     bcc: joinSmtpRecipients(config.bccRecipients),
   });
