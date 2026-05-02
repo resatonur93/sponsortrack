@@ -18,7 +18,6 @@ import {
   ArrowRight,
   ArrowUpDown,
   BookOpen,
-  CalendarDays,
   Check,
   CheckCheck,
   CheckCircle2,
@@ -363,6 +362,29 @@ export default function NotificationsPage(): JSX.Element {
     router.push(vaultDocumentsHref(row.worker.id, row.eventType));
   }
 
+  async function markNotificationRead(rowId: string): Promise<void> {
+    setMarkingReadId(rowId);
+    try {
+      const res = await fetch(`/api/notifications/${rowId}/read`, {
+        method: "PUT",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        window.alert(t("notifications.markReadFailed"));
+        return;
+      }
+      const json = (await res.json()) as { data: Row };
+      if (json.data) {
+        setRows((prev) => prev.map((r) => (r.id === rowId ? json.data : r)));
+        setDetailRow((d) =>
+          d?.id === rowId && json.data ? { ...d, ...json.data, worker: json.data.worker ?? d.worker } : d
+        );
+      }
+    } finally {
+      setMarkingReadId(null);
+    }
+  }
+
   async function completeAndOpenVault(row: Row): Promise<void> {
     setCompletingId(row.id);
     try {
@@ -541,7 +563,7 @@ export default function NotificationsPage(): JSX.Element {
             {t("notifications.filtersSection")}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 lg:max-w-3xl lg:grid-cols-2">
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
           <div className="space-y-2">
             <Label className="text-slate-700">{t("notifications.filterStatus")}</Label>
             <Select value={status} onValueChange={setStatus}>
@@ -574,7 +596,20 @@ export default function NotificationsPage(): JSX.Element {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-start gap-3 md:col-span-2">
+          <div className="space-y-2">
+            <Label className="text-slate-700">{t("notifications.filterInboxRead")}</Label>
+            <Select value={readFilter} onValueChange={setReadFilter}>
+              <SelectTrigger className="h-11 border-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("notifications.inboxReadAll")}</SelectItem>
+                <SelectItem value="unread">{t("notifications.inboxReadUnread")}</SelectItem>
+                <SelectItem value="read">{t("notifications.inboxReadRead")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-start gap-3 md:col-span-2 lg:col-span-3">
             <input
               id="showAllMilestones"
               type="checkbox"
@@ -594,197 +629,249 @@ export default function NotificationsPage(): JSX.Element {
         </CardContent>
       </Card>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-md ring-1 ring-slate-100">
-        <Table>
-          <TableHeader className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur">
-            <TableRow className="border-slate-200 hover:bg-transparent">
-              <TableHead>
-                <SortBtn
-                  label={t("notifications.colWorker")}
-                  active={sort.key === "worker"}
-                  onClick={() => toggleSort("worker")}
-                />
-              </TableHead>
-              <TableHead>
-                <SortBtn
-                  label={t("notifications.colNotificationType")}
-                  active={sort.key === "type"}
-                  onClick={() => toggleSort("type")}
-                />
-              </TableHead>
-              <TableHead>{t("notifications.colStatus")}</TableHead>
-              <TableHead>{t("notifications.tableUrgency")}</TableHead>
-              <TableHead>
-                <SortBtn
-                  label={t("notifications.tableReportDeadline")}
-                  active={sort.key === "due"}
-                  onClick={() => toggleSort("due")}
-                />
-              </TableHead>
-              <TableHead className="text-right">{t("notifications.colAction")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-14 text-center text-sm text-slate-500">
-                  {t("common.loading")}
-                </TableCell>
-              </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="p-0">
-                  <div className="flex flex-col items-center px-8 py-16 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-brand-navy">
-                      <Inbox className="h-7 w-7 opacity-70" aria-hidden />
-                    </div>
-                    <p className="mt-4 text-base font-semibold text-brand-navy">
-                      {t("notifications.emptyStateTitle")}
-                    </p>
-                    <p className="mt-2 max-w-md text-sm text-slate-600">{t("notifications.emptyStateHint")}</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              groups.flatMap((g) => {
-                const out: JSX.Element[] = [];
-                if (g.items.length > 1) {
-                  out.push(
-                    <TableRow
-                      key={`group-${g.workerId}`}
-                      className="border-t-2 border-brand-navy/[0.08] bg-slate-50/90 hover:bg-slate-50/90"
-                    >
-                      <TableCell colSpan={6} className="py-2.5">
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-brand-navy">
-                          <CalendarDays className="h-4 w-4 shrink-0 text-brand-navy/70" aria-hidden />
-                          <Link href={`/workers/${g.worker.id}`} className="underline-offset-4 hover:underline">
-                            {g.worker.firstName} {g.worker.lastName}
-                          </Link>
-                          <span className="font-normal tabular-nums text-slate-600">
-                            {g.items.length} {t("notifications.groupCountSuffix")}
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-                for (const r of g.items) {
-                  out.push(
-                    <TableRow
-                      key={r.id}
-                      title={t("notifications.rowOpenVault")}
-                      onClick={() => navigateToVault(r)}
+      <Card className="overflow-hidden border-brand-navy/10 shadow-md ring-1 ring-slate-100">
+        <CardHeader className="space-y-3 border-b border-slate-100 bg-slate-50/80 pb-4">
+          <CardTitle className="text-lg text-brand-navy">{t("notifications.inboxGroupedTitle")}</CardTitle>
+          <div className="flex flex-wrap gap-4 text-xs">
+            <SortBtn
+              label={t("notifications.colWorker")}
+              active={sort.key === "worker"}
+              onClick={() => toggleSort("worker")}
+            />
+            <SortBtn
+              label={t("notifications.colNotificationType")}
+              active={sort.key === "type"}
+              onClick={() => toggleSort("type")}
+            />
+            <SortBtn
+              label={t("notifications.tableReportDeadline")}
+              active={sort.key === "due"}
+              onClick={() => toggleSort("due")}
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          {loading ? (
+            <p className="py-12 text-center text-sm text-slate-500">{t("common.loading")}</p>
+          ) : rows.length === 0 ? (
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-8 py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-brand-navy">
+                <Inbox className="h-7 w-7 opacity-70" aria-hidden />
+              </div>
+              <p className="mt-4 text-base font-semibold text-brand-navy">
+                {t("notifications.emptyStateTitle")}
+              </p>
+              <p className="mt-2 max-w-md text-sm text-slate-600">{t("notifications.emptyStateHint")}</p>
+            </div>
+          ) : (
+            groups.map((g) => {
+              const expanded = openByWorker[g.workerId] ?? true;
+              const unreadCount = g.items.filter((x) => isInboxUnread(x)).length;
+              return (
+                <div
+                  key={g.workerId}
+                  className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-100"
+                >
+                  <div className="flex items-stretch">
+                    <button
+                      type="button"
+                      onClick={() => toggleWorkerGroup(g.workerId)}
                       className={cn(
-                        "cursor-pointer border-slate-100 transition-colors hover:bg-slate-50/80 active:bg-slate-100/80",
-                        g.items.length > 1 ? "border-l-[3px] border-l-brand-gold/50" : null
+                        "flex min-w-0 flex-1 items-center gap-3 p-4 text-left transition-colors hover:bg-slate-50/90",
+                        unreadCount > 0 && expanded && "bg-amber-50/20"
                       )}
                     >
-                      <TableCell className="align-top">
-                        <div className="flex gap-3">
-                          <Link
-                            href={`/workers/${r.worker.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-navy/10 text-xs font-bold text-brand-navy ring-2 ring-brand-navy/15 hover:bg-brand-navy/20"
-                          >
-                            {workerInitials(r.worker)}
-                          </Link>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/workers/${r.worker.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-semibold text-brand-navy hover:underline"
-                            >
-                              {r.worker.firstName} {r.worker.lastName}
-                            </Link>
-                            <div className="truncate text-xs text-slate-600">{r.worker.email}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "max-w-[260px] whitespace-normal text-left text-xs font-semibold leading-snug",
-                            notificationTypeBadgeClass(r.eventType)
-                          )}
-                        >
-                          {notificationTypeLabel(r.eventType, t)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge variant="outline" className={rowStatusBadgeClass(r.status)}>
-                          {notificationStatusDisplay(r, t)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <PriorityCell row={r} />
-                      </TableCell>
-                      <TableCell className="align-top text-xs tabular-nums text-slate-700">
-                        <div>
-                          {(r.reportDeadlineAt ?? r.dueDate) &&
-                            new Date(r.reportDeadlineAt ?? r.dueDate).toLocaleDateString(localeTag)}
-                        </div>
-                        <div className="max-w-[200px] text-[11px] leading-snug text-slate-500">
-                          {formatDeadlineWindowLabel(
-                            r.eventType,
-                            r.occurredAt,
-                            r.reportDeadlineAt ?? r.dueDate,
-                            locale
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex flex-wrap justify-end gap-1.5">
-                          <Button
-                            type="button"
+                      <ChevronDown
+                        className={cn(
+                          "h-5 w-5 shrink-0 text-slate-500 transition-transform duration-200",
+                          expanded ? "rotate-180" : "rotate-0"
+                        )}
+                        aria-hidden
+                      />
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-navy/10 text-sm font-bold uppercase text-brand-navy ring-2 ring-brand-navy/12">
+                        {workerInitials(g.worker)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="truncate text-base font-semibold text-brand-navy">
+                            {g.worker.firstName} {g.worker.lastName}
+                          </span>
+                          <Badge
                             variant="outline"
-                            size="sm"
-                            className="h-8 border-slate-200 px-2.5 transition-colors hover:border-brand-gold/60"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDetailRow(r);
-                            }}
+                            className="border-brand-navy/20 bg-brand-navy/[0.04] tabular-nums text-[11px] font-semibold text-brand-navy"
                           >
-                            {t("notifications.detail")}
-                          </Button>
-                          {(r.status === "PENDING" || r.status === "OVERDUE") && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="success"
-                              disabled={completingId === r.id}
-                              title={t("notifications.completeTooltip")}
-                              className="h-8 min-w-[108px] gap-1.5 px-2.5 font-semibold shadow-sm transition-all hover:shadow-md hover:brightness-[1.03] active:scale-[0.98]"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void completeAndOpenVault(r);
-                              }}
+                            {g.items.length} {t("notifications.workerAlertsShort")}
+                          </Badge>
+                          {unreadCount > 0 ? (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-300 bg-amber-50 text-[11px] font-semibold text-amber-950"
                             >
-                              {completingId === r.id ? (
-                                <>
-                                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-                                  <span>{t("common.loading")}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                  <span>{t("notifications.complete")}</span>
-                                  <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                                </>
-                              )}
-                            </Button>
-                          )}
+                              {unreadCount} {t("notifications.unreadBadgeShort")}
+                            </Badge>
+                          ) : null}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-                return out;
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                        <div className="truncate text-xs text-slate-500">{g.worker.email}</div>
+                      </div>
+                    </button>
+                    <Link
+                      href={`/workers/${g.worker.id}`}
+                      title={t("notifications.workerProfile")}
+                      className="flex shrink-0 items-center justify-center border-l border-slate-100 px-4 text-brand-navy transition-colors hover:bg-slate-50"
+                    >
+                      <ExternalLink className="h-4 w-4" aria-hidden />
+                    </Link>
+                  </div>
+                  {expanded ? (
+                    <div className="border-t border-slate-100">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-slate-50/90">
+                            <TableRow className="border-slate-200 hover:bg-transparent">
+                              <TableHead className="min-w-[200px]">{t("notifications.colNotificationType")}</TableHead>
+                              <TableHead className="w-[120px] whitespace-nowrap">
+                                {t("notifications.inboxReadColumn")}
+                              </TableHead>
+                              <TableHead className="w-[110px]">{t("notifications.colStatus")}</TableHead>
+                              <TableHead className="min-w-[140px]">{t("notifications.tableUrgency")}</TableHead>
+                              <TableHead className="min-w-[120px]">
+                                <span className="inline-flex flex-col gap-0.5">
+                                  <SortBtn
+                                    label={t("notifications.tableReportDeadline")}
+                                    active={sort.key === "due"}
+                                    onClick={() => toggleSort("due")}
+                                  />
+                                </span>
+                              </TableHead>
+                              <TableHead className="min-w-[200px] text-right">{t("notifications.colAction")}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {g.items.map((r) => (
+                              <TableRow
+                                key={r.id}
+                                title={t("notifications.rowOpenVault")}
+                                onClick={() => navigateToVault(r)}
+                                className={cn(
+                                  "cursor-pointer border-slate-100 transition-colors hover:bg-slate-50/85 active:bg-slate-100/70",
+                                  isInboxUnread(r) && "bg-amber-50/35"
+                                )}
+                              >
+                                <TableCell className="align-top">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "max-w-[280px] whitespace-normal text-left text-xs font-semibold leading-snug",
+                                      notificationTypeBadgeClass(r.eventType)
+                                    )}
+                                  >
+                                    {notificationTypeLabel(r.eventType, t)}
+                                  </Badge>
+                                  <div className="mt-1 max-w-[280px] text-[11px] leading-snug text-slate-500">
+                                    {formatDeadlineWindowLabel(
+                                      r.eventType,
+                                      r.occurredAt,
+                                      r.reportDeadlineAt ?? r.dueDate,
+                                      locale
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="align-middle">
+                                  {isInboxUnread(r) ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 gap-1 border-slate-200 text-xs transition-colors hover:border-brand-gold/50"
+                                      disabled={markingReadId === r.id}
+                                      title={t("notifications.markAsReadTooltip")}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void markNotificationRead(r.id);
+                                      }}
+                                    >
+                                      {markingReadId === r.id ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                                      ) : (
+                                        <BookOpen className="h-3.5 w-3.5 opacity-90" aria-hidden />
+                                      )}
+                                      <span className="max-sm:sr-only">{t("notifications.markAsRead")}</span>
+                                    </Button>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-slate-200/90 bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                                      <CheckCheck className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                                      {t("notifications.readConfirmed")}
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <Badge variant="outline" className={rowStatusBadgeClass(r.status)}>
+                                    {notificationStatusDisplay(r, t)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <PriorityCell row={r} />
+                                </TableCell>
+                                <TableCell className="align-top text-xs tabular-nums text-slate-700">
+                                  {(r.reportDeadlineAt ?? r.dueDate) &&
+                                    new Date(r.reportDeadlineAt ?? r.dueDate).toLocaleDateString(localeTag)}
+                                </TableCell>
+                                <TableCell className="align-top">
+                                  <div className="flex flex-wrap justify-end gap-1.5">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 border-slate-200 px-2.5 transition-colors hover:border-brand-gold/60"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDetailRow(r);
+                                      }}
+                                    >
+                                      {t("notifications.detail")}
+                                    </Button>
+                                    {(r.status === "PENDING" || r.status === "OVERDUE") && (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="success"
+                                        disabled={completingId === r.id}
+                                        title={t("notifications.completeTooltip")}
+                                        className="h-8 min-w-[108px] gap-1.5 px-2.5 font-semibold shadow-sm transition-all hover:shadow-md hover:brightness-[1.03] active:scale-[0.98]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          void completeAndOpenVault(r);
+                                        }}
+                                      >
+                                        {completingId === r.id ? (
+                                          <>
+                                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                                            <span>{t("common.loading")}</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                            <span>{t("notifications.complete")}</span>
+                                            <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                                          </>
+                                        )}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={detailRow !== null} onOpenChange={(o) => !o && setDetailRow(null)}>
         <DialogContent className="max-w-lg">
@@ -829,6 +916,17 @@ export default function NotificationsPage(): JSX.Element {
                 </div>
               </div>
               <div>
+                <p className="text-xs font-medium uppercase text-slate-500">{t("notifications.inboxReadColumn")}</p>
+                {isInboxUnread(detailRow) ? (
+                  <p className="mt-1 text-sm text-slate-700">{t("notifications.detailUnreadHint")}</p>
+                ) : (
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-slate-600">
+                    <CheckCheck className="h-4 w-4 text-slate-500" aria-hidden />
+                    {t("notifications.readConfirmed")}
+                  </p>
+                )}
+              </div>
+              <div>
                 <p className="text-xs font-medium uppercase text-slate-500">
                   {t("notifications.tableReportDeadline")}
                 </p>
@@ -867,6 +965,24 @@ export default function NotificationsPage(): JSX.Element {
                   <Button type="button" variant="outline" size="sm" onClick={() => setDetailRow(null)}>
                     {t("common.close")}
                   </Button>
+                  {isInboxUnread(detailRow) ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={markingReadId === detailRow.id}
+                      title={t("notifications.markAsReadTooltip")}
+                      className="gap-1.5"
+                      onClick={() => void markNotificationRead(detailRow.id)}
+                    >
+                      {markingReadId === detailRow.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                      ) : (
+                        <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                      )}
+                      {t("notifications.markAsRead")}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="success"

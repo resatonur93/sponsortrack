@@ -41,6 +41,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     /** When `"1"`, return every matching row so the same worker can appear for multiple visas/milestones. */
     const listAll = searchParams.get("all") === "1";
     const createdAtGte = createdAtCutoffFromQuery(searchParams);
+    const unreadOnly =
+      searchParams.get("unread") === "1" || searchParams.get("unread") === "true";
+    const readOnly =
+      searchParams.get("read") === "1" || searchParams.get("read") === "true";
 
     return await withTenant(user, req, async () => {
       await closeStaleDocumentExpiringNotifications(prismaBase, {
