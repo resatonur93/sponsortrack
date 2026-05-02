@@ -6,6 +6,11 @@ import type { AlertLevel, Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Liste kaynağı: `Alert` (tenant Prisma extension ile otomatik filtre).
+ * Satırlar `runEscalationAlertsCron` ile üretilir; `NotificationEvent` doğrudan bu endpoint’ten okunmaz
+ * (olaylar günlük cron’da upsert edilir, escalation ile uyarıya yansır).
+ */
 function omitLevel(where: Prisma.AlertWhereInput): Prisma.AlertWhereInput {
   const { level: _drop, ...rest } = where as Prisma.AlertWhereInput & {
     level?: Prisma.AlertWhereInput["level"];

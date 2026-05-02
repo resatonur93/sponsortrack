@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runDailyCron } from "@/lib/scheduler";
+import { runAlertsPipeline } from "@/lib/scheduler";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +14,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (!secret || token !== secret) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const result = await runDailyCron();
-    logger.info("cron run completed", result);
+    const result = await runAlertsPipeline(new Date());
+    logger.info("cron run completed (daily + escalation)", result);
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     logger.error("cron run failed", error);

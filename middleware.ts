@@ -82,6 +82,7 @@ export const config = {
     "/api/alerts",
     "/api/alerts/:path*",
     "/api/cron/escalation",
+    "/api/cron/process-alerts",
     "/api/cron/risk-scores",
     "/api/dashboard",
     "/api/documents",

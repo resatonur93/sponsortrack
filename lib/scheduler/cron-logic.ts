@@ -32,6 +32,7 @@ export async function runDailyCron(): Promise<{
   documentExpiringNotificationsClosed: number;
 }> {
   const now = new Date();
+  logger.info("runDailyCron: start", { now: now.toISOString() });
   let overdueUpdated = 0;
   let visaEventsCreated = 0;
   let rtwRecheckEventsCreated = 0;
@@ -259,7 +260,7 @@ export async function runDailyCron(): Promise<{
   const documentExpiringNotificationsClosed =
     await closeStaleDocumentExpiringNotifications(prismaBase, { now });
 
-  return {
+  const summary = {
     overdueUpdated,
     visaEventsCreated,
     rtwRecheckEventsCreated,
@@ -273,4 +274,6 @@ export async function runDailyCron(): Promise<{
     notificationExpiryEmailSkippedNoSmtp,
     documentExpiringNotificationsClosed,
   };
+  logger.info("runDailyCron: completed", summary);
+  return summary;
 }

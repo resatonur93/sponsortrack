@@ -442,6 +442,18 @@ const tr: Record<string, string> = {
   "alerts.seedDevButton": "Örnek uyarı / bildirim oluştur",
   "alerts.seedSuccess": "{alerts} uyarı ve {events} bildirim etkinliği oluşturuldu.",
   "alerts.seedFailed": "Örnek veri oluşturulamadı.",
+  "alerts.computePipeline": "Uyarıları şimdi hesapla",
+  "alerts.computePipelineHint":
+    "Günlük bildirim senkronu + escalation çalıştırır (cron ile aynı; `Alert` tablosunu doldurur).",
+  "alerts.prepDemoDates": "Test: vize / RTW / sponsorluk tarihlerini ayarla",
+  "alerts.prepDemoHint":
+    "İlk 3 çalışanın vize ve sponsorluk bitişini 5–40 gün aralığına, RTW sonraki kontrolünü yakın tarihe çeker. Ardından «Uyarıları şimdi hesapla» kullanın.",
+  "alerts.prepOk": "{n} çalışanın vize, sponsorluk ve RTW alanları güncellendi.",
+  "alerts.pipelineFailed": "Uyarı hesaplama başarısız.",
+  "alerts.prepFailed": "Tarih ayarı başarısız.",
+  "alerts.devToolsTitle": "Geliştirme",
+  "alerts.pipelineSuccess":
+    "Pipeline tamam: günlük cron + escalation. Yeni uyarı: {upserts}, günlük vize olayı: {visa}.",
   "alerts.markReadFailed": "Okundu işaretlenemedi.",
   "alerts.detailTitle": "Uyarı detayı",
   "alerts.fieldType": "Tip",
@@ -1718,6 +1730,18 @@ const en: Record<string, string> = {
   "alerts.seedDevButton": "Create sample alerts / notifications",
   "alerts.seedSuccess": "Created {alerts} alerts and {events} notification events.",
   "alerts.seedFailed": "Could not create sample data.",
+  "alerts.computePipeline": "Recalculate alerts now",
+  "alerts.computePipelineHint":
+    "Runs daily notification sync + escalation (same as scheduled jobs; fills the `Alert` table).",
+  "alerts.prepDemoDates": "Dev: set visa / RTW / sponsorship dates",
+  "alerts.prepDemoHint":
+    "Sets the first 3 workers’ visa and sponsorship end into 5–40 days, and RTW next check soon. Then use “Recalculate alerts now”.",
+  "alerts.prepOk": "Updated visa, sponsorship, and RTW fields for {n} workers.",
+  "alerts.pipelineFailed": "Alert pipeline failed.",
+  "alerts.prepFailed": "Could not update demo dates.",
+  "alerts.devToolsTitle": "Development",
+  "alerts.pipelineSuccess":
+    "Pipeline OK: daily cron + escalation. New alert upserts: {upserts}, visa events from daily: {visa}.",
   "alerts.markReadFailed": "Could not mark as read.",
   "alerts.detailTitle": "Alert details",
   "alerts.fieldType": "Type",

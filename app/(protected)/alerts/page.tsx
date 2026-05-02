@@ -50,6 +50,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Trash2,
+  Wrench,
   Zap,
 } from "lucide-react";
 
@@ -102,6 +103,10 @@ function fillSeedMessage(template: string, alerts: number, events: number): stri
   return template.replace("{alerts}", String(alerts)).replace("{events}", String(events));
 }
 
+function fillPipelineSuccess(template: string, upserts: number, visa: number): string {
+  return template.replace("{upserts}", String(upserts)).replace("{visa}", String(visa));
+}
+
 function levelSummaryIcon(level: AlertLevel): typeof Flame {
   switch (level) {
     case "CRITICAL":
@@ -138,6 +143,9 @@ export default function AlertsPage(): JSX.Element {
   const [detailRow, setDetailRow] = useState<AlertRow | null>(null);
   const [seedLoading, setSeedLoading] = useState(false);
   const [seedBanner, setSeedBanner] = useState<string | null>(null);
+  const [pipelineNotice, setPipelineNotice] = useState<string | null>(null);
+  const [pipelineBusy, setPipelineBusy] = useState(false);
+  const [prepBusy, setPrepBusy] = useState(false);
 
   const canSeedSample =
     !!session?.user && session.user.role !== "LEVEL_2_USER";
@@ -225,6 +233,55 @@ export default function AlertsPage(): JSX.Element {
     else window.alert(t("alerts.dismissFailed"));
   }
 
+  async function runPrepDemoDates(): Promise<void> {
+    setPrepBusy(true);
+    setPipelineNotice(null);
+    try {
+      const res = await fetch("/api/alerts/prep-demo-dates", {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; workerIds?: string[] };
+      if (!res.ok) {
+        window.alert(json.error ?? t("alerts.prepFailed"));
+        return;
+      }
+      const n = json.workerIds?.length ?? 0;
+      setPipelineNotice(t("alerts.prepOk").replace("{n}", String(n)));
+    } finally {
+      setPrepBusy(false);
+    }
+  }
+
+  async function runAlertsPipelineNow(): Promise<void> {
+    setPipelineBusy(true);
+    setPipelineNotice(null);
+    try {
+      const res = await fetch("/api/cron/process-alerts", {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        result?: {
+          escalation?: { upserts?: number };
+          daily?: { visaEventsCreated?: number };
+        };
+      };
+      if (!res.ok) {
+        window.alert(json.error ?? t("alerts.pipelineFailed"));
+        return;
+      }
+      const upserts = json.result?.escalation?.upserts ?? 0;
+      const visa = json.result?.daily?.visaEventsCreated ?? 0;
+      setPipelineNotice(fillPipelineSuccess(t("alerts.pipelineSuccess"), upserts, visa));
+      void load();
+    } finally {
+      setPipelineBusy(false);
+    }
+  }
+
   async function runSeedSample(): Promise<void> {
     setSeedLoading(true);
     setSeedBanner(null);
@@ -291,9 +348,47 @@ export default function AlertsPage(): JSX.Element {
           {t("alerts.title")}
         </h1>
         <p className="max-w-2xl text-sm text-slate-600">{t("alerts.subtitle")}</p>
+        {canSeedSample ? (
+          <div className="max-w-3xl space-y-2 rounded-lg border border-dashed border-brand-navy/25 bg-slate-50/90 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+              {t("alerts.devToolsTitle")}
+            </p>
+            <p className="text-xs text-slate-600">{t("alerts.prepDemoHint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5"
+                disabled={prepBusy || pipelineBusy}
+                onClick={() => void runPrepDemoDates()}
+              >
+                <Wrench className={cn("h-3.5 w-3.5", prepBusy && "animate-pulse")} aria-hidden />
+                {t("alerts.prepDemoDates")}
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                className="h-9 gap-1.5"
+                disabled={pipelineBusy || prepBusy}
+                onClick={() => void runAlertsPipelineNow()}
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", pipelineBusy && "animate-spin")} aria-hidden />
+                {t("alerts.computePipeline")}
+              </Button>
+            </div>
+            <p className="text-[11px] text-slate-500">{t("alerts.computePipelineHint")}</p>
+          </div>
+        ) : null}
         {seedBanner ? (
           <p className="max-w-2xl rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-950">
             {seedBanner}
+          </p>
+        ) : null}
+        {pipelineNotice ? (
+          <p className="max-w-2xl rounded-lg border border-sky-200 bg-sky-50/90 px-3 py-2 text-sm text-sky-950">
+            {pipelineNotice}
           </p>
         ) : null}
         {meta ? (
