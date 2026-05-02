@@ -183,6 +183,23 @@ export type ExpiryReminderTemplateInput = {
   documentLabelTr?: string;
   documentLabelEn?: string;
   fileName?: string;
+
+  /** Birincil CTA (SMTP / ayar doğrulama testi için `admin/settings` vb.). */
+  ctaOverride?: { href: string; labelTr: string; labelEn: string };
+
+  /** Gelen kutusu özet satırı (gizli preheader); boş ise otomatik. */
+  preHeaderOverride?: string;
+
+  /** Sarı uyarı şeridi (deneme bildirumu vb.). */
+  eyebrowRibbonTr?: string;
+  eyebrowRibbonEn?: string;
+
+  /** Varsayılan: "Çalışan / Worker" */
+  detailPrimaryLineLabel?: string;
+
+  /** Altbilgide ileti öncesi ek paragraf. */
+  footerNoticeSupplementTr?: string;
+  footerNoticeSupplementEn?: string;
 };
 
 /**
@@ -208,7 +225,18 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
 
   const base = input.baseUrl.replace(/\/$/, "");
   const logoUrl = `${base}/brand/logo-primary.svg`;
-  const ctaUrl = `${base}/workers/${encodeURIComponent(input.workerId)}/documents`;
+  const defaultCtaHref = `${base}/workers/${encodeURIComponent(input.workerId)}/documents`;
+  const primaryCta = input.ctaOverride ?? {
+    href: defaultCtaHref,
+    labelTr: "Belge Kasasını Aç",
+    labelEn: "Open document vault",
+  };
+  const ctaUrl = escapeHtml(primaryCta.href);
+  const ctaLabelTrEsc = escapeHtml(primaryCta.labelTr);
+  const ctaLabelEnEsc = escapeHtml(primaryCta.labelEn);
+  const detailPersonLbl = escapeHtml(
+    input.detailPrimaryLineLabel ?? "Çalışan / Worker"
+  );
   const rawSupport =
     process.env.SUPPORT_CONTACT_EMAIL?.trim() ||
     process.env.SMTP_FROM?.trim() ||
@@ -222,7 +250,43 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
           ${input.fileName?.trim() ? `<br/><strong>Dosya / File:</strong> ${escapeHtml(input.fileName)}` : ""}`
       : "";
 
-  const preHeader = `[SponsorTrack] ${remainingLabelEn(input.daysRemaining)} — ${worker} — UTC ${input.expiryDateISO}`;
+  const preHeaderRaw =
+    input.preHeaderOverride?.trim() ??
+    `[SponsorTrack] ${remainingLabelEn(input.daysRemaining)} — ${worker} — UTC ${input.expiryDateISO}`;
+  const preHeader = escapeHtml(preHeaderRaw);
+
+  const ribbonTr = input.eyebrowRibbonTr?.trim();
+  const ribbonEn = input.eyebrowRibbonEn?.trim();
+  const ribbonInner =
+    ribbonTr && ribbonEn
+      ? `${escapeHtml(ribbonTr)}<span style="display:block;margin-top:4px;color:#78350F;font-weight:600;">🇬🇧 ${escapeHtml(
+          ribbonEn
+        )}</span>`
+      : ribbonTr
+        ? escapeHtml(ribbonTr)
+        : ribbonEn
+          ? `🇬🇧 ${escapeHtml(ribbonEn)}`
+          : "";
+  const ribbonBlock = ribbonInner
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:14px;border-collapse:collapse;">
+          <tr>
+            <td style="padding:10px 14px;background:#FFFBEB;border-radius:10px;border:1px solid #FCD34D;font-size:12px;line-height:1.45;color:#92400E;font-weight:600;text-align:center;">
+              ${ribbonInner}
+            </td>
+          </tr>
+        </table>`
+    : "";
+
+  const footerSupplement =
+    input.footerNoticeSupplementTr?.trim() || input.footerNoticeSupplementEn?.trim()
+      ? `<p style="margin:0 0 12px;">${escapeHtml(input.footerNoticeSupplementTr?.trim() ?? "")}${
+          input.footerNoticeSupplementEn?.trim()
+            ? `<br/><span style="color:#475569;font-size:11px;display:block;margin-top:4px;">🇬🇧 ${escapeHtml(
+                input.footerNoticeSupplementEn.trim()
+              )}</span>`
+            : ""
+        }</p>`
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="tr">
@@ -242,7 +306,7 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
 </head>
 <body style="margin:0;padding:0;background:#F1F5F9;font-family:Segoe UI,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:#1E293B;">
   <!-- preheader -->
-  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(preHeader)}</div>
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preHeader}</div>
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#F1F5F9;">
     <tr>
@@ -284,6 +348,7 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
               <p style="margin:10px 0 0;font-size:13px;line-height:1.45;color:#64748B;">
                 🇬🇧 <span style="color:#334155;">${titleEn}</span>
               </p>
+              ${ribbonBlock}
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:14px;border-collapse:collapse;">
                 <tr>
                   <td style="padding:8px 12px;background:${th.lightBg};border-radius:999px;font-size:12px;font-weight:600;color:${th.primary};">
@@ -347,7 +412,7 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
           <!-- Details -->
           <tr>
             <td style="padding:0 28px 22px;color:#475569;font-size:14px;line-height:1.6;">
-              <strong style="color:${th.primary};">Çalışan / Worker</strong>: ${worker}<br/>
+              <strong style="color:${th.primary};">${detailPersonLbl}</strong>: ${worker}<br/>
               <strong style="color:${th.primary};">Kuruluş / Organisation</strong>: ${company}<br/>
               <strong style="color:${th.primary};">CoS referansı / CoS reference</strong>: ${cos}<br/>
               ${docBlockHtml ? `${docBlockHtml}<br/>` : ""}
@@ -361,10 +426,10 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
                 style="border-collapse:separate;mso-hide:all;border-radius:999px;background:${th.accent};">
                 <tr>
                   <td style="border-radius:999px;mso-hide:all;">
-                    <a href="${escapeHtml(ctaUrl)}"
+                    <a href="${ctaUrl}"
                        style="display:inline-block;padding:16px 32px;color:#FFFFFF;font-size:15px;font-weight:800;text-decoration:none;letter-spacing:0.03em;line-height:1.3;">
-                      Belge Kasasını Aç<br/>
-                      <span style="font-size:12px;font-weight:600;opacity:0.93;">Open document vault</span>
+                      ${ctaLabelTrEsc}<br/>
+                      <span style="font-size:12px;font-weight:600;opacity:0.93;">${ctaLabelEnEsc}</span>
                     </a>
                   </td>
                 </tr>
@@ -379,6 +444,7 @@ export function buildExpiryReminderEmailHtml(input: ExpiryReminderTemplateInput)
           <tr>
             <td style="padding:16px 28px 26px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;line-height:1.55;color:#64748B;">
               <strong style="color:#475569;">Bilgilendirme / Notice</strong><br/>
+              ${footerSupplement}
               Bu mesaj SponsorTrack gözetim bildirimi sisteminden otomatik gönderilir. Acil uyum koordinasyonunu AO ve uyum takımınız sürdürmelidir.<br/><br/>
               This message was sent automatically from SponsorTrack expiry monitoring. Maintain compliance escalation with your Authorising Officers and immigration team.<br/><br/>
               <strong>Yardım / Support:</strong>
@@ -406,7 +472,8 @@ export function buildExpiryReminderPlainTextFallback(input: ExpiryReminderTempla
   const titleTr = input.customTitleTr ?? built.titleTr;
   const titleEn = input.customTitleEn ?? built.titleEn;
   const base = input.baseUrl.replace(/\/$/, "");
-  const cta = `${base}/workers/${input.workerId}/documents`;
+  const defaultCta = `${base}/workers/${encodeURIComponent(input.workerId)}/documents`;
+  const cta = input.ctaOverride?.href ?? defaultCta;
   const lines = [
     `[SponsorTrack] ${titleTr} / ${titleEn}`,
     "",
@@ -418,7 +485,7 @@ export function buildExpiryReminderPlainTextFallback(input: ExpiryReminderTempla
       : "",
     input.fileName?.trim() ? `Dosya · File: ${input.fileName}` : "",
     "",
-    `Çalışan · Worker: ${input.workerName}`,
+    `${input.detailPrimaryLineLabel ?? "Çalışan / Worker"}: ${input.workerName}`,
     `Şirket · Organisation: ${input.companyName}`,
     `CoS: ${input.cosReference}`,
     "",
@@ -426,6 +493,45 @@ export function buildExpiryReminderPlainTextFallback(input: ExpiryReminderTempla
     `Bildirimler · Notifications: ${base}/notifications`,
   ].filter(Boolean);
   return lines.join("\n");
+}
+
+/** Ayarlar › Bildirimler “Test e-postası” — gerçek süre yok; SMTP + CC/BCC doğrulaması. */
+export function buildSettingsConnectivityTestReminderInput(opts: {
+  baseUrl: string;
+  requestingUserDisplayName: string;
+  tenantCompanyName: string;
+}): ExpiryReminderTemplateInput {
+  const base = opts.baseUrl.replace(/\/$/, "");
+  const iso = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+  const name = opts.requestingUserDisplayName.trim();
+  const comp = opts.tenantCompanyName.trim();
+  return {
+    baseUrl: opts.baseUrl,
+    variant: "visa",
+    reminderKind: "BEFORE_30",
+    daysRemaining: 14,
+    expiryDateISO: iso,
+    workerName: name || "AO",
+    workerId: "settings-connection-test",
+    companyName: comp || "Organisation",
+    cosReference: "— (SMTP ve bildirim testi)",
+    customTitleTr: "Bildirim test mesajı",
+    customTitleEn: "Notifications test message",
+    tierAdvanceDays: 30,
+    preHeaderOverride: `[SponsorTrack] Bildirim testi · ${comp || name || "tenant"}`,
+    ctaOverride: {
+      href: `${base}/admin/settings`,
+      labelTr: "Bildirim ayarlarına dön",
+      labelEn: "Open notification settings",
+    },
+    eyebrowRibbonTr: "Deneme — gerçek bir süre sonu bildirimi değildir",
+    eyebrowRibbonEn: "Dry run — not a real expiry alert",
+    detailPrimaryLineLabel: "Bu testi başlatan / Sent by",
+    footerNoticeSupplementTr:
+      "Bu gönderi yalnızca Ayarlar › Bildirimler ekranından tetiklenen bağlantı testidir. CC/BCC listeleriniz bu yolla SMTP üzerinden doğrulanır.",
+    footerNoticeSupplementEn:
+      "Sent from Settings › Notifications to verify SMTP and your CC/BCC distribution lists.",
+  };
 }
 
 /** AO test e-postaları için tutarlı demoveriler. */

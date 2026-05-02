@@ -313,7 +313,7 @@ const tr: Record<string, string> = {
   "admin.settings.notifications.htmlDemoDoc": "Belge süresi",
   "admin.settings.notifications.testHtmlSend": "Görsel örnek gönder",
   "admin.settings.notifications.htmlDemoHint":
-    "SMTP ve NEXTAUTH_URL (logo için tam URL) gerekli. Bazı istemciler SVG logoyu gizleyebilir; Outlook için metin başlığı yedeklidir.",
+    "Varsayılan “Test e-postası” da kartlı HTML olarak gider (deneme bağlantısı şablonu). Farklı vize/spor/RTW/belge teması için üsttekini kullanın. SMTP ve doğru NEXTAUTH_URL (logo) gerekir.",
   "shell.logout": "Çıkış",
   "shell.app": "Uygulama",
   "common.loading": "Yükleniyor…",
@@ -1782,7 +1782,7 @@ const en: Record<string, string> = {
   "admin.settings.notifications.htmlDemoDoc": "Document expiry",
   "admin.settings.notifications.testHtmlSend": "Send visual sample",
   "admin.settings.notifications.htmlDemoHint":
-    "SMTP and NEXTAUTH_URL (absolute logo URL) are required. Some clients omit SVG logos; Outlook has a textual heading fallback.",
+    "Default “Test email” sends the branded HTML card (connectivity preset). Pick a variant above to sample visa/CoS/RTW/document themes. SMTP and a correct NEXTAUTH_URL (absolute logo URL) are required.",
   "shell.logout": "Sign out",
   "shell.app": "Application",
   "common.loading": "Loading…",

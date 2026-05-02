@@ -7,6 +7,7 @@ import {
   buildExpiryReminderEmailHtml,
   buildExpiryReminderPlainTextFallback,
   buildSampleExpiryReminderInput,
+  buildSettingsConnectivityTestReminderInput,
 } from "@/lib/emails/templates/expiry-reminder-template";
 import { joinSmtpRecipients } from "@/lib/email/recipient-parse";
 import { isSmtpConfigured, sendSmtpMailDetailed } from "@/lib/email/smtp";
@@ -42,6 +43,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const to = parsed.data.to?.trim() || user.email.trim() || getAdminPanelEmail();
   const tenantId = user.tenantId;
   const cfg = await loadNotificationConfigForTenant(prismaBase, tenantId);
+  const requestingName =
+    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
+  const tenantRow = await prismaBase.tenant.findUnique({
+    where: { id: tenantId },
+    select: { companyName: true },
+  });
+  const tenantCompanyName = tenantRow?.companyName ?? "";
 
   if (!cfg.emailEnabled) {
     return NextResponse.json(
@@ -85,16 +93,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ].join("\n");
     html = buildExpiryReminderEmailHtml(sample);
   } else {
+    const settingsInput = buildSettingsConnectivityTestReminderInput({
+      baseUrl,
+      requestingUserDisplayName: requestingName,
+      tenantCompanyName,
+    });
     subject = "[SponsorTrack] Bildirimler test • Notifications test";
+    html = buildExpiryReminderEmailHtml(settingsInput);
     text = [
-      "Bu e-posta, Ayarlar › Bildirimler bölümündeki yapılandırmayı doğrular.",
-      "",
-      "CC/BCC adresleri bildirim ayarlarındaki liste ile uyumlu denemeler için SMTP üzerinden iletilir.",
+      buildExpiryReminderPlainTextFallback(settingsInput),
       "",
       "---",
-      "This message verifies notification settings routing from SponsorTrack.",
-      "Hatırlatma şablonunu görmek için isteğe `htmlPreviewVariant` gönderin (visa | cos | sponsorship | rtw | document).",
-      "Send `htmlPreviewVariant` to preview the expiry reminder HTML design.",
+      "Bu bir bağlantı testidir; gerçek süre sonu veya uyumluluk kaydı oluşturmaz.",
+      "This is a connectivity check only — it does not create compliance deadlines or records.",
+      "",
+      "Farklı senaryolar için isteğe `htmlPreviewVariant` ekleyin: visa | cos | sponsorship | rtw | document.",
+      "Add `htmlPreviewVariant` to sample a specific reminder style.",
     ].join("\n");
   }
 
