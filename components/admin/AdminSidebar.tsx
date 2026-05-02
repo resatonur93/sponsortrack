@@ -28,25 +28,25 @@ export function AdminSidebar(): JSX.Element {
   const { t } = useTranslation();
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-brand-navy/30 bg-brand-navy">
-      <div className="border-b border-white/10 px-4 py-4">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-slate-700/80 bg-brand-navy text-slate-100">
+      <div className="border-b border-white/15 px-4 py-4">
         <Link
           href="/admin"
-          className="mb-3 flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold rounded"
+          className="mb-3 flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
         >
           <Image
             src="/logo-sponsor-track.png"
             alt="Sponsor Track Admin"
             width={512}
             height={512}
-            className="h-10 w-auto max-w-[150px] object-contain object-left"
+            className="h-10 w-auto max-w-[150px] object-contain object-left brightness-110 contrast-105"
           />
         </Link>
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold/90">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-100">
           {t("admin.subtitle")}
         </p>
       </div>
-      <nav className="flex-1 space-y-0.5 p-2">
+      <nav className="flex-1 space-y-1 p-2.5" aria-label={t("admin.sidebar.navAria")}>
         {items.map((item) => {
           const Icon = item.icon;
           const active =
@@ -58,14 +58,21 @@ export function AdminSidebar(): JSX.Element {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium leading-snug transition-colors",
                 active
-                  ? "bg-brand-gold text-brand-navy shadow-md"
-                  : "text-brand-surface/92 hover:bg-white/10 hover:text-white"
+                  ? "bg-brand-gold font-semibold text-brand-navy shadow-md ring-1 ring-black/10"
+                  : "text-slate-100 hover:bg-slate-800/95 hover:text-white active:bg-slate-800"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {t(item.labelKey)}
+              <Icon
+                className={cn(
+                  "h-[18px] w-[18px] shrink-0 transition-colors",
+                  active ? "text-brand-navy" : "text-slate-200 group-hover:text-white"
+                )}
+                strokeWidth={active ? 2.25 : 2}
+                aria-hidden
+              />
+              <span className={cn("min-w-0 flex-1", active && "text-brand-navy")}>{t(item.labelKey)}</span>
             </Link>
           );
         })}
