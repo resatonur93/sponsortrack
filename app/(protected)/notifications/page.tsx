@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type {
   EventType,
   EventWorkflowState,
@@ -14,13 +15,17 @@ import type {
 } from "@prisma/client";
 import {
   AlertCircle,
+  ArrowRight,
   ArrowUpDown,
   CalendarDays,
+  Check,
   CheckCircle2,
   ClipboardList,
   Clock,
+  ExternalLink,
   Inbox,
   ListChecks,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +66,10 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import { getEscalationLevel, escalationBadgeClass } from "@/lib/escalation";
 import { notificationTypeBadgeClass } from "@/lib/notifications/notification-visuals";
+import {
+  notificationSuggestedVaultFolder,
+  documentsPageFolderQuery,
+} from "@/lib/notifications/notification-vault-folder";
 
 type Row = NotificationEvent & {
   worker: { id: string; firstName: string; lastName: string; email: string };
@@ -115,8 +124,6 @@ const NOTIFICATION_STATUSES: NotificationStatus[] = [
   "COMPLETED",
   "CANCELLED",
 ];
-
-const DEFER_DAY_OPTIONS = [7, 14, 21, 30] as const;
 
 function tEnum(
   tt: (key: string, fallback?: string) => string,
@@ -235,8 +242,15 @@ function buildGroups(sorted: Row[]): {
   return groups;
 }
 
+function vaultDocumentsHref(workerId: string, eventType: NotificationType): string {
+  const folder = notificationSuggestedVaultFolder(eventType);
+  const base = `/workers/${workerId}/documents`;
+  return folder ? `${base}?${documentsPageFolderQuery(folder)}` : base;
+}
+
 export default function NotificationsPage(): JSX.Element {
   const { t, locale } = useTranslation();
+  const router = useRouter();
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -251,10 +265,7 @@ export default function NotificationsPage(): JSX.Element {
   });
 
   const [completingId, setCompletingId] = useState<string | null>(null);
-  const [deferringId, setDeferringId] = useState<string | null>(null);
   const [detailRow, setDetailRow] = useState<Row | null>(null);
-  const [deferTarget, setDeferTarget] = useState<Row | null>(null);
-  const [deferDays, setDeferDays] = useState<number>(7);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
 
   useEffect(() => {
@@ -319,10 +330,14 @@ export default function NotificationsPage(): JSX.Element {
     );
   }
 
-  async function complete(id: string): Promise<void> {
-    setCompletingId(id);
+  function navigateToVault(row: Row): void {
+    router.push(vaultDocumentsHref(row.worker.id, row.eventType));
+  }
+
+  async function completeAndOpenVault(row: Row): Promise<void> {
+    setCompletingId(row.id);
     try {
-      const res = await fetch(`/api/notifications/${id}/complete`, {
+      const res = await fetch(`/api/notifications/${row.id}/complete`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -330,37 +345,16 @@ export default function NotificationsPage(): JSX.Element {
       });
       if (!res.ok) {
         window.alert(t("notifications.completeFailed"));
-        return;
+      } else {
+        await reloadNotifications();
       }
-      await reloadNotifications();
+    } catch {
+      window.alert(t("notifications.completeFailed"));
     } finally {
+      router.push(vaultDocumentsHref(row.worker.id, row.eventType));
       setCompletingId(null);
+      setDetailRow((d) => (d?.id === row.id ? null : d));
     }
-  }
-
-  async function deferNotification(id: string, days: number): Promise<boolean> {
-    setDeferringId(id);
-    try {
-      const res = await fetch(`/api/notifications/${id}/defer`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ days }),
-      });
-      if (!res.ok) {
-        window.alert(t("notifications.deferFailed"));
-        return false;
-      }
-      await reloadNotifications();
-      return true;
-    } finally {
-      setDeferringId(null);
-    }
-  }
-
-  function openDefer(row: Row): void {
-    setDeferTarget(row);
-    setDeferDays(7);
   }
 
   function PriorityCell(props: { row: Row }): JSX.Element {
@@ -649,8 +643,10 @@ export default function NotificationsPage(): JSX.Element {
                   out.push(
                     <TableRow
                       key={r.id}
+                      title={t("notifications.rowOpenVault")}
+                      onClick={() => navigateToVault(r)}
                       className={cn(
-                        "border-slate-100 transition-colors hover:bg-slate-50/80",
+                        "cursor-pointer border-slate-100 transition-colors hover:bg-slate-50/80 active:bg-slate-100/80",
                         g.items.length > 1 ? "border-l-[3px] border-l-brand-gold/50" : null
                       )}
                     >
@@ -658,6 +654,7 @@ export default function NotificationsPage(): JSX.Element {
                         <div className="flex gap-3">
                           <Link
                             href={`/workers/${r.worker.id}`}
+                            onClick={(e) => e.stopPropagation()}
                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-navy/10 text-xs font-bold text-brand-navy ring-2 ring-brand-navy/15 hover:bg-brand-navy/20"
                           >
                             {workerInitials(r.worker)}
@@ -665,6 +662,7 @@ export default function NotificationsPage(): JSX.Element {
                           <div className="min-w-0">
                             <Link
                               href={`/workers/${r.worker.id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="font-semibold text-brand-navy hover:underline"
                             >
                               {r.worker.firstName} {r.worker.lastName}
@@ -712,36 +710,40 @@ export default function NotificationsPage(): JSX.Element {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 px-2.5 border-slate-200"
-                            onClick={() => setDetailRow(r)}
+                            className="h-8 border-slate-200 px-2.5 transition-colors hover:border-brand-gold/60"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailRow(r);
+                            }}
                           >
                             {t("notifications.detail")}
                           </Button>
                           {(r.status === "PENDING" || r.status === "OVERDUE") && (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="success"
-                                disabled={completingId === r.id}
-                                title={t("notifications.completeTooltip")}
-                                className="h-8 min-w-[92px] px-2 font-semibold"
-                                onClick={() => void complete(r.id)}
-                              >
-                                {completingId === r.id ? t("common.loading") : t("notifications.complete")}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                disabled={deferringId === r.id}
-                                title={t("notifications.deferTooltip")}
-                                className="h-8 border-amber-200 bg-amber-50/70 px-2 text-amber-950 hover:bg-amber-100"
-                                onClick={() => openDefer(r)}
-                              >
-                                {t("notifications.defer")}
-                              </Button>
-                            </>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="success"
+                              disabled={completingId === r.id}
+                              title={t("notifications.completeTooltip")}
+                              className="h-8 min-w-[108px] gap-1.5 px-2.5 font-semibold shadow-sm transition-all hover:shadow-md hover:brightness-[1.03] active:scale-[0.98]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void completeAndOpenVault(r);
+                              }}
+                            >
+                              {completingId === r.id ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                                  <span>{t("common.loading")}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                  <span>{t("notifications.complete")}</span>
+                                  <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                                </>
+                              )}
+                            </Button>
                           )}
                         </div>
                       </TableCell>
@@ -773,6 +775,13 @@ export default function NotificationsPage(): JSX.Element {
                   {detailRow.worker.firstName} {detailRow.worker.lastName}
                 </Link>
                 <div className="text-xs text-slate-600">{detailRow.worker.email}</div>
+                <Link
+                  href={vaultDocumentsHref(detailRow.worker.id, detailRow.eventType)}
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-navy hover:underline"
+                >
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {t("notifications.openDocumentVault")}
+                </Link>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -835,14 +844,21 @@ export default function NotificationsPage(): JSX.Element {
                     size="sm"
                     disabled={completingId === detailRow.id}
                     title={t("notifications.completeTooltip")}
-                    onClick={() =>
-                      void (async () => {
-                        await complete(detailRow.id);
-                        setDetailRow(null);
-                      })()
-                    }
+                    className="gap-1.5 transition-all hover:shadow-md hover:brightness-[1.03] active:scale-[0.98]"
+                    onClick={() => void completeAndOpenVault(detailRow)}
                   >
-                    {completingId === detailRow.id ? t("common.loading") : t("notifications.complete")}
+                    {completingId === detailRow.id ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                        {t("common.loading")}
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-3.5 w-3.5" aria-hidden />
+                        {t("notifications.complete")}
+                        <ExternalLink className="h-3.5 w-3.5 opacity-90" aria-hidden />
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -856,62 +872,6 @@ export default function NotificationsPage(): JSX.Element {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={deferTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeferTarget(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("notifications.deferTitle")}</DialogTitle>
-            <p className="text-sm text-slate-600">{t("notifications.deferSubtitle")}</p>
-          </DialogHeader>
-          {deferTarget ? (
-            <div className="grid gap-4 py-1">
-              <div className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm">
-                <span className="font-medium text-brand-navy">
-                  {deferTarget.worker.firstName} {deferTarget.worker.lastName}
-                </span>
-                <div className="text-xs text-slate-600">{notificationTypeLabel(deferTarget.eventType, t)}</div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("notifications.deferDays")}</Label>
-                <Select value={String(deferDays)} onValueChange={(v) => setDeferDays(parseInt(v, 10))}>
-                  <SelectTrigger className="h-11 border-slate-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEFER_DAY_OPTIONS.map((d) => (
-                      <SelectItem key={d} value={String(d)}>
-                        {d} {locale === "tr" ? "gün" : "days"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : null}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setDeferTarget(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="button"
-              disabled={deferringId !== null || !deferTarget}
-              onClick={() =>
-                void (async () => {
-                  if (!deferTarget || !window.confirm(t("notifications.deferConfirm"))) return;
-                  const ok = await deferNotification(deferTarget.id, deferDays);
-                  if (ok) setDeferTarget(null);
-                })()
-              }
-            >
-              {deferringId ? t("common.loading") : t("notifications.deferSubmit")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

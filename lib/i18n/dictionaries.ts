@@ -706,7 +706,11 @@ const tr: Record<string, string> = {
   "notifications.filterStatus": "Durum",
   "notifications.filterType": "Tip",
   "notifications.complete": "Tamamla",
-  "notifications.completeTooltip": "Tamamlandı olarak işaretle",
+  "notifications.completeTooltip":
+    "Tamamlandı olarak işaretle ve çalışanın belge kasasına git (ilgili klasör vurgulanır)",
+  "notifications.rowOpenVault":
+    "Satıra tıklayarak çalışanın belge kasasını aç (henüz tamamlanmış sayılmaz)",
+  "notifications.openDocumentVault": "Belge kasasına git",
   "notifications.completeFailed": "Tamamlanamadı. Tekrar deneyin.",
   "notifications.detail": "Detay",
   "notifications.detailTitle": "Bildirim detayı",
@@ -2009,7 +2013,11 @@ const en: Record<string, string> = {
   "notifications.filterStatus": "Status",
   "notifications.filterType": "Type",
   "notifications.complete": "Complete",
-  "notifications.completeTooltip": "Mark as completed",
+  "notifications.completeTooltip":
+    "Mark as completed and open the worker document vault (highlight suggested folder)",
+  "notifications.rowOpenVault":
+    "Open this worker’s document vault (row click does not complete the notification)",
+  "notifications.openDocumentVault": "Open document vault",
   "notifications.completeFailed": "Could not complete. Try again.",
   "notifications.detail": "Details",
   "notifications.detailTitle": "Notification details",

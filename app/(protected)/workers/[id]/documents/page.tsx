@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import type { DocumentFolder, DocumentVault } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,10 @@ type VaultPayload = {
   folders: DocumentFolder[];
   grouped: Record<string, DocumentVault[]>;
 };
+
+function isDocumentFolderKey(v: string): v is DocumentFolder {
+  return Object.prototype.hasOwnProperty.call(FOLDER_LABELS, v);
+}
 
 type VersionEntry = {
   version: number;
@@ -236,6 +240,40 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
     void load();
   }, [load]);
 
+  const searchParams = useSearchParams();
+  const vaultFolderFocus = searchParams.get("vaultFolder");
+
+  useEffect(() => {
+    if (loading || !vault || !vaultFolderFocus || !isDocumentFolderKey(vaultFolderFocus)) {
+      return;
+    }
+    if (!vault.folders.includes(vaultFolderFocus)) return;
+
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`vault-folder-${vaultFolderFocus}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.classList.add(
+        "ring-2",
+        "ring-brand-gold",
+        "ring-offset-2",
+        "rounded-lg",
+        "transition-shadow",
+        "duration-500"
+      );
+      window.setTimeout(() => {
+        el.classList.remove(
+          "ring-2",
+          "ring-brand-gold",
+          "ring-offset-2",
+          "rounded-lg"
+        );
+      }, 2600);
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, vault, vaultFolderFocus]);
+
   const uploadFiles = async (
     files: FileList | File[],
     folder: DocumentFolder
@@ -387,7 +425,11 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
         {(vault?.folders ?? []).map((folder) => {
           const docs = vault?.grouped[folder] ?? [];
           return (
-            <section key={folder} className="space-y-3">
+            <section
+              key={folder}
+              id={`vault-folder-${folder}`}
+              className="scroll-mt-24 space-y-3"
+            >
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <h2 className="text-lg font-medium text-brand-navy">
                   {FOLDER_LABELS[folder]}
