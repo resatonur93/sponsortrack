@@ -66,7 +66,7 @@ export function AppShell({
       </a>
       <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col border-r border-brand-navy/12 bg-white shadow-[2px_0_24px_-12px_rgba(10,42,94,0.08)] md:flex">
         <div className="flex h-[4.25rem] items-center border-b border-brand-navy/10 bg-white px-3">
-          <Logo href="/dashboard" size="sm" variant="light" />
+          <Logo href="/dashboard" mark="compact" variant="light" size="sm" />
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {nav.map((item) => {
@@ -113,7 +113,7 @@ export function AppShell({
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-40 border-b border-brand-navy/10 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm md:hidden">
           <div className="flex h-11 items-center justify-between gap-2">
-            <Logo href="/dashboard" size="sm" variant="light" />
+            <Logo href="/dashboard" mark="compact" variant="light" size="sm" />
             <LanguageSwitcher />
           </div>
           <nav className="mt-2 flex gap-2 overflow-x-auto pb-1 text-sm">

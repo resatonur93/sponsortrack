@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,6 +11,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/branding/Logo";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 const items = [
@@ -29,19 +29,16 @@ export function AdminSidebar(): JSX.Element {
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-slate-700/80 bg-brand-navy text-slate-100">
-      <div className="border-b border-white/15 px-4 py-4">
-        <Link
-          href="/admin"
-          className="mb-3 flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-        >
-          <Image
-            src="/logo-sponsor-track.png"
-            alt="Sponsor Track Admin"
-            width={512}
-            height={512}
-            className="h-10 w-auto max-w-[150px] object-contain object-left brightness-110 contrast-105"
+      <div className="border-b border-white/15 px-3 py-3">
+        <div className="mb-2.5">
+          <Logo
+            href="/admin"
+            mark="compact"
+            variant="dark"
+            size="md"
+            className="max-w-[192px]"
           />
-        </Link>
+        </div>
         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-100">
           {t("admin.subtitle")}
         </p>
