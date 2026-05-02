@@ -10,6 +10,8 @@ import { AdminDashboardKpis } from "@/components/admin/AdminDashboardKpis";
 import { AdminLeadStatusDonut, AdminLeadsTrendChart } from "@/components/admin/AdminCharts";
 import { AdminRecentLeadsTable } from "@/components/admin/AdminRecentLeadsTable";
 import { Button } from "@/components/ui/button";
+import { PageLoading } from "@/components/ui/page-loading";
+import { AdminPageHeader } from "@/components/admin/shell/AdminPageShell";
 import type { AdminDashboardPayload } from "@/lib/admin/dashboard-types";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
@@ -58,21 +60,18 @@ export default function AdminDashboardPage(): JSX.Element {
   const labelStatus = useCallback((s: LeadStatus) => t(`admin.leadStatus.${s}`), [t]);
 
   if (status === "loading" || !session) {
-    return (
-      <div className="flex min-h-[30vh] items-center justify-center text-brand-slate">
-        {t("common.loading")}
-      </div>
-    );
+    return <PageLoading message={t("common.loading")} />;
   }
   if (!session.user.canAccessAdminPanel) {
-    return (
-      <div className="flex min-h-[30vh] items-center justify-center text-brand-slate">{t("common.loading")}</div>
-    );
+    return <PageLoading message={t("common.loading")} />;
   }
   if (error && !stats) {
     return (
-      <div className="space-y-3 rounded-xl border border-red-200 bg-red-50/80 px-6 py-8">
-        <p className="font-medium text-red-900">{error}</p>
+      <div
+        className="space-y-4 rounded-xl border border-danger-border bg-danger-muted px-6 py-8"
+        role="alert"
+      >
+        <p className="text-sm font-semibold text-danger">{error}</p>
         <Button variant="outline" onClick={() => void load()} className="border-brand-navy/30">
           {t("common.retry")}
         </Button>
@@ -80,43 +79,35 @@ export default function AdminDashboardPage(): JSX.Element {
     );
   }
   if (!stats) {
-    return (
-      <div className="flex min-h-[30vh] items-center justify-center gap-3 text-brand-slate">
-        <RefreshCw className="h-5 w-5 animate-spin" aria-hidden />
-        <span>{t("common.loading")}</span>
-      </div>
-    );
+    return <PageLoading message={t("common.loading")} />;
   }
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight text-brand-navy md:text-3xl">{t("admin.dashboard.title")}</h1>
-          <p className="max-w-3xl text-sm leading-relaxed text-brand-slate">{t("admin.dashboard.subtitle")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 gap-2 border-brand-navy/25 font-semibold text-brand-navy shadow-sm"
-            disabled={loading}
-            onClick={() => void load()}
-          >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden />
-            {t("admin.dashboard.refresh")}
-          </Button>
-          <Button
-            asChild
-            className="h-11 gap-2 bg-brand-navy px-6 font-bold shadow-md hover:bg-brand-navy/90"
-          >
-            <Link href="/admin/leads">
-              {t("admin.dashboard.ctaAllLeads")}
-              <ArrowUpRight className="h-4 w-4 opacity-90" aria-hidden />
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t("admin.dashboard.title")}
+        subtitle={t("admin.dashboard.subtitle")}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 gap-2 border-brand-navy/25 font-semibold text-brand-navy shadow-sm"
+              disabled={loading}
+              onClick={() => void load()}
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden />
+              {t("admin.dashboard.refresh")}
+            </Button>
+            <Button asChild className="h-11 gap-2 px-6 font-semibold shadow-md">
+              <Link href="/admin/leads">
+                {t("admin.dashboard.ctaAllLeads")}
+                <ArrowUpRight className="h-4 w-4 opacity-90" aria-hidden />
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <AdminDashboardKpis
         totalLeads={stats.totalLeads}

@@ -28,9 +28,25 @@ const config: Config = {
           DEFAULT: "#0A2A5E",
           foreground: "#FFFFFF",
         },
-        success: "#059669",
-        warning: "#B8860B",
-        danger: "#C41E3A",
+        /** Semantic UI — WCAG AA friendly on white / on colored fills */
+        success: {
+          DEFAULT: "#047857",
+          foreground: "#FFFFFF",
+          muted: "#ECFDF5",
+          border: "#6EE7B7",
+        },
+        warning: {
+          DEFAULT: "#B45309",
+          foreground: "#FFFFFF",
+          muted: "#FFFBEB",
+          border: "#FCD34D",
+        },
+        danger: {
+          DEFAULT: "#B91C1C",
+          foreground: "#FFFFFF",
+          muted: "#FEF2F2",
+          border: "#FECACA",
+        },
         background: "#F8F9FA",
       },
       borderRadius: {

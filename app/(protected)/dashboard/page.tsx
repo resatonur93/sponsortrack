@@ -99,14 +99,14 @@ export default function DashboardPage(): JSX.Element {
     return (
       <div
         role="alert"
-        className="mx-auto max-w-lg rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm"
+        className="mx-auto max-w-lg rounded-xl border border-danger-border bg-danger-muted p-6 shadow-sm"
       >
-        <h1 className="text-lg font-semibold text-red-900">{t("common.errorLoad")}</h1>
-        <p className="mt-2 text-sm text-red-800/90">{t("dashboard.retryHint")}</p>
+        <h1 className="text-lg font-semibold text-danger">{t("common.errorLoad")}</h1>
+        <p className="mt-2 text-sm text-slate-800">{t("dashboard.retryHint")}</p>
         <Button
           type="button"
           variant="outline"
-          className="mt-4 border-red-300 bg-white text-red-900 hover:bg-red-100"
+          className="mt-4 border-danger-border bg-white text-slate-900 hover:bg-danger-muted"
           onClick={() => setRetryTick((n) => n + 1)}
         >
           {t("common.retry")}

@@ -60,7 +60,7 @@ export function AppShell({
     : [...navBase];
 
   return (
-    <div className="flex min-h-screen bg-brand-surface">
+    <div className="surface-page flex min-h-screen">
       <a href="#main-content" className="skip-nav">
         {t("common.skipToContent")}
       </a>
@@ -94,9 +94,7 @@ export function AppShell({
           })}
         </nav>
         <div className="border-t border-brand-navy/10 bg-brand-surface/50 p-3">
-          <p className="truncate text-xs text-brand-slate">
-            {data?.user?.email}
-          </p>
+          <p className="truncate text-xs font-medium text-slate-700">{data?.user?.email}</p>
           <Button
             variant="outline"
             className="mt-2 w-full"

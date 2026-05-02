@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState, type EmptyStateProps } from "@/components/ui/empty-state";
 
 /** Consistent wrapper for admin main content panels. */
 export function AdminSurfaceCard(props: { className?: string; children: ReactNode }): JSX.Element {
@@ -17,54 +19,14 @@ export function AdminSurfaceCard(props: { className?: string; children: ReactNod
   );
 }
 
-export function AdminPageHeader(props: {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
-  className?: string;
-}): JSX.Element {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-4 border-b border-brand-navy/10 pb-6 md:flex-row md:items-start md:justify-between",
-        props.className
-      )}
-    >
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-brand-navy md:text-3xl">{props.title}</h1>
-        {props.subtitle ? (
-          <p className="max-w-3xl text-sm leading-relaxed text-brand-slate">{props.subtitle}</p>
-        ) : null}
-      </div>
-      {props.actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">{props.actions}</div>
-      ) : null}
-    </div>
-  );
+export function AdminPageHeader(props: Parameters<typeof PageHeader>[0]): JSX.Element {
+  return <PageHeader {...props} />;
 }
 
-export function AdminEmptyState(props: {
-  icon: ReactNode;
-  title: string;
-  description?: string;
-  primaryAction?: ReactNode;
-  secondaryAction?: ReactNode;
-}): JSX.Element {
+export function AdminEmptyState(props: Omit<EmptyStateProps, "framed">): JSX.Element {
   return (
     <AdminSurfaceCard>
-      <div className="flex flex-col items-center justify-center px-6 py-16 text-center md:py-20">
-        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-navy/[0.08] text-brand-navy ring-2 ring-brand-navy/[0.12] [&>svg]:h-8 [&>svg]:w-8">
-          {props.icon}
-        </div>
-        <h2 className="text-lg font-bold text-brand-navy md:text-xl">{props.title}</h2>
-        {props.description ? (
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-brand-slate">{props.description}</p>
-        ) : null}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          {props.primaryAction}
-          {props.secondaryAction}
-        </div>
-      </div>
+      <EmptyState framed={false} {...props} />
     </AdminSurfaceCard>
   );
 }
@@ -83,8 +45,10 @@ export function AdminTablePanel(props: { title?: string; children: ReactNode; cl
   return (
     <AdminSurfaceCard className={cn("overflow-hidden", props.className)}>
       {props.title ? (
-        <div className="border-b border-brand-navy/10 bg-gradient-to-r from-brand-navy/[0.06] via-white to-sky-50/30 px-5 py-3.5">
-          <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-brand-navy">{props.title}</h2>
+        <div className="border-b border-brand-navy/10 bg-gradient-to-r from-brand-navy/[0.06] via-white to-slate-50/80 px-5 py-3.5">
+          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-brand-navy">
+            {props.title}
+          </h2>
         </div>
       ) : null}
       <div className="overflow-x-auto">{props.children}</div>

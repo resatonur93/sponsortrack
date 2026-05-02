@@ -45,6 +45,35 @@
   .text-caption {
     @apply text-xs font-medium uppercase leading-[1.4] tracking-wide text-brand-slate;
   }
+
+  /** App-wide page chrome (tenant + admin content) */
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-brand-navy md:text-3xl;
+  }
+
+  .page-subtitle {
+    @apply max-w-3xl text-sm leading-relaxed text-slate-600;
+  }
+
+  .text-body {
+    @apply text-sm leading-relaxed text-slate-800;
+  }
+
+  .text-muted-ui {
+    @apply text-sm text-slate-600;
+  }
+
+  .text-support {
+    @apply text-xs leading-snug text-slate-500;
+  }
+
+  .text-error {
+    @apply text-sm font-medium text-danger;
+  }
+
+  .surface-page {
+    @apply bg-brand-surface text-slate-900;
+  }
 }
 
 @layer components {

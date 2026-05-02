@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -171,9 +172,9 @@ export function WorkerDetailView(): JSX.Element {
 
   if (loadError && data === null) {
     return (
-      <Card className="mx-auto max-w-lg border-red-200/90 shadow-sm">
+      <Card className="mx-auto max-w-lg border-danger-border bg-danger-muted/60 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base text-red-950">
+          <CardTitle className="text-base text-danger">
             {t("workerDetail.loadFailed")}
           </CardTitle>
         </CardHeader>
@@ -225,7 +226,7 @@ export function WorkerDetailView(): JSX.Element {
   const managerEmail = data.lineManager?.email ?? data.lineManagerEmail ?? "—";
 
   const tabTriggerClass =
-    "flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:flex-initial data-[state=active]:bg-brand-navy data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-slate-600";
+    "flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:flex-initial data-[state=active]:bg-brand-navy data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-slate-700 data-[state=inactive]:hover:text-brand-navy";
 
   const lastReviewLabel = data.roleCompliance?.lastReviewed
     ? formatLocaleDateTime(data.roleCompliance.lastReviewed, locale)
@@ -685,14 +686,14 @@ function WorkerProfileSkeleton(): JSX.Element {
       aria-label={t("workerDetail.loading")}
     >
       <div className="-mx-4 flex flex-col gap-3 border-b border-slate-100 px-4 py-3 md:-mx-8 md:px-8">
-        <div className="h-9 w-32 animate-pulse rounded-md bg-slate-200" />
-        <div className="h-10 w-full animate-pulse rounded-md bg-slate-200 lg:max-w-md" />
+        <Skeleton className="h-9 w-32" />
+        <Skeleton className="h-10 w-full lg:max-w-md" />
       </div>
-      <div className="h-48 animate-pulse rounded-xl bg-slate-200/90" />
-      <div className="h-72 animate-pulse rounded-xl bg-slate-200/80" />
+      <Skeleton className="h-48 rounded-xl" />
+      <Skeleton className="h-72 rounded-xl" />
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="h-44 animate-pulse rounded-xl bg-slate-200/70" />
-        <div className="h-44 animate-pulse rounded-xl bg-slate-200/70" />
+        <Skeleton className="h-44 rounded-xl" />
+        <Skeleton className="h-44 rounded-xl" />
       </div>
     </div>
   );

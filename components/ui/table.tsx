@@ -22,7 +22,7 @@ const TableHeader = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      "border-b border-brand-navy/12 bg-brand-navy/[0.06] [&_tr]:border-b-0",
+      "border-b border-brand-navy/12 bg-slate-50/90 [&_tr]:border-b-0",
       className
     )}
     {...props}
@@ -49,7 +49,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-brand-navy/[0.08] transition-colors hover:bg-brand-gold/[0.07] data-[state=selected]:bg-brand-navy/[0.06]",
+      "border-b border-brand-navy/[0.08] transition-colors hover:bg-slate-50 data-[state=selected]:bg-brand-navy/[0.06]",
       className
     )}
     {...props}
@@ -64,7 +64,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-brand-navy",
+      "h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-slate-800",
       className
     )}
     {...props}

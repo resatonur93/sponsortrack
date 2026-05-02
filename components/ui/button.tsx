@@ -16,10 +16,13 @@ const buttonVariants = cva(
           "border border-slate-300/90 bg-white text-brand-navy hover:border-brand-gold hover:bg-brand-gold/10",
         ghost:
           "text-brand-navy hover:bg-brand-gold/12 hover:text-brand-navy",
+        /** Alias for destructive actions (same as danger). */
+        destructive:
+          "bg-danger text-danger-foreground shadow-sm hover:bg-danger/92 focus-visible:ring-danger/35",
         danger:
-          "bg-brand-rose text-white shadow-sm hover:bg-brand-rose hover:shadow-[0_0_0_2px_rgba(212,175,135,0.45)]",
+          "bg-danger text-danger-foreground shadow-sm hover:bg-danger/92 focus-visible:ring-danger/35",
         success:
-          "bg-brand-emerald text-white shadow-sm hover:bg-brand-emerald hover:shadow-[0_0_0_2px_rgba(212,175,135,0.45)]",
+          "bg-success text-success-foreground shadow-sm hover:bg-success/92 focus-visible:ring-success/35",
       },
       size: {
         default: "h-10 px-4 py-2",
