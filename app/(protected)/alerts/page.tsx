@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import type { AlertLevel, AlertType } from "@prisma/client";
 import {
   Table,
@@ -97,6 +98,10 @@ function workerInitials(worker: NonNullable<AlertRow["worker"]>): string {
   return `${worker.firstName?.[0] ?? ""}${worker.lastName?.[0] ?? ""}`.toUpperCase() || "?";
 }
 
+function fillSeedMessage(template: string, alerts: number, events: number): string {
+  return template.replace("{alerts}", String(alerts)).replace("{events}", String(events));
+}
+
 function levelSummaryIcon(level: AlertLevel): typeof Flame {
   switch (level) {
     case "CRITICAL":
@@ -114,6 +119,7 @@ function levelSummaryIcon(level: AlertLevel): typeof Flame {
 
 export default function AlertsPage(): JSX.Element {
   const { t, locale } = useTranslation();
+  const { data: session } = useSession();
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
   const [rows, setRows] = useState<AlertRow[]>([]);
@@ -130,6 +136,11 @@ export default function AlertsPage(): JSX.Element {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [detailRow, setDetailRow] = useState<AlertRow | null>(null);
+  const [seedLoading, setSeedLoading] = useState(false);
+  const [seedBanner, setSeedBanner] = useState<string | null>(null);
+
+  const canSeedSample =
+    !!session?.user && session.user.role !== "LEVEL_2_USER";
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -214,6 +225,38 @@ export default function AlertsPage(): JSX.Element {
     else window.alert(t("alerts.dismissFailed"));
   }
 
+  async function runSeedSample(): Promise<void> {
+    setSeedLoading(true);
+    setSeedBanner(null);
+    try {
+      const res = await fetch("/api/alerts/seed", {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        alertsCreated?: number;
+        notificationEventsCreated?: number;
+        warnings?: string[];
+      };
+      if (!res.ok) {
+        window.alert(json.error ?? t("alerts.seedFailed"));
+        return;
+      }
+      const base = fillSeedMessage(
+        t("alerts.seedSuccess"),
+        json.alertsCreated ?? 0,
+        json.notificationEventsCreated ?? 0
+      );
+      const warn = json.warnings?.filter(Boolean).join(" ");
+      setSeedBanner(warn ? `${base} ${warn}` : base);
+      void load();
+    } finally {
+      setSeedLoading(false);
+    }
+  }
+
   function confirmDismiss(id: string): void {
     if (typeof window !== "undefined" && window.confirm(t("alerts.dismissConfirm"))) {
       void dismiss(id);
@@ -248,6 +291,11 @@ export default function AlertsPage(): JSX.Element {
           {t("alerts.title")}
         </h1>
         <p className="max-w-2xl text-sm text-slate-600">{t("alerts.subtitle")}</p>
+        {seedBanner ? (
+          <p className="max-w-2xl rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-950">
+            {seedBanner}
+          </p>
+        ) : null}
         {meta ? (
           <p className="text-sm font-medium text-brand-navy">
             {t("alerts.totalActive")}:{" "}
@@ -408,6 +456,18 @@ export default function AlertsPage(): JSX.Element {
             >
               {t("alerts.clearDates")}
             </Button>
+            {canSeedSample ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-11 gap-2 border-dashed border-brand-navy/25"
+                disabled={seedLoading}
+                onClick={() => void runSeedSample()}
+              >
+                <Zap className={cn("h-4 w-4", seedLoading && "animate-pulse")} aria-hidden />
+                {t("alerts.seedDevButton")}
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>

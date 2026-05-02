@@ -439,6 +439,9 @@ const tr: Record<string, string> = {
   "alerts.dismissConfirm":
     "Bu uyarıyı listeden kaldırmak (kapatmak) istediğinize emin misiniz?",
   "alerts.dismissFailed": "Uyarı kapatılamadı.",
+  "alerts.seedDevButton": "Örnek uyarı / bildirim oluştur",
+  "alerts.seedSuccess": "{alerts} uyarı ve {events} bildirim etkinliği oluşturuldu.",
+  "alerts.seedFailed": "Örnek veri oluşturulamadı.",
   "alerts.markReadFailed": "Okundu işaretlenemedi.",
   "alerts.detailTitle": "Uyarı detayı",
   "alerts.fieldType": "Tip",
@@ -1712,6 +1715,9 @@ const en: Record<string, string> = {
   "alerts.dismissConfirm":
     "Remove this alert from the list?",
   "alerts.dismissFailed": "Could not dismiss alert.",
+  "alerts.seedDevButton": "Create sample alerts / notifications",
+  "alerts.seedSuccess": "Created {alerts} alerts and {events} notification events.",
+  "alerts.seedFailed": "Could not create sample data.",
   "alerts.markReadFailed": "Could not mark as read.",
   "alerts.detailTitle": "Alert details",
   "alerts.fieldType": "Type",
