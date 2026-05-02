@@ -424,7 +424,7 @@ export async function processVisaAndSponsorshipExpiries(
 ): Promise<{ sent: number; skippedNoSmtp: boolean }> {
   if (!isSmtpConfigured()) {
     logger.warn(
-      "notification expiry email: SMTP not configured (set SMTP_URL or SMTP_HOST + SMTP_PORT)"
+      "notification expiry email: SMTP not configured (set SMTP_URL or SMTP_HOST + SMTP_PORT) — anchor sweep skipped; NotificationEvent due-today emails also skipped"
     );
     return { sent: 0, skippedNoSmtp: true };
   }
@@ -459,6 +459,11 @@ export async function processVisaAndSponsorshipExpiries(
       },
     },
     take: 8000,
+  });
+
+  logger.info("notification expiry email: worker anchor sweep", {
+    workerCount: workers.length,
+    now: now.toISOString(),
   });
 
   async function sweepAnchors(params: {
@@ -549,6 +554,11 @@ export async function processVisaAndSponsorshipExpiries(
       });
     }
   }
+
+  logger.info("notification expiry email: batch complete", {
+    sent,
+    dueTodayEventCount: events.length,
+  });
 
   return { sent, skippedNoSmtp: false };
 }

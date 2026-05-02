@@ -12,7 +12,7 @@ import { processEscalationNotifications } from "@/lib/compliance-reminders";
 import { processMissingDocumentNotifications } from "./missing-documents-cron";
 import { processExpiredDocumentEmails } from "@/lib/notifications/email/document-expiry-email-notify";
 import { closeStaleDocumentExpiringNotifications } from "@/lib/documents/document-expiring-notification-closure";
-import { processVisaAndSponsorshipExpiries } from "@/lib/notifications/email/notification-expiry-email";
+import { processVisaAndSponsorshipExpiries } from "@/lib/scheduler/processVisaAndSponsorshipExpiries";
 
 /**
  * Runs daily maintenance: overdue notifications, visa/document upserts, kademeli hatırlatmalar.
