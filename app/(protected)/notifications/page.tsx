@@ -19,7 +19,6 @@ import {
   ArrowUpDown,
   BookOpen,
   Check,
-  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
@@ -363,37 +362,92 @@ export default function NotificationsPage(): JSX.Element {
   }
 
   async function markNotificationRead(rowId: string): Promise<void> {
+    const current = rows.find((r) => r.id === rowId);
+    if (!current || !isInboxUnread(current)) return;
+
+    const snapshotRow: Row = { ...current, worker: { ...current.worker } };
+    const hideWhenUnreadOnly = readFilter === "unread";
+    const now = new Date();
+
+    if (hideWhenUnreadOnly) {
+      setRows((prev) => prev.filter((r) => r.id !== rowId));
+    } else {
+      setRows((prev) =>
+        prev.map((r) => (r.id === rowId ? { ...r, readAt: now } : r))
+      );
+    }
+    setDetailRow((d) =>
+      d?.id === rowId && isInboxUnread(d) ? { ...d, readAt: now } : d
+    );
+
     setMarkingReadId(rowId);
-    try {
-      let res = await fetch(`/api/notifications/${rowId}/read`, {
-        method: "PUT",
+
+    async function tryMarkRead(method: "PATCH" | "PUT" | "POST"): Promise<Response> {
+      const init: RequestInit = {
+        method,
         credentials: "include",
-      });
-      if (res.status === 405) {
-        res = await fetch(`/api/notifications/${rowId}/read`, {
-          method: "POST",
-          credentials: "include",
-        });
+      };
+      if (method === "PATCH") {
+        init.headers = { "Content-Type": "application/json" };
+        init.body = "{}";
       }
+      return fetch(`/api/notifications/${rowId}/read`, init);
+    }
+
+    const revertOptimistic = (): void => {
+      if (hideWhenUnreadOnly) {
+        setRows((prev) =>
+          prev.some((r) => r.id === rowId)
+            ? prev
+            : [...prev, snapshotRow].sort(
+                (a, b) =>
+                  new Date(a.reportDeadlineAt ?? a.dueDate).getTime() -
+                  new Date(b.reportDeadlineAt ?? b.dueDate).getTime()
+              )
+        );
+      } else {
+        setRows((prev) => prev.map((r) => (r.id === rowId ? snapshotRow : r)));
+      }
+      setDetailRow((d) =>
+        d?.id === rowId
+          ? { ...snapshotRow, worker: snapshotRow.worker ?? d.worker }
+          : d
+      );
+    };
+
+    try {
+      let res = await tryMarkRead("PATCH");
+      if (res.status === 405) res = await tryMarkRead("PUT");
+      if (res.status === 405) res = await tryMarkRead("POST");
+
       const json = (await res.json().catch(() => ({}))) as {
         data?: Row;
         error?: string;
       };
       if (!res.ok) {
+        revertOptimistic();
         window.alert(
           [t("notifications.markReadFailed"), json.error].filter(Boolean).join("\n\n")
         );
         return;
       }
+
       const next = json.data;
       if (next) {
-        setRows((prev) => prev.map((r) => (r.id === rowId ? next : r)));
+        if (!hideWhenUnreadOnly) {
+          setRows((prev) => prev.map((r) => (r.id === rowId ? next : r)));
+        }
         setDetailRow((d) =>
-          d?.id === rowId ? { ...d, ...next, worker: next.worker ?? d.worker } : d
+          d?.id === rowId
+            ? { ...d, ...next, worker: next.worker ?? d.worker }
+            : d
         );
       } else {
         await reloadNotifications();
       }
+    } catch {
+      revertOptimistic();
+      window.alert(t("notifications.markReadFailed"));
     } finally {
       setMarkingReadId(null);
     }
@@ -796,7 +850,7 @@ export default function NotificationsPage(): JSX.Element {
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-8 gap-1 border-slate-200 text-xs transition-colors hover:border-brand-gold/50"
+                                      className="h-8 gap-1 border-brand-navy/25 bg-brand-navy/[0.07] text-xs font-semibold text-brand-navy shadow-sm transition-colors hover:border-brand-navy/40 hover:bg-brand-navy/12"
                                       disabled={markingReadId === r.id}
                                       title={t("notifications.markAsReadTooltip")}
                                       onClick={(e) => {
@@ -805,17 +859,25 @@ export default function NotificationsPage(): JSX.Element {
                                       }}
                                     >
                                       {markingReadId === r.id ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
                                       ) : (
-                                        <BookOpen className="h-3.5 w-3.5 opacity-90" aria-hidden />
+                                        <BookOpen className="h-3.5 w-3.5 shrink-0 opacity-95" aria-hidden />
                                       )}
                                       <span className="max-sm:sr-only">{t("notifications.markAsRead")}</span>
                                     </Button>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-slate-200/90 bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
-                                      <CheckCheck className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                                      {t("notifications.readConfirmed")}
-                                    </span>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled
+                                      tabIndex={-1}
+                                      className="h-8 cursor-default gap-1 border-slate-200/90 bg-slate-100 px-2.5 text-[11px] font-medium text-slate-600 opacity-100 hover:bg-slate-100"
+                                      aria-label={t("notifications.readConfirmed")}
+                                    >
+                                      <Check className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                                      <span className="max-sm:sr-only">{t("notifications.readConfirmed")}</span>
+                                    </Button>
                                   )}
                                 </TableCell>
                                 <TableCell className="align-top">
@@ -934,8 +996,8 @@ export default function NotificationsPage(): JSX.Element {
                 {isInboxUnread(detailRow) ? (
                   <p className="mt-1 text-sm text-slate-700">{t("notifications.detailUnreadHint")}</p>
                 ) : (
-                  <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-slate-600">
-                    <CheckCheck className="h-4 w-4 text-slate-500" aria-hidden />
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                    <Check className="h-4 w-4 text-slate-500" aria-hidden />
                     {t("notifications.readConfirmed")}
                   </p>
                 )}
@@ -986,7 +1048,7 @@ export default function NotificationsPage(): JSX.Element {
                       size="sm"
                       disabled={markingReadId === detailRow.id}
                       title={t("notifications.markAsReadTooltip")}
-                      className="gap-1.5"
+                      className="gap-1.5 border-brand-navy/25 bg-brand-navy/[0.07] font-semibold text-brand-navy shadow-sm hover:border-brand-navy/40 hover:bg-brand-navy/12"
                       onClick={() => void markNotificationRead(detailRow.id)}
                     >
                       {markingReadId === detailRow.id ? (

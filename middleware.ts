@@ -23,7 +23,7 @@ export default withAuth(
       method === "POST" &&
       /^\/api\/policies\/[^/]+\/acknowledge\/?$/.test(path);
     const isNotificationMarkReadMutation =
-      (method === "PUT" || method === "POST") &&
+      (method === "PATCH" || method === "PUT" || method === "POST") &&
       /^\/api\/notifications\/[^/]+\/read\/?$/.test(path);
     if (
       token?.role === "LEVEL_2_USER" &&

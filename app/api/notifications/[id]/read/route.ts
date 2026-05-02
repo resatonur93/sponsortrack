@@ -43,6 +43,33 @@ async function handleMarkRead(
   });
 }
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: Params
+): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return await handleMarkRead(user, req, params.id);
+  } catch (e) {
+    logger.error("PATCH /api/notifications/[id]/read failed", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    const isSchema =
+      /readAt|column|does not exist|Unknown arg/i.test(msg) ||
+      (e as { code?: string })?.code === "P2022";
+    return NextResponse.json(
+      {
+        error: isSchema
+          ? "Database schema out of date: run prisma migrate deploy (NotificationEvent.readAt)."
+          : "Internal server error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: Params
