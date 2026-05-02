@@ -54,3 +54,60 @@ export function dedupeNotificationsByWorkerWindow<
     return uMs - vMs;
   });
 }
+
+/** Aynı çalışan + aynı olay tipinde yinelenen satırlardan en yakın vadeli olanı bırakır. */
+export function dedupeNotificationsByWorkerAndEventType<
+  T extends {
+    workerId: string;
+    eventType: NotificationType;
+    id: string;
+    reportDeadlineAt: Date | null;
+    dueDate: Date;
+    updatedAt: Date;
+  },
+>(items: T[]): T[] {
+  const winners = new Map<string, T>();
+  for (const item of items) {
+    const k = `${item.workerId}|${item.eventType}`;
+    const hit = winners.get(k);
+    if (!hit) {
+      winners.set(k, item);
+      continue;
+    }
+    const aMs = (item.reportDeadlineAt ?? item.dueDate).getTime();
+    const bMs = (hit.reportDeadlineAt ?? hit.dueDate).getTime();
+    if (aMs < bMs) {
+      winners.set(k, item);
+    } else if (aMs === bMs) {
+      if (item.updatedAt.getTime() > hit.updatedAt.getTime()) {
+        winners.set(k, item);
+      } else if (
+        item.updatedAt.getTime() === hit.updatedAt.getTime() &&
+        item.id < hit.id
+      ) {
+        winners.set(k, item);
+      }
+    }
+  }
+  return Array.from(winners.values()).sort((u, v) => {
+    const uMs = (u.reportDeadlineAt ?? u.dueDate).getTime();
+    const vMs = (v.reportDeadlineAt ?? v.dueDate).getTime();
+    return uMs - vMs;
+  });
+}
+
+/**
+ * Inbox listesi: önce tip bazlı tekrarı at, sonra hatırlatma penceresi (vize/RTW/sponsor) için tek satır.
+ */
+export function dedupeNotificationsForInboxList<
+  T extends {
+    workerId: string;
+    eventType: NotificationType;
+    id: string;
+    reportDeadlineAt: Date | null;
+    dueDate: Date;
+    updatedAt: Date;
+  },
+>(items: T[]): T[] {
+  return dedupeNotificationsByWorkerWindow(dedupeNotificationsByWorkerAndEventType(items));
+}

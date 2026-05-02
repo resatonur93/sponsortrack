@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 import { buildComplianceEventData } from "@/lib/compliance-event-factory";
 import type { NotificationStatus, NotificationType, Prisma } from "@prisma/client";
 import { addDays, startOfDay } from "@/lib/dates";
-import { dedupeNotificationsByWorkerWindow } from "@/lib/notifications/notification-list-dedupe";
+import { dedupeNotificationsForInboxList } from "@/lib/notifications/notification-list-dedupe";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +56,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       if (createdAtGte) {
         where.createdAt = { gte: createdAtGte };
       }
+      if (unreadOnly && !readOnly) {
+        where.readAt = null;
+      } else if (readOnly && !unreadOnly) {
+        where.readAt = { not: null };
+      }
 
       const items = await prisma.notificationEvent.findMany({
         where,
@@ -72,7 +77,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         orderBy: { dueDate: "asc" },
         take: 1000,
       });
-      const data = listAll ? items : dedupeNotificationsByWorkerWindow(items);
+      const data = listAll ? items : dedupeNotificationsForInboxList(items);
       return NextResponse.json({ data });
     });
   } catch (error) {

@@ -33,12 +33,14 @@ export async function markNotificationAsCompleted(opts: {
     return { ok: true, notification: existing };
   }
 
+  const now = new Date();
   const updated = await prisma.notificationEvent.update({
     where: { id: opts.notificationId },
     data: {
       status: "COMPLETED",
-      reportedDate: new Date(),
+      reportedDate: now,
       notes: mergedNotes,
+      readAt: existing.readAt ?? now,
     },
   });
 
@@ -49,6 +51,30 @@ export async function markNotificationAsCompleted(opts: {
     eventType: updated.eventType,
   });
 
+  return { ok: true, notification: updated };
+}
+
+export async function markNotificationAsRead(opts: {
+  notificationId: string;
+}): Promise<
+  | { ok: true; notification: NotificationEvent }
+  | { ok: false; reason: "NOT_FOUND" }
+> {
+  const existing = await prisma.notificationEvent.findUnique({
+    where: { id: opts.notificationId },
+  });
+  if (!existing) return { ok: false, reason: "NOT_FOUND" };
+
+  if (existing.readAt != null) {
+    return { ok: true, notification: existing };
+  }
+
+  const updated = await prisma.notificationEvent.update({
+    where: { id: opts.notificationId },
+    data: { readAt: new Date() },
+  });
+
+  logger.info("notification.read", { notificationId: updated.id, tenantId: updated.tenantId });
   return { ok: true, notification: updated };
 }
 

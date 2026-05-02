@@ -512,11 +512,14 @@ model NotificationEvent {
   documents          Document[]         @relation("ComplianceDocuments")
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  /// Inbox “okundu” — tamamlandı aksiyonundan bağımsız; listede gürültü azaltmak için.
+  readAt             DateTime?
 
   @@index([status, dueDate])
   @@index([reportDeadlineAt])
   @@index([workerId, eventType, status])
   @@index([tenantId])
+  @@index([tenantId, readAt])
 }
 
 enum NotificationType {

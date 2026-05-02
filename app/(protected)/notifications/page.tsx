@@ -17,9 +17,12 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowUpDown,
+  BookOpen,
   CalendarDays,
   Check,
+  CheckCheck,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   Clock,
   ExternalLink,
@@ -180,6 +183,10 @@ function workerInitials(w: Row["worker"]): string {
   return `${w.firstName?.[0] ?? ""}${w.lastName?.[0] ?? ""}`.toUpperCase() || "?";
 }
 
+function isInboxUnread(row: Row): boolean {
+  return row.readAt == null;
+}
+
 function rowStatusBadgeClass(s: NotificationStatus): string {
   switch (s) {
     case "PENDING":
@@ -256,6 +263,7 @@ export default function NotificationsPage(): JSX.Element {
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState<string>("all");
   const [type, setType] = useState<string>("all");
+  const [readFilter, setReadFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [workflowRows, setWorkflowRows] = useState<WorkflowAssignmentRow[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
@@ -265,8 +273,10 @@ export default function NotificationsPage(): JSX.Element {
   });
 
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [markingReadId, setMarkingReadId] = useState<string | null>(null);
   const [detailRow, setDetailRow] = useState<Row | null>(null);
   const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const [openByWorker, setOpenByWorker] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -293,6 +303,8 @@ export default function NotificationsPage(): JSX.Element {
     if (showAllMilestones) q.set("all", "1");
     if (status !== "all") q.set("status", status);
     if (type !== "all") q.set("type", type);
+    if (readFilter === "unread") q.set("unread", "1");
+    else if (readFilter === "read") q.set("read", "1");
 
     const res = await fetch(`/api/notifications?${q.toString()}`, {
       credentials: "include",
@@ -301,7 +313,7 @@ export default function NotificationsPage(): JSX.Element {
     const json = (await res.json()) as { data: Row[] };
     setRows(json.data);
     return true;
-  }, [status, type, showAllMilestones]);
+  }, [status, type, readFilter, showAllMilestones]);
 
   useEffect(() => {
     let cancelled = false;
@@ -323,6 +335,23 @@ export default function NotificationsPage(): JSX.Element {
     [rows, sort, t]
   );
   const groups = useMemo(() => buildGroups(sortedRows), [sortedRows]);
+
+  useEffect(() => {
+    setOpenByWorker((prev) => {
+      const next = { ...prev };
+      for (const g of groups) {
+        if (next[g.workerId] === undefined) next[g.workerId] = true;
+      }
+      for (const k of Object.keys(next)) {
+        if (!groups.some((g) => g.workerId === k)) delete next[k];
+      }
+      return next;
+    });
+  }, [groups]);
+
+  function toggleWorkerGroup(workerId: string): void {
+    setOpenByWorker((p) => ({ ...p, [workerId]: !p[workerId] }));
+  }
 
   function toggleSort(key: SortKey): void {
     setSort((s) =>
