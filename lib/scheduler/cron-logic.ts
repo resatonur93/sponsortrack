@@ -13,6 +13,12 @@ import { processMissingDocumentNotifications } from "./missing-documents-cron";
 import { processExpiredDocumentEmails } from "@/lib/notifications/email/document-expiry-email-notify";
 import { closeStaleDocumentExpiringNotifications } from "@/lib/documents/document-expiring-notification-closure";
 import { processVisaAndSponsorshipExpiries } from "@/lib/scheduler/processVisaAndSponsorshipExpiries";
+import {
+  WINDOW_COMPLIANCE_NOTIFICATION_TYPES,
+  pruneStalePendingRtwRecheckEvents,
+  pruneStalePendingSponsorshipEndingEvents,
+  pruneStalePendingVisaEvents,
+} from "@/lib/scheduler/prune-stale-notification-events";
 
 /**
  * Runs daily maintenance: overdue notifications, visa/document upserts, kademeli hatırlatmalar.
@@ -53,6 +59,19 @@ export async function runDailyCron(): Promise<{
   });
   overdueUpdated = pendingOverdue.count;
 
+  const terminatedWindowPurge = await prismaBase.notificationEvent.deleteMany({
+    where: {
+      status: { in: ["PENDING", "OVERDUE"] },
+      worker: { employmentStatus: "TERMINATED" },
+      eventType: { in: WINDOW_COMPLIANCE_NOTIFICATION_TYPES },
+    },
+  });
+  if (terminatedWindowPurge.count > 0) {
+    logger.info("runDailyCron: purged pending window notifications for terminated workers", {
+      deleted: terminatedWindowPurge.count,
+    });
+  }
+
   const workers = await prismaBase.worker.findMany({
     where: {
       employmentStatus: { not: "TERMINATED" },
@@ -92,6 +111,29 @@ export async function runDailyCron(): Promise<{
         logger.error("visa notification upsert failed", e, { workerId: w.id });
       }
     }
+    try {
+      await pruneStalePendingVisaEvents(prismaBase, w);
+    } catch (e) {
+      logger.error("visa notification stale prune failed", e, { workerId: w.id });
+    }
+  }
+
+  const visaClearedWorkers = await prismaBase.worker.findMany({
+    where: {
+      employmentStatus: { not: "TERMINATED" },
+      visaExpiryDate: null,
+    },
+    select: { id: true, tenantId: true },
+  });
+  for (const w of visaClearedWorkers) {
+    try {
+      await pruneStalePendingVisaEvents(prismaBase, {
+        ...w,
+        visaExpiryDate: null,
+      });
+    } catch (e) {
+      logger.error("visa stale prune (no expiry) failed", e, { workerId: w.id });
+    }
   }
 
   const rtwWorkers = await prismaBase.worker.findMany({
@@ -114,32 +156,66 @@ export async function runDailyCron(): Promise<{
     },
   });
   for (const w of rtwWorkers) {
-    const nextDue = w.rtwChecks[0]?.nextCheckDueAt;
-    if (!nextDue) continue;
-    const rows = dateWindowNotificationsToCreate({
-      workerId: w.id,
-      tenantId: w.tenantId,
-      targetDate: nextDue,
-      windows: RTW_RECHECK_WINDOWS,
-      idKey: `rtw:${w.rtwChecks[0].id}`,
-      metadataKey: "rtwNextCheckDueAt",
-      workerLabel: {
-        firstName: w.firstName,
-        lastName: w.lastName,
-        cosReference: w.cosReference,
-      },
-    });
-    for (const row of rows) {
-      try {
-        await prismaBase.notificationEvent.upsert({
-          where: { idempotencyKey: row.idempotencyKey as string },
-          create: row,
-          update: {},
-        });
-        rtwRecheckEventsCreated += 1;
-      } catch (e) {
-        logger.error("rtw recheck notification upsert failed", e, { workerId: w.id });
+    const check = w.rtwChecks[0];
+    const nextDue = check?.nextCheckDueAt;
+    if (nextDue && check) {
+      const rows = dateWindowNotificationsToCreate({
+        workerId: w.id,
+        tenantId: w.tenantId,
+        targetDate: nextDue,
+        windows: RTW_RECHECK_WINDOWS,
+        idKey: `rtw:${check.id}`,
+        metadataKey: "rtwNextCheckDueAt",
+        workerLabel: {
+          firstName: w.firstName,
+          lastName: w.lastName,
+          cosReference: w.cosReference,
+        },
+      });
+      for (const row of rows) {
+        try {
+          await prismaBase.notificationEvent.upsert({
+            where: { idempotencyKey: row.idempotencyKey as string },
+            create: row,
+            update: {},
+          });
+          rtwRecheckEventsCreated += 1;
+        } catch (e) {
+          logger.error("rtw recheck notification upsert failed", e, {
+            workerId: w.id,
+          });
+        }
       }
+    }
+    try {
+      await pruneStalePendingRtwRecheckEvents(prismaBase, {
+        id: w.id,
+        tenantId: w.tenantId,
+        rtwNext:
+          check && nextDue
+            ? { id: check.id, nextCheckDueAt: nextDue }
+            : null,
+      });
+    } catch (e) {
+      logger.error("rtw stale prune failed", e, { workerId: w.id });
+    }
+  }
+
+  const rtwClearedWorkers = await prismaBase.worker.findMany({
+    where: {
+      employmentStatus: { not: "TERMINATED" },
+      rtwChecks: { none: { nextCheckDueAt: { not: null } } },
+    },
+    select: { id: true, tenantId: true },
+  });
+  for (const w of rtwClearedWorkers) {
+    try {
+      await pruneStalePendingRtwRecheckEvents(prismaBase, {
+        ...w,
+        rtwNext: null,
+      });
+    } catch (e) {
+      logger.error("rtw stale prune (no next due) failed", e, { workerId: w.id });
     }
   }
 
@@ -185,6 +261,33 @@ export async function runDailyCron(): Promise<{
           workerId: w.id,
         });
       }
+    }
+    try {
+      await pruneStalePendingSponsorshipEndingEvents(prismaBase, w);
+    } catch (e) {
+      logger.error("sponsorship ending stale prune failed", e, {
+        workerId: w.id,
+      });
+    }
+  }
+
+  const sponsorshipClearedWorkers = await prismaBase.worker.findMany({
+    where: {
+      employmentStatus: { not: "TERMINATED" },
+      sponsorshipEndDate: null,
+    },
+    select: { id: true, tenantId: true },
+  });
+  for (const w of sponsorshipClearedWorkers) {
+    try {
+      await pruneStalePendingSponsorshipEndingEvents(prismaBase, {
+        ...w,
+        sponsorshipEndDate: null,
+      });
+    } catch (e) {
+      logger.error("sponsorship stale prune (no end date) failed", e, {
+        workerId: w.id,
+      });
     }
   }
 

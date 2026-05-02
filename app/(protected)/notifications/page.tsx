@@ -255,6 +255,7 @@ export default function NotificationsPage(): JSX.Element {
   const [detailRow, setDetailRow] = useState<Row | null>(null);
   const [deferTarget, setDeferTarget] = useState<Row | null>(null);
   const [deferDays, setDeferDays] = useState<number>(7);
+  const [showAllMilestones, setShowAllMilestones] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -278,7 +279,7 @@ export default function NotificationsPage(): JSX.Element {
 
   const reloadNotifications = useCallback(async (): Promise<boolean> => {
     const q = new URLSearchParams();
-    q.set("all", "1");
+    if (showAllMilestones) q.set("all", "1");
     if (status !== "all") q.set("status", status);
     if (type !== "all") q.set("type", type);
 
@@ -289,7 +290,7 @@ export default function NotificationsPage(): JSX.Element {
     const json = (await res.json()) as { data: Row[] };
     setRows(json.data);
     return true;
-  }, [status, type]);
+  }, [status, type, showAllMilestones]);
 
   useEffect(() => {
     let cancelled = false;
@@ -549,6 +550,23 @@ export default function NotificationsPage(): JSX.Element {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-start gap-3 md:col-span-2">
+            <input
+              id="showAllMilestones"
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-navy accent-brand-navy focus:ring-brand-navy"
+              checked={showAllMilestones}
+              onChange={(e) => setShowAllMilestones(e.target.checked)}
+            />
+            <div className="min-w-0">
+              <Label htmlFor="showAllMilestones" className="cursor-pointer font-medium text-slate-800">
+                {t("notifications.showAllMilestones")}
+              </Label>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                {t("notifications.daysBackHint")}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

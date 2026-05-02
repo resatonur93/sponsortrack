@@ -6,36 +6,26 @@ import { manualNotificationSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
 import { buildComplianceEventData } from "@/lib/compliance-event-factory";
 import type { NotificationStatus, NotificationType, Prisma } from "@prisma/client";
+import { addDays, startOfDay } from "@/lib/dates";
+import { dedupeNotificationsByWorkerWindow } from "@/lib/notifications/notification-list-dedupe";
 
 export const dynamic = "force-dynamic";
 
-/** Per worker, keep the row with the earliest report deadline (or dueDate if unset). */
-function pickClosestNotificationPerWorker<
-  T extends {
-    workerId: string;
-    id: string;
-    reportDeadlineAt: Date | null;
-    dueDate: Date;
-  },
->(items: T[]): T[] {
-  const winners = new Map<string, T>();
-  for (const item of items) {
-    const hit = winners.get(item.workerId);
-    if (!hit) {
-      winners.set(item.workerId, item);
-      continue;
-    }
-    const aMs = (item.reportDeadlineAt ?? item.dueDate).getTime();
-    const bMs = (hit.reportDeadlineAt ?? hit.dueDate).getTime();
-    if (aMs < bMs || (aMs === bMs && item.id < hit.id)) {
-      winners.set(item.workerId, item);
-    }
+/** Varsayılan: son N günde oluşturulan bildirimler. `daysBack=0` veya `daysBack=all` tarih filtresini kapatır. */
+function createdAtCutoffFromQuery(searchParams: URLSearchParams): Date | undefined {
+  const raw = searchParams.get("daysBack");
+  const lowered = raw?.toLowerCase() ?? "";
+  if (lowered === "0" || lowered === "all") return undefined;
+
+  let days: number;
+  if (raw === null || raw === "") days = 30;
+  else {
+    const parsed = parseInt(raw, 10);
+    days = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 3650) : 30;
   }
-  return Array.from(winners.values()).sort((u, v) => {
-    const uMs = (u.reportDeadlineAt ?? u.dueDate).getTime();
-    const vMs = (v.reportDeadlineAt ?? v.dueDate).getTime();
-    return uMs - vMs;
-  });
+
+  const anchor = startOfDay(new Date());
+  return addDays(anchor, -days);
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -50,6 +40,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const overdueOnly = searchParams.get("overdueOnly") === "true";
     /** When `"1"`, return every matching row so the same worker can appear for multiple visas/milestones. */
     const listAll = searchParams.get("all") === "1";
+    const createdAtGte = createdAtCutoffFromQuery(searchParams);
 
     return await withTenant(user, req, async () => {
       await closeStaleDocumentExpiringNotifications(prismaBase, {
@@ -61,6 +52,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       if (type) where.eventType = type;
       if (overdueOnly) {
         where.status = "OVERDUE";
+      }
+      if (createdAtGte) {
+        where.createdAt = { gte: createdAtGte };
       }
 
       const items = await prisma.notificationEvent.findMany({
@@ -76,9 +70,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           },
         },
         orderBy: { dueDate: "asc" },
-        take: 500,
+        take: 1000,
       });
-      const data = listAll ? items : pickClosestNotificationPerWorker(items);
+      const data = listAll ? items : dedupeNotificationsByWorkerWindow(items);
       return NextResponse.json({ data });
     });
   } catch (error) {

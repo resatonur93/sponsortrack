@@ -4,6 +4,13 @@ import { getEvidenceHint, getSmsDraft } from "@/lib/compliance-templates";
 
 // TR+EN uyumluluk hatırlatma e-postaları: `lib/notifications/email/notification-expiry-email.ts`.
 
+export const VISA_EXPIRING_NOTIFICATION_TYPES: NotificationType[] = [
+  "VISA_EXPIRING_90_DAYS",
+  "VISA_EXPIRING_60_DAYS",
+  "VISA_EXPIRING_30_DAYS",
+  "VISA_EXPIRING_7_DAYS",
+];
+
 export function visaIdempotencyKey(
   workerId: string,
   type: NotificationType,
@@ -42,6 +49,12 @@ export const SPONSORSHIP_END_WINDOWS: VisaWindowSpec[] = [
   { type: "SPONSORSHIP_ENDING_30_DAYS", daysBefore: 30 },
   { type: "SPONSORSHIP_ENDING_7_DAYS", daysBefore: 7 },
 ];
+
+export const RTW_RECHECK_NOTIFICATION_TYPES: NotificationType[] =
+  RTW_RECHECK_WINDOWS.map((w) => w.type);
+
+export const SPONSORSHIP_ENDING_NOTIFICATION_TYPES: NotificationType[] =
+  SPONSORSHIP_END_WINDOWS.map((w) => w.type);
 
 export function visaNotificationsToCreate(
   workerId: string,

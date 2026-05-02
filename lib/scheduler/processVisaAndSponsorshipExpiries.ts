@@ -4,9 +4,9 @@ import { processVisaAndSponsorshipExpiries as runNotificationExpiryEmails } from
 
 /**
  * Günlük cron parçası: vize / RTW / sponsorluk / CoS hatırlatma e-postaları.
- * İdempotent: gönderiler `NotificationEmailLog` üzerinde `@@unique(workerId, anchorDomain, anchorDay, reminderKind)`
- * ile tekilleştirilir; aynı gün/tekrar çalıştırmada aynı e-postayı üretmez.
- * Uygulama mantığı `notification-expiry-email.ts` içinde; burada yalnızca giriş-çıkış logları.
+ * İdempotent: `sendComplianceAnchorEmail` gönderiden önce `NotificationEmailLog` üzerinde
+ * `workerId + anchorDomain + anchorDay + reminderKind` kombinasyonuna bakar; kayıt varsa tekrar e-posta yok.
+ * Liste tarafında tekrarlayan NotificationEvent kayıtları ise `cron-logic` içindeki stale prune ile sınırlı tutulur.
  */
 export async function processVisaAndSponsorshipExpiries(
   db: PrismaClient,

@@ -721,6 +721,9 @@ const tr: Record<string, string> = {
   "notifications.deferFailed": "Erteleme başarısız.",
   "notifications.workflowEmpty": "Şu anda size atanmış bekleyen adım yok.",
   "notifications.filtersSection": "Bildirim listesi filtreleri",
+  "notifications.showAllMilestones": "Tüm zaman pencerelerini göster (60/30/7 gün ayrı ayrı)",
+  "notifications.daysBackHint":
+    "Varsayılan: son 30 günde oluşturulan kayıtlar. Tüm liste için bildirimler API’sinde daysBack=all kullanılabilir.",
   "notifications.colNotificationType": "Tip",
   "notifications.sortByDeadline": "Son tarihe göre sırala",
   "notifications.sortByWorker": "Çalışana göre sırala",
@@ -2021,6 +2024,9 @@ const en: Record<string, string> = {
   "notifications.deferFailed": "Deferral failed.",
   "notifications.workflowEmpty": "Nothing is assigned to you right now.",
   "notifications.filtersSection": "Notification list filters",
+  "notifications.showAllMilestones": "Show all milestone rows (60/30/7 day windows separately)",
+  "notifications.daysBackHint":
+    "Default: notifications created in the last 30 days. For full history, request the notifications API with daysBack=all.",
   "notifications.colNotificationType": "Type",
   "notifications.sortByDeadline": "Sort by deadline",
   "notifications.sortByWorker": "Sort by worker",
