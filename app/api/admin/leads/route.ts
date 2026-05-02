@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { LeadStatus } from "@prisma/client";
-import { z } from "zod";
 import { getSessionUser } from "@/lib/api-context";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { requireAuthorisingOfficer } from "@/lib/admin-auth";
+import { getLeadFormConfigForTenant } from "@/lib/lead-form/server-repository";
+import type { LeadBodyShape } from "@/lib/lead-form/validate-inbound";
+import { validateLeadAgainstFormConfig } from "@/lib/lead-form/validate-inbound";
 
 export const dynamic = "force-dynamic";
-
-const createLeadSchema = z.object({
-  email: z.string().email(),
-  name: z.string().max(200).optional().nullable(),
-  companyName: z.string().max(200).optional().nullable(),
-  phone: z.string().max(80).optional().nullable(),
-  source: z.string().max(120).optional().default("admin_manual"),
-});
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -34,20 +28,45 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const parsed = createLeadSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const shape =
+      body && typeof body === "object"
+        ? (body as LeadBodyShape)
+        : ({} as LeadBodyShape);
+
+    const config = await getLeadFormConfigForTenant(user.tenantId);
+    const validated = validateLeadAgainstFormConfig(shape, config.fields);
+    if (!validated.ok) {
+      return NextResponse.json(
+        { error: "Validation failed", fieldErrors: validated.fieldErrors },
+        { status: 400 }
+      );
     }
 
-    const { email, name, companyName, phone, source } = parsed.data;
+    const data = validated.data;
+    const activeSources = config.sources
+      .filter((s) => s.isActive)
+      .map((s) => s.value);
+    const src = data.source.trim().toLowerCase();
+    if (activeSources.length > 0 && !activeSources.includes(src)) {
+      return NextResponse.json(
+        {
+          error: "Invalid source",
+          fieldErrors: {
+            source: "SOURCE_NOT_ALLOWED",
+          },
+        },
+        { status: 400 }
+      );
+    }
 
     const lead = await prismaBase.lead.create({
       data: {
-        email: email.trim().toLowerCase(),
-        name: name?.trim() || null,
-        companyName: companyName?.trim() || null,
-        phone: phone?.trim() || null,
-        source: source.trim() || "admin_manual",
+        email: data.email,
+        name: data.composedName ?? null,
+        companyName: data.companyName ?? null,
+        phone: data.phone ?? null,
+        message: data.message ?? null,
+        source: src || "admin_manual",
         status: LeadStatus.NEW,
         activities: {
           create: {

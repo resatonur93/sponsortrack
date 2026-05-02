@@ -10,7 +10,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LeadFormSettingsPanel } from "@/components/admin/settings/LeadFormSettingsPanel";
 import { AdminPageHeader, AdminSurfaceCard } from "@/components/admin/shell/AdminPageShell";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { LucideIcon } from "lucide-react";
@@ -27,7 +27,6 @@ const categories: readonly {
   titleKey: string;
   descKey: string;
 }[] = [
-  { icon: SlidersHorizontal, titleKey: "admin.settings.cat.leadForms", descKey: "admin.settings.cat.leadFormsDesc" },
   { icon: Bell, titleKey: "admin.settings.cat.notifications", descKey: "admin.settings.cat.notificationsDesc" },
   { icon: Lock, titleKey: "admin.settings.cat.security", descKey: "admin.settings.cat.securityDesc" },
   { icon: CreditCard, titleKey: "admin.settings.cat.license", descKey: "admin.settings.cat.licenseDesc" },
@@ -177,6 +176,8 @@ export default function AdminSettingsPage(): JSX.Element {
           </div>
         </div>
       </AdminSurfaceCard>
+
+      <LeadFormSettingsPanel />
 
       <section>
         <p className="mb-6 text-xs font-bold uppercase tracking-[0.14em] text-brand-slate">{t("admin.settings.plannedHeading")}</p>

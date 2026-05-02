@@ -33,6 +33,7 @@ model Tenant {
   acknowledgements Acknowledgement[]
   documentExpiryEmailLogs DocumentExpiryEmailLog[]
   notificationEmailLogs NotificationEmailLog[]
+  leadFormSettings      LeadFormSettings?
 }
 
 model User {
@@ -149,6 +150,54 @@ model LeadActivity {
   createdAt DateTime @default(now())
 
   @@index([leadId, createdAt])
+}
+
+/// Kiracı başına tek satır — manuel/yerleşik lead formları için alan ve kaynak yapılandırması.
+model LeadFormSettings {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fields    LeadFormField[]
+  sources   LeadFormSourceOption[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+/// Sabit anahtarlardan biri: firstName | lastName | email | phone | company | source | message
+model LeadFormField {
+  id          String           @id @default(cuid())
+  settingsId  String
+  settings    LeadFormSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  sortOrder   Int              @default(0)
+  fieldKey    String
+  label       String
+  placeholder String?
+  enabled     Boolean          @default(true)
+  required    Boolean          @default(false)
+  /// { minLength?, maxLength?, pattern?, enforceEmail?, phoneIntl? }
+  validation  Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([settingsId, fieldKey])
+  @@index([settingsId, sortOrder])
+}
+
+model LeadFormSourceOption {
+  id         String           @id @default(cuid())
+  settingsId String
+  settings   LeadFormSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  sortOrder  Int              @default(0)
+  value      String
+  label      String
+  isActive   Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([settingsId, value])
+  @@index([settingsId, sortOrder])
 }
 
 // SYSTEM_ADMIN: platform yöneticisi — tüm kiracılardaki kullanıcıları listeler.
