@@ -15,6 +15,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:clean-test-alerts": "tsx scripts/clean-test-alerts.ts",
     "db:clean-duplicate-alerts": "tsx scripts/clean-duplicate-alerts.ts",
+    "email:test-smtp": "tsx scripts/send-test-smtp.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

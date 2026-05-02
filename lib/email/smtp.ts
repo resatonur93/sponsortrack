@@ -38,16 +38,45 @@ function getTransport(): Transporter | null {
   return cached;
 }
 
-export async function sendSmtpMail(input: {
+export type SendSmtpMailResult =
+  | { ok: true }
+  | { ok: false; reason: string; code?: string; responseCode?: number };
+
+function unwrapSmtpError(e: unknown): {
+  message: string;
+  code?: string;
+  responseCode?: number;
+} {
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    const message =
+      typeof o.message === "string" ? o.message : String(o);
+    const code =
+      typeof o.code === "string"
+        ? o.code
+        : typeof o.errno !== "undefined"
+          ? String(o.errno)
+          : undefined;
+    const responseCode =
+      typeof o.responseCode === "number" ? o.responseCode : undefined;
+    return { message, code, responseCode };
+  }
+  return { message: String(e) };
+}
+
+/** Başarısızlıkta auth / bağlantı / kota gibi nedeni ile birlikte döner. */
+export async function sendSmtpMailDetailed(input: {
   to: string;
   subject: string;
   text: string;
   html?: string;
-}): Promise<boolean> {
+}): Promise<SendSmtpMailResult> {
   const transport = getTransport();
   if (!transport) {
-    logger.warn("sendSmtpMail: SMTP not configured");
-    return false;
+    const reason =
+      "SMTP not configured — set SMTP_URL or SMTP_HOST (+ SMTP_PORT, SMTP_USER/PASS)";
+    logger.warn("sendSmtpMailDetailed: no transport", { to: input.to });
+    return { ok: false, reason };
   }
   const from =
     process.env.SMTP_FROM?.trim() ?? "info@sponsortrack.co.uk";
@@ -59,9 +88,32 @@ export async function sendSmtpMail(input: {
       text: input.text,
       html: input.html,
     });
-    return true;
+    logger.info("sendSmtpMailDetailed: delivered", {
+      to: input.to,
+      subject: input.subject.slice(0, 80),
+    });
+    return { ok: true };
   } catch (e) {
-    logger.error("sendSmtpMail failed", e, { to: input.to });
-    return false;
+    const u = unwrapSmtpError(e);
+    logger.error("sendSmtpMailDetailed failed", e, {
+      to: input.to,
+      ...u,
+    });
+    return {
+      ok: false,
+      reason: u.message,
+      code: u.code,
+      responseCode: u.responseCode,
+    };
   }
+}
+
+export async function sendSmtpMail(input: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}): Promise<boolean> {
+  const r = await sendSmtpMailDetailed(input);
+  return r.ok;
 }

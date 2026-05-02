@@ -14,6 +14,9 @@ export async function processVisaAndSponsorshipExpiries(
 ): Promise<{ sent: number; skippedNoSmtp: boolean }> {
   logger.info("scheduler.processVisaAndSponsorshipExpiries: start", {
     now: now.toISOString(),
+    smtpConfigured:
+      Boolean(process.env.SMTP_URL?.trim()) ||
+      Boolean(process.env.SMTP_HOST?.trim()),
   });
   try {
     const result = await runNotificationExpiryEmails(db, now);

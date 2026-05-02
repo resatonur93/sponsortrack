@@ -429,6 +429,12 @@ export async function processVisaAndSponsorshipExpiries(
     return { sent: 0, skippedNoSmtp: true };
   }
 
+  logger.info("notification expiry email: SMTP OK, starting visa/RTW/sponsorship/CoS + due-today sweep", {
+    now: now.toISOString(),
+    from: process.env.SMTP_FROM ?? "(default)",
+    hostOrUrl: process.env.SMTP_URL ? "SMTP_URL" : process.env.SMTP_HOST ?? "?",
+  });
+
   let sent = 0;
 
   // `cosExpiryDate` is mandatory on Worker; anchoring scans are cheap versus SMTP.
