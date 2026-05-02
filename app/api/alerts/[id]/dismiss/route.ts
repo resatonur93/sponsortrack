@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
-import { prisma } from "@/lib/prisma";
+import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: { id: string } };
+
+const WORKER_PREVIEW = {
+  select: {
+    id: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+  },
+} as const;
 
 export async function PUT(
   req: NextRequest,
@@ -18,33 +27,36 @@ export async function PUT(
     }
 
     return await withTenant(user, req, async () => {
-      const existing = await prisma.alert.findFirst({
-        where: { id: params.id },
+      const tenantId = user.tenantId;
+      const alertId = params.id;
+
+      const existing = await prismaBase.alert.findFirst({
+        where: { id: alertId, tenantId },
       });
       if (!existing) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
-      const updated = await prisma.alert.update({
-        where: { id: params.id },
+
+      await prismaBase.alert.update({
+        where: { id: alertId },
         data: { dismissedAt: new Date(), isRead: true },
+      });
+
+      const refreshed = await prismaBase.alert.findFirst({
+        where: { id: alertId, tenantId },
         include: {
-          worker: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
+          worker: WORKER_PREVIEW,
         },
       });
-      return NextResponse.json({ data: updated });
+
+      return NextResponse.json({ data: refreshed });
     });
   } catch (e) {
     logger.error("PUT /api/alerts/[id]/dismiss failed", e);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const msg =
+      process.env.NODE_ENV === "development" && e instanceof Error
+        ? e.message
+        : "Internal server error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

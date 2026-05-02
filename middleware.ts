@@ -25,12 +25,16 @@ export default withAuth(
     const isNotificationMarkReadMutation =
       (method === "PATCH" || method === "PUT" || method === "POST") &&
       /^\/api\/notifications\/[^/]+\/read\/?$/.test(path);
+    const isAlertInboxMutation =
+      method === "PUT" &&
+      /^\/api\/alerts\/[^/]+\/(read|dismiss)\/?$/.test(path);
     if (
       token?.role === "LEVEL_2_USER" &&
       method !== "GET" &&
       method !== "HEAD" &&
       !isPolicyAcknowledgePost &&
-      !isNotificationMarkReadMutation
+      !isNotificationMarkReadMutation &&
+      !isAlertInboxMutation
     ) {
       return NextResponse.json(
         { error: "Forbidden: read-only role" },
