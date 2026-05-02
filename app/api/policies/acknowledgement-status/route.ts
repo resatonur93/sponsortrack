@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { canManagePolicies } from "@/lib/policies/policy-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     return await withTenant(user, req, async () => {
+      if (!canManagePolicies(user.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       const policy = await prisma.policy.findFirst({
         where: { id: policyId, tenantId: user.tenantId },
         select: { id: true, title: true },

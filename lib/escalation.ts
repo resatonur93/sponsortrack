@@ -20,7 +20,7 @@ export function getEscalationLevel(
   return 1;
 }
 
-function startOfDayUtc(d: Date): Date {
+export function startOfDayUtc(d: Date): Date {
   const x = new Date(d);
   x.setUTCHours(0, 0, 0, 0);
   return x;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { getAcknowledgementRatesForPolicies } from "@/lib/policies/acknowledgement-rate";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,9 @@ export async function GET(
         },
       });
 
+      const stats = await getAcknowledgementRatesForPolicies(user.tenantId, [row.id]);
+      const rateRow = stats.get(row.id);
+
       return NextResponse.json({
         data: {
           id: row.id,
@@ -41,11 +45,16 @@ export async function GET(
           category: row.category,
           isAcknowledgementRequired: row.isAcknowledgementRequired,
           createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+          fileUrl: row.fileUrl,
           myAcknowledgedAt: ack?.acknowledgedAt.toISOString() ?? null,
           status:
             row.isAcknowledgementRequired && !ack
               ? ("Pending" as const)
               : ("Acknowledged" as const),
+          acknowledgementRatePercent: rateRow?.ratePercent ?? 0,
+          acknowledgedUserCount: rateRow?.ackCount ?? 0,
+          tenantUserTotal: rateRow?.userTotal ?? 0,
         },
       });
     });

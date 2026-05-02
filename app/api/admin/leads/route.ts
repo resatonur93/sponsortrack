@@ -1,12 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { LeadStatus } from "@prisma/client";
+import { z } from "zod";
 import { getSessionUser } from "@/lib/api-context";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { requireAuthorisingOfficer } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
+
+const createLeadSchema = z.object({
+  email: z.string().email(),
+  name: z.string().max(200).optional().nullable(),
+  companyName: z.string().max(200).optional().nullable(),
+  phone: z.string().max(80).optional().nullable(),
+  source: z.string().max(120).optional().default("admin_manual"),
+});
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  try {
+    const user = await getSessionUser();
+    if (!requireAuthorisingOfficer(user)) {
+      return NextResponse.json(
+        { error: user ? "Forbidden" : "Unauthorized" },
+        { status: user ? 403 : 401 }
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const parsed = createLeadSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const { email, name, companyName, phone, source } = parsed.data;
+
+    const lead = await prismaBase.lead.create({
+      data: {
+        email: email.trim().toLowerCase(),
+        name: name?.trim() || null,
+        companyName: companyName?.trim() || null,
+        phone: phone?.trim() || null,
+        source: source.trim() || "admin_manual",
+        status: LeadStatus.NEW,
+        activities: {
+          create: {
+            type: "ADMIN_CREATE",
+            message: "Manual lead created from admin panel.",
+            userId: user.id,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ data: lead }, { status: 201 });
+  } catch (e) {
+    logger.error("POST /api/admin/leads failed", e);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {

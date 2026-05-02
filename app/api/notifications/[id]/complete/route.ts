@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, withTenant } from "@/lib/api-context";
-import { prisma } from "@/lib/prisma";
 import { notificationCompleteSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
+import { markNotificationAsCompleted } from "@/lib/notifications/notification-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,21 +27,23 @@ export async function POST(
     }
 
     return await withTenant(user, req, async () => {
-      const existing = await prisma.notificationEvent.findUnique({
-        where: { id: params.id },
+      const result = await markNotificationAsCompleted({
+        notificationId: params.id,
+        resolvedByUserId: user.id,
+        notes: parsed.data.notes,
       });
-      if (!existing) {
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+      if (!result.ok) {
+        if (result.reason === "NOT_FOUND") {
+          return NextResponse.json({ error: "Not found" }, { status: 404 });
+        }
+        return NextResponse.json(
+          { error: result.message ?? "Invalid notification state" },
+          { status: 409 }
+        );
       }
-      const updated = await prisma.notificationEvent.update({
-        where: { id: params.id },
-        data: {
-          status: "COMPLETED",
-          reportedDate: new Date(),
-          notes: parsed.data.notes ?? existing.notes,
-        },
-      });
-      return NextResponse.json({ data: updated });
+
+      return NextResponse.json({ data: result.notification });
     });
   } catch (error) {
     logger.error("POST /api/notifications/[id]/complete failed", error);

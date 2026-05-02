@@ -34,6 +34,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         .split(/\r?\n/)
         .map((l) => l.trim())
         .filter(Boolean);
+
+      let headerSkipped = 0;
+      let dataRows = 0;
+      let malformedRows = 0;
+      let unmatchedEmail = 0;
+      let matchedNoIssue = 0;
+
       const discrepancies: {
         workerId: string;
         expected: number;
@@ -41,19 +48,35 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }[] = [];
 
       for (const line of lines) {
-        if (/^email/i.test(line)) continue;
+        if (/^email/i.test(line)) {
+          headerSkipped += 1;
+          continue;
+        }
+        dataRows += 1;
         const parts = line.split(",").map((p) => p.trim());
-        if (parts.length < 3) continue;
+        if (parts.length < 3) {
+          malformedRows += 1;
+          continue;
+        }
         const [email, expStr, actStr] = parts;
         const expected = parseInt(expStr.replace(/\D/g, ""), 10);
         const actual = parseInt(actStr.replace(/\D/g, ""), 10);
-        if (!email || Number.isNaN(expected) || Number.isNaN(actual)) continue;
+        if (!email || Number.isNaN(expected) || Number.isNaN(actual)) {
+          malformedRows += 1;
+          continue;
+        }
 
         const worker = await prisma.worker.findFirst({
           where: { email: { equals: email, mode: "insensitive" } },
         });
-        if (!worker) continue;
-        if (expected === actual) continue;
+        if (!worker) {
+          unmatchedEmail += 1;
+          continue;
+        }
+        if (expected === actual) {
+          matchedNoIssue += 1;
+          continue;
+        }
 
         const key = `payroll-disc:${worker.id}:${expected}:${actual}:${toDateOnly(new Date())}`;
         try {
@@ -84,7 +107,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       return NextResponse.json({
-        data: { discrepanciesFound: discrepancies.length, discrepancies },
+        data: {
+          discrepanciesFound: discrepancies.length,
+          discrepancies,
+          rowsSummary: {
+            dataRows,
+            headerRowsSkipped: headerSkipped,
+            malformedRows,
+            unmatchedEmails: unmatchedEmail,
+            matchedNoDiscrepancy: matchedNoIssue,
+          },
+        },
       });
     });
   } catch (error) {

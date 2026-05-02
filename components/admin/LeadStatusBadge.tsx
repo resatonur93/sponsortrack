@@ -10,7 +10,11 @@ const styles: Record<LeadStatus, string> = {
   LOST: "bg-rose-900/80 text-rose-100",
 };
 
-export function LeadStatusBadge(props: { status: LeadStatus }): JSX.Element {
+export function LeadStatusBadge(props: {
+  status: LeadStatus;
+  /** When set (e.g. i18n), overrides raw enum label. */
+  label?: string;
+}): JSX.Element {
   return (
     <span
       className={cn(
@@ -18,7 +22,7 @@ export function LeadStatusBadge(props: { status: LeadStatus }): JSX.Element {
         styles[props.status]
       )}
     >
-      {props.status}
+      {props.label ?? props.status}
     </span>
   );
 }

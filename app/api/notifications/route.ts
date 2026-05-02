@@ -48,6 +48,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const status = searchParams.get("status") as NotificationStatus | null;
     const type = searchParams.get("type") as NotificationType | null;
     const overdueOnly = searchParams.get("overdueOnly") === "true";
+    /** When `"1"`, return every matching row so the same worker can appear for multiple visas/milestones. */
+    const listAll = searchParams.get("all") === "1";
 
     return await withTenant(user, req, async () => {
       await closeStaleDocumentExpiringNotifications(prismaBase, {
@@ -76,7 +78,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         orderBy: { dueDate: "asc" },
         take: 500,
       });
-      const data = pickClosestNotificationPerWorker(items);
+      const data = listAll ? items : pickClosestNotificationPerWorker(items);
       return NextResponse.json({ data });
     });
   } catch (error) {

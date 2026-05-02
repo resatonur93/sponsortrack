@@ -12,6 +12,7 @@ import {
   EventType,
   OrgChangeStatus,
   OrgChangeType,
+  PolicyCategory,
   RtwCheckMethod,
 } from "@prisma/client";
 
@@ -76,6 +77,10 @@ export const workerUpdateSchema = workerCreateSchema.partial();
 
 export const notificationCompleteSchema = z.object({
   notes: z.string().optional(),
+});
+
+export const notificationDeferSchema = z.object({
+  days: z.coerce.number().int().min(1).max(90).optional().default(7),
 });
 
 const notificationTypeEnum = z.enum([
@@ -365,6 +370,36 @@ export const selfServiceProfileUpdateSchema = z.object({
   emergencyContact: z.string().optional().nullable(),
   emergencyPhone: z.string().optional().nullable(),
 });
+
+export const policyCreateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(256),
+    content: z.string(),
+    version: z.string().trim().min(1).max(64),
+    effectiveDate: dateInput,
+    category: z.nativeEnum(PolicyCategory),
+    isAcknowledgementRequired: z.boolean(),
+    fileUrl: z.preprocess(
+      (v) => (v === "" || v === null || v === undefined ? null : String(v)),
+      z.union([z.string().max(2048), z.null()])
+    ),
+  })
+  .superRefine((d, ctx) => {
+    if (d.content.trim().length === 0 && !d.fileUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "contentOrAttachment",
+        path: ["content"],
+      });
+    }
+    if (d.fileUrl && !d.fileUrl.startsWith("https://")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "httpsOnly",
+        path: ["fileUrl"],
+      });
+    }
+  });
 
 export const ukLawCheckUpdateSchema = z.object({
   nmwCompliant: z.boolean().optional().nullable(),

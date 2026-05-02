@@ -61,6 +61,32 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         }),
       ]);
 
+      const performedIds = Array.from(new Set(recentAudit.map((a) => a.performedBy)));
+      const actors =
+        performedIds.length === 0
+          ? []
+          : await prisma.user.findMany({
+              where: { id: { in: performedIds }, tenantId: user.tenantId },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            });
+      const actorMap = new Map(actors.map((u) => [u.id, u]));
+
+      const enrichedAudit = recentAudit.map((row) => ({
+        id: row.id,
+        action: row.action,
+        entityType: row.entityType,
+        entityId: row.entityId,
+        changes: row.changes,
+        createdAt: row.createdAt.toISOString(),
+        performedBy: row.performedBy,
+        actor: actorMap.get(row.performedBy) ?? null,
+      }));
+
       return NextResponse.json({
         data: {
           totalActiveWorkers: totalWorkers,
@@ -69,7 +95,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           visasExpiring30d: expiringVisas,
           documentsExpiring30d: expiringDocs,
           openOrganisationChanges: openOrgChanges,
-          recentAuditLogs: recentAudit,
+          recentAuditLogs: enrichedAudit,
         },
       });
     });

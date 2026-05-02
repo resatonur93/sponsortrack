@@ -1,3 +1,4 @@
+/** Server-side aggregates for `/api/audit/dashboard` and exports. Chart helpers live in `@/lib/audit/dashboard`. */
 import type {
   ComplianceRiskLevel,
   EventType,

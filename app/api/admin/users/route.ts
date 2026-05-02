@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { getSessionUser } from "@/lib/api-context";
 import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -6,7 +8,7 @@ import { requireAuthorisingOfficer } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const sessionUser = await getSessionUser();
     if (!requireAuthorisingOfficer(sessionUser)) {
@@ -16,7 +18,19 @@ export async function GET(): Promise<NextResponse> {
       );
     }
 
+    const roleParam = req.nextUrl.searchParams.get("role")?.trim();
+    const tenantParam = req.nextUrl.searchParams.get("tenantId")?.trim();
+
+    const where: Prisma.UserWhereInput = {};
+    if (roleParam && (Object.values(Role) as string[]).includes(roleParam)) {
+      where.role = roleParam as Role;
+    }
+    if (tenantParam) {
+      where.tenantId = tenantParam;
+    }
+
     const users = await prismaBase.user.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
