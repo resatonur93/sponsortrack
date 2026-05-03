@@ -23,6 +23,10 @@ type Props = {
   disabled?: boolean;
   locale: Locale;
   className?: string;
+  /** Takvimde gezinilebilecek en erken ay. Varsayılan: 80 yıl önce. */
+  startMonth?: Date;
+  /** Takvimde gezinilebilecek en son ay. Varsayılan: 10 yıl sonra. */
+  endMonth?: Date;
 };
 
 export function FormDatePicker({
@@ -33,9 +37,15 @@ export function FormDatePicker({
   disabled,
   locale,
   className,
+  startMonth,
+  endMonth,
 }: Props): JSX.Element {
   const [open, setOpen] = React.useState(false);
   const ln = locale === "tr" ? tr : enGB;
+
+  const now = new Date();
+  const resolvedStartMonth = startMonth ?? new Date(now.getFullYear() - 80, 0, 1);
+  const resolvedEndMonth = endMonth ?? new Date(now.getFullYear() + 10, 11, 31);
 
   const selected = React.useMemo(() => {
     if (!value) return undefined;
@@ -73,7 +83,10 @@ export function FormDatePicker({
           mode="single"
           required={false}
           locale={ln}
-          defaultMonth={selected}
+          captionLayout="dropdown"
+          startMonth={resolvedStartMonth}
+          endMonth={resolvedEndMonth}
+          defaultMonth={selected ?? resolvedEndMonth}
           selected={selected}
           onSelect={(date) => {
             if (!date) {

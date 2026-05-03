@@ -413,6 +413,7 @@ export function WorkerForm(): JSX.Element {
                         onChange={field.onChange}
                         locale={locale}
                         placeholder={t("workerForm.pickDate")}
+                        endMonth={new Date(new Date().getFullYear() - 16, 11, 31)}
                       />
                     )}
                   />
