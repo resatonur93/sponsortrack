@@ -139,11 +139,12 @@ export function WorkerForm(): JSX.Element {
 
   React.useEffect(() => {
     const digits = phoneBody.replace(/\D/g, "");
-    if (!digits && !phonePrefix) {
+    const prefix = phonePrefix === "__raw__" ? "" : phonePrefix;
+    if (!digits && !prefix) {
       form.setValue("phone", null);
       return;
     }
-    form.setValue("phone", digits ? `${phonePrefix}${digits}` : null, {
+    form.setValue("phone", digits ? `${prefix}${digits}` : null, {
       shouldValidate: false,
       shouldDirty: false,
       shouldTouch: false,

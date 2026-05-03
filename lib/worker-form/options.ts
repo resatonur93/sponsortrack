@@ -80,7 +80,7 @@ export const PHONE_PREFIXES = [
   { value: "+1", labelKey: "workerForm.phone.us" },
   { value: "+49", labelKey: "workerForm.phone.de" },
   { value: "+33", labelKey: "workerForm.phone.fr" },
-  { value: "", labelKey: "workerForm.phone.raw" },
+  { value: "__raw__", labelKey: "workerForm.phone.raw" },
 ] as const;
 
 export type NationalityPreset = "UK" | "TR" | "OTHER";
