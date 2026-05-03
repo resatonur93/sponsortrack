@@ -69,6 +69,7 @@ export function WorkerDetailView(): JSX.Element {
     EngineRiskSnapshot | null | undefined
   >(undefined);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editPersonalEmail, setEditPersonalEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editWorkPhone, setEditWorkPhone] = useState("");
@@ -150,9 +151,10 @@ export function WorkerDetailView(): JSX.Element {
     });
     setSaving(false);
     if (!res.ok) {
-      alert(t("workerDetail.saveFailed"));
+      setSaveError(t("workerDetail.saveFailed"));
       return;
     }
+    setSaveError(null);
     setEditOpen(false);
     void load();
   }
@@ -627,21 +629,28 @@ export function WorkerDetailView(): JSX.Element {
                     onChange={(e) => setEditEmergencyPhone(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2 sm:col-span-2">
-                  <Button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => void saveProfileEdit()}
-                  >
-                    {saving ? t("workerDetail.saving") : t("common.save")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditOpen(false)}
-                  >
-                    {t("common.cancel")}
-                  </Button>
+                <div className="sm:col-span-2 space-y-2">
+                  {saveError && (
+                    <p role="alert" className="text-sm text-red-600">
+                      {saveError}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => void saveProfileEdit()}
+                    >
+                      {saving ? t("workerDetail.saving") : t("common.save")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { setEditOpen(false); setSaveError(null); }}
+                    >
+                      {t("common.cancel")}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

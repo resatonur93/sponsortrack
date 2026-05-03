@@ -116,7 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (!worker) {
         return NextResponse.json({ error: "Worker not found" }, { status: 404 });
       }
-      const key = `manual:${d.workerId}:${d.eventType}:${d.dueDate}:${Date.now()}`;
+      const key = `manual:${user.tenantId}:${d.workerId}:${d.eventType}:${d.dueDate}`;
       const due = new Date(d.dueDate);
       const eventType = d.eventType as NotificationType;
       const payload = buildComplianceEventData({

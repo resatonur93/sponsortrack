@@ -422,6 +422,7 @@ model Worker {
   @@index([employmentStatus])
   @@index([tenantId])
   @@index([lineManagerId])
+  @@index([tenantId, employmentStatus, visaExpiryDate])
 }
 
 model UkLawCheck {
@@ -664,6 +665,7 @@ model Alert {
   @@unique([tenantId, dedupeKey])
   @@index([tenantId, level, isRead])
   @@index([workerId])
+  @@index([tenantId, workerId, alertType])
 }
 
 enum AlertType {
@@ -715,6 +717,7 @@ model NotificationEvent {
   @@index([workerId, eventType, status])
   @@index([tenantId])
   @@index([tenantId, readAt])
+  @@index([tenantId, status, eventType])
 }
 
 enum NotificationType {
@@ -827,6 +830,7 @@ model DocumentExpiryEmailLog {
 
   @@unique([documentId, expiryDay, kind])
   @@index([tenantId])
+  @@index([tenantId, expiryDay])
 }
 
 /// Grouping key for visa / RTW recheck / sponsorship / CoS anchors (distinct from Postgres enum name prefixes).
@@ -1118,6 +1122,7 @@ model RiskScore {
   @@index([tenantId, level])
   @@index([tenantId, isTenantAggregate])
   @@index([workerId])
+  @@index([tenantId, isTenantAggregate, calculatedAt])
 }
 
 model AuditLog {

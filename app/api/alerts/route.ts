@@ -138,7 +138,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         });
       }
 
-      const [data, unreadCount, byLevel, byLevelUnread] = await Promise.all([
+      const [data, byLevelAll, byLevelUnreadGroups] = await Promise.all([
         limit <= 0
           ? Promise.resolve([])
           : prisma.alert.findMany({
@@ -147,47 +147,41 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
               take: limit,
               include: workerInclude,
             }),
+        prisma.alert.groupBy({
+          by: ["level"],
+          where: whereNoLevel,
+          _count: { _all: true },
+        }),
         readTrueOnly
-          ? Promise.resolve(0)
-          : prisma.alert.count({
-              where: {
-                ...whereNoLevel,
-                isRead: false,
-              },
+          ? Promise.resolve([] as { level: AlertLevel; _count: { _all: number } }[])
+          : prisma.alert.groupBy({
+              by: ["level"],
+              where: { ...whereNoLevel, isRead: false },
+              _count: { _all: true },
             }),
-        Promise.all(
-          LEVEL_ORDER.map(async (lvl) => ({
-            level: lvl,
-            count: await prisma.alert.count({
-              where: { ...whereNoLevel, level: lvl },
-            }),
-          }))
-        ),
-        readTrueOnly
-          ? Promise.resolve(
-              LEVEL_ORDER.map((lvl) => ({ level: lvl, count: 0 }))
-            )
-          : Promise.all(
-              LEVEL_ORDER.map(async (lvl) => ({
-                level: lvl,
-                count: await prisma.alert.count({
-                  where: { ...whereNoLevel, level: lvl, isRead: false },
-                }),
-              }))
-            ),
       ]);
 
-      const byLevelRecord = Object.fromEntries(byLevel.map((x) => [x.level, x.count]));
+      const byLevelRecord = Object.fromEntries(
+        LEVEL_ORDER.map((lv) => [lv, 0])
+      ) as Record<AlertLevel, number>;
+      for (const g of byLevelAll) byLevelRecord[g.level] = g._count._all;
+
+      const byLevelUnreadRecord = Object.fromEntries(
+        LEVEL_ORDER.map((lv) => [lv, 0])
+      ) as Record<AlertLevel, number>;
+      for (const g of byLevelUnreadGroups) byLevelUnreadRecord[g.level] = g._count._all;
+
+      const unreadCount = readTrueOnly
+        ? 0
+        : LEVEL_ORDER.reduce((acc, lv) => acc + byLevelUnreadRecord[lv], 0);
 
       return NextResponse.json({
         data,
         meta: {
           unreadCount,
-          totalActive: byLevel.reduce((acc, x) => acc + x.count, 0),
+          totalActive: LEVEL_ORDER.reduce((acc, lv) => acc + byLevelRecord[lv], 0),
           byLevel: byLevelRecord,
-          byLevelUnread: Object.fromEntries(
-            byLevelUnread.map((x) => [x.level, x.count])
-          ),
+          byLevelUnread: byLevelUnreadRecord,
           dedupe: null,
           displayFetchCapReached: false,
         },

@@ -5,10 +5,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+
+// SSR'da useLayoutEffect yoktur; hydration flash'ı azaltmak için client'ta useLayoutEffect kullan.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { translate } from "@/lib/i18n/dictionaries";
 import {
   DEFAULT_LOCALE,
@@ -41,7 +46,7 @@ export function LanguageProvider({ children }: { children: ReactNode }): JSX.Ele
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     setLocaleState(readStoredLocale());
     setReady(true);
   }, []);

@@ -64,7 +64,17 @@ function unwrapSmtpError(e: unknown): {
   return { message: String(e) };
 }
 
-/** Başarısızlıkta auth / bağlantı / kota gibi nedeni ile birlikte döner. */
+const TRANSIENT_SMTP_CODES = new Set([
+  "ECONNREFUSED", "ETIMEDOUT", "ECONNRESET", "EHOSTUNREACH", "ENETUNREACH",
+]);
+
+function isTransientSmtpError(result: Extract<SendSmtpMailResult, { ok: false }>): boolean {
+  if (result.code && TRANSIENT_SMTP_CODES.has(result.code)) return true;
+  const rc = result.responseCode;
+  return rc === 421 || rc === 451 || rc === 452;
+}
+
+/** Başarısızlıkta auth / bağlantı / kota gibi nedeni ile birlikte döner. Geçici hatalar 3 denemeye kadar yeniden denenir. */
 export async function sendSmtpMailDetailed(input: {
   to: string;
   subject: string;
@@ -82,34 +92,57 @@ export async function sendSmtpMailDetailed(input: {
   }
   const from =
     process.env.SMTP_FROM?.trim() ?? "info@sponsortrack.co.uk";
-  try {
-    await transport.sendMail({
-      from,
-      to: input.to,
-      cc: input.cc?.trim() || undefined,
-      bcc: input.bcc?.trim() || undefined,
-      subject: input.subject,
-      text: input.text,
-      html: input.html,
-    });
-    logger.info("sendSmtpMailDetailed: delivered", {
-      to: input.to,
-      subject: input.subject.slice(0, 80),
-    });
-    return { ok: true };
-  } catch (e) {
-    const u = unwrapSmtpError(e);
-    logger.error("sendSmtpMailDetailed failed", e, {
-      to: input.to,
-      ...u,
-    });
-    return {
-      ok: false,
-      reason: u.message,
-      code: u.code,
-      responseCode: u.responseCode,
-    };
+
+  const MAX_ATTEMPTS = 3;
+  const BASE_DELAY_MS = 1_000;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await transport.sendMail({
+        from,
+        to: input.to,
+        cc: input.cc?.trim() || undefined,
+        bcc: input.bcc?.trim() || undefined,
+        subject: input.subject,
+        text: input.text,
+        html: input.html,
+      });
+      logger.info("sendSmtpMailDetailed: delivered", {
+        to: input.to,
+        subject: input.subject.slice(0, 80),
+        attempt,
+      });
+      return { ok: true };
+    } catch (e) {
+      const u = unwrapSmtpError(e);
+      const result: Extract<SendSmtpMailResult, { ok: false }> = {
+        ok: false,
+        reason: u.message,
+        code: u.code,
+        responseCode: u.responseCode,
+      };
+
+      if (!isTransientSmtpError(result) || attempt === MAX_ATTEMPTS) {
+        logger.error("sendSmtpMailDetailed failed", e, {
+          to: input.to,
+          attempt,
+          ...u,
+        });
+        return result;
+      }
+
+      const delayMs = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      logger.warn("sendSmtpMailDetailed transient error, retrying", {
+        to: input.to,
+        attempt,
+        delayMs,
+        ...u,
+      });
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    }
   }
+
+  return { ok: false, reason: "Max retries exceeded" };
 }
 
 export async function sendSmtpMail(input: {

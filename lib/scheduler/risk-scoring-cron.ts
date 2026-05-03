@@ -94,6 +94,13 @@ export async function runRiskScoringForTenant(
 
   const orgOnly = mergeFactors([], orgFactors);
 
+  const computedWorkers = workers.map((w) => {
+    const shape = w as unknown as WorkerRiskDbShape;
+    const wf = computeWorkerOnlyFactors(shape, now);
+    const merged = mergeFactors(wf, orgFactors);
+    return { workerId: w.id, merged };
+  });
+
   await prismaBase.$transaction(async (tx) => {
     await tx.riskScore.deleteMany({ where: { tenantId } });
 
@@ -108,28 +115,26 @@ export async function runRiskScoringForTenant(
       },
     });
 
-    for (const w of workers) {
-      const shape = w as unknown as WorkerRiskDbShape;
-      const wf = computeWorkerOnlyFactors(shape, now);
-      const merged = mergeFactors(wf, orgFactors);
-
-      await tx.riskScore.create({
-        data: {
+    if (computedWorkers.length > 0) {
+      await tx.riskScore.createMany({
+        data: computedWorkers.map(({ workerId, merged }) => ({
           tenantId,
-          workerId: w.id,
+          workerId,
           isTenantAggregate: false,
           score: merged.score,
           level: merged.level,
           factors: factorsToPrismaJson(merged.factors),
-        },
+        })),
       });
 
-      await tx.worker.update({
-        where: { id: w.id },
-        data: {
-          complianceRiskLevel: riskLevelToComplianceLevel(merged.level),
-        },
-      });
+      await Promise.all(
+        computedWorkers.map(({ workerId, merged }) =>
+          tx.worker.update({
+            where: { id: workerId },
+            data: { complianceRiskLevel: riskLevelToComplianceLevel(merged.level) },
+          })
+        )
+      );
     }
   });
 
