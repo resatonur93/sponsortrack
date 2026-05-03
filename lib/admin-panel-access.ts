@@ -3,7 +3,12 @@ function normalizeEmail(email: string): string {
 }
 
 function resolvedAdminEmail(): string {
-  const raw = process.env.ADMIN_PANEL_EMAIL ?? "resatonurkurt@gmail.com";
+  const raw = process.env.ADMIN_PANEL_EMAIL;
+  if (!raw?.trim()) {
+    throw new Error(
+      "ADMIN_PANEL_EMAIL environment variable is required but not set"
+    );
+  }
   return normalizeEmail(raw);
 }
 

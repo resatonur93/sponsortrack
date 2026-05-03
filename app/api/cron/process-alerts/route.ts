@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { runAlertsPipeline } from "@/lib/scheduler";
 import { logger } from "@/lib/logger";
 
@@ -17,8 +15,8 @@ function cronAuthorized(req: NextRequest): boolean {
 
 /**
  * Günlük bildirim üretimi + escalation → `Alert` tablosu.
- * - GET: `Authorization: Bearer CRON_SECRET` veya `?token=` (zamanlanmış işler).
- * - POST: aynı secret **veya** oturum açmış LEVEL_1 / AO (LEVEL_2 değil) — geliştirme / manuel tetikleme.
+ * Her iki method da CRON_SECRET gerektirir.
+ * Manuel tetikleme: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" /api/cron/process-alerts`
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!cronAuthorized(req)) {
@@ -38,19 +36,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions);
-  const allowedBySession =
-    !!session?.user?.tenantId &&
-    session.user.role !== "LEVEL_2_USER";
-
-  if (!cronAuthorized(req) && !allowedBySession) {
+  if (!cronAuthorized(req)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
   try {
     const result = await runAlertsPipeline(new Date());
     logger.info("POST /api/cron/process-alerts completed", {
-      by: cronAuthorized(req) ? "cron_secret" : session?.user?.email,
+      by: "cron_secret",
       escalationUpserts: result.escalation.upserts,
     });
     return NextResponse.json({ ok: true, result });

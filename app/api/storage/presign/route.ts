@@ -86,7 +86,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return await withTenant(user, req, async () => {
       const worker = await prisma.worker.findFirst({
-        where: { id: d.workerId },
+        where: { id: d.workerId, tenantId: user.tenantId },
         select: { id: true },
       });
       if (!worker) {
