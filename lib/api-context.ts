@@ -45,23 +45,11 @@ export async function getSessionUser(
   const ip = readClientIpFromHeaders(hdrs);
   const authSid = session.user.authSid;
 
-  /**
-   * Güvenlik özelliği öncesi üretilmiş JWT’lerde `authSid` yoktur; kullanıcıyı tamamen
-   * dışarı atmamak için bu geçiş döneminde guard atlanır — bir sonraki girişte satır oluşur.
-   */
   if (!authSid?.trim()) {
-    logger.warn("getSessionUser: session without authSid — legacy JWT path", {
+    logger.warn("getSessionUser: session without authSid — rejecting token", {
       userId: session.user.id,
     });
-    return {
-      id: session.user.id,
-      email: session.user.email ?? "",
-      role: session.user.role,
-      tenantId: session.user.tenantId,
-      firstName: session.user.firstName,
-      lastName: session.user.lastName,
-      authSid: undefined,
-    };
+    return null;
   }
 
   const guard = await validateAndTouchAuthSession({

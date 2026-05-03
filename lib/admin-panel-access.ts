@@ -2,19 +2,24 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function resolvedAdminEmail(): string {
+function resolvedAdminEmail(): string | null {
   const raw = process.env.ADMIN_PANEL_EMAIL;
-  if (!raw?.trim()) {
+  if (!raw?.trim()) return null;
+  return normalizeEmail(raw);
+}
+
+/**
+ * Admin paneli e-posta adresini döner.
+ * ADMIN_PANEL_EMAIL tanımlı değilse hata fırlatır — yalnızca admin sayfası bileşenlerinden çağır.
+ */
+export function getAdminPanelEmail(): string {
+  const email = resolvedAdminEmail();
+  if (!email) {
     throw new Error(
       "ADMIN_PANEL_EMAIL environment variable is required but not set"
     );
   }
-  return normalizeEmail(raw);
-}
-
-/** Tek hesap: bu e-posta + AUTHORISING_OFFICER rolü = /admin erişimi */
-export function getAdminPanelEmail(): string {
-  return resolvedAdminEmail();
+  return email;
 }
 
 export function canAccessAdminPanel(
@@ -23,5 +28,7 @@ export function canAccessAdminPanel(
 ): boolean {
   if (role !== "AUTHORISING_OFFICER") return false;
   if (!email) return false;
-  return normalizeEmail(email) === resolvedAdminEmail();
+  const adminEmail = resolvedAdminEmail();
+  if (!adminEmail) return false; // env tanımlı değilse admin erişimi yok
+  return normalizeEmail(email) === adminEmail;
 }

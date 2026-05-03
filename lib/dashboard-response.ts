@@ -166,6 +166,8 @@ async function loadDashboardCore(
     include: {
       documents: { where: { isDeleted: false } },
     },
+    take: 500,
+    orderBy: { createdAt: "desc" },
   });
 
   let missingDocumentIssues = 0;
