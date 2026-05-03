@@ -26,7 +26,7 @@ export function canAccessAdminPanel(
   email: string | null | undefined,
   role: string | undefined
 ): boolean {
-  if (role !== "AUTHORISING_OFFICER") return false;
+  if (role !== "AUTHORISING_OFFICER" && role !== "SYSTEM_ADMIN") return false;
   if (!email) return false;
   const adminEmail = resolvedAdminEmail();
   if (!adminEmail) return false; // env tanımlı değilse admin erişimi yok
