@@ -17,12 +17,15 @@ import {
   LayoutPanelLeft,
   Gauge,
   BookOpen,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AlertCountPill } from "@/components/layout/AlertCountPill";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useState } from "react";
 
 const navBase = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
@@ -47,6 +50,14 @@ const adminNavItem = {
   icon: UserCog,
 } as const;
 
+/** The 4 routes that appear in the fixed bottom bar on mobile. */
+const BOTTOM_NAV_HREFS = [
+  "/dashboard",
+  "/workers",
+  "/alerts",
+  "/notifications",
+] as const;
+
 export function AppShell({
   children,
 }: {
@@ -55,15 +66,23 @@ export function AppShell({
   const pathname = usePathname();
   const { data } = useSession();
   const { t } = useTranslation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const nav = data?.user?.canAccessAdminPanel
     ? [...navBase, adminNavItem]
     : [...navBase];
+
+  const bottomItems = nav.filter((item) =>
+    (BOTTOM_NAV_HREFS as readonly string[]).includes(item.href)
+  );
 
   return (
     <div className="surface-page flex min-h-screen">
       <a href="#main-content" className="skip-nav">
         {t("common.skipToContent")}
       </a>
+
+      {/* ── Desktop Sidebar ── */}
       <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col border-r border-brand-navy/12 bg-white shadow-[2px_0_24px_-12px_rgba(10,42,94,0.08)] md:flex">
         <div className="flex h-[4.25rem] items-center border-b border-brand-navy/10 bg-white px-3">
           <Logo href="/dashboard" mark="compact" variant="light" size="sm" />
@@ -94,7 +113,9 @@ export function AppShell({
           })}
         </nav>
         <div className="border-t border-brand-navy/10 bg-brand-surface/50 p-3">
-          <p className="truncate text-xs font-medium text-slate-700">{data?.user?.email}</p>
+          <p className="truncate text-xs font-medium text-slate-700">
+            {data?.user?.email}
+          </p>
           <Button
             variant="outline"
             className="mt-2 w-full"
@@ -110,50 +131,172 @@ export function AppShell({
           </Button>
         </div>
       </aside>
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-40 border-b border-brand-navy/10 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm md:hidden">
-          <div className="flex h-11 items-center justify-between gap-2">
-            <Logo href="/dashboard" mark="compact" variant="light" size="sm" />
-            <LanguageSwitcher />
-          </div>
-          <nav className="mt-2 flex gap-2 overflow-x-auto pb-1 text-sm">
-            {nav.map((item) => {
-              const Icon = item.icon;
-              const active =
-                pathname === item.href ||
-                pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 font-medium transition-colors",
-                    active
-                      ? "bg-brand-navy text-white shadow-sm"
-                      : "bg-brand-surface text-brand-navy hover:bg-brand-gold/15"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="flex items-center gap-1">
-                    {t(item.labelKey)}
-                    {item.href === "/alerts" ? <AlertCountPill /> : null}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
+
+      {/* ── Page column ── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top header */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-brand-navy/10 bg-white/95 px-4 shadow-sm backdrop-blur-sm md:hidden">
+          <Logo href="/dashboard" mark="compact" variant="light" size="sm" />
+          <LanguageSwitcher />
         </header>
+
+        {/* Desktop top bar */}
         <div className="hidden items-center justify-end border-b border-brand-navy/10 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-sm md:flex">
           <LanguageSwitcher />
         </div>
+
         <main
           id="main-content"
-          className="flex-1 scroll-mt-16 bg-brand-surface p-4 md:p-8"
+          /* extra bottom padding so content isn't hidden under the mobile bottom bar */
+          className="flex-1 scroll-mt-16 bg-brand-surface p-4 pb-[5.5rem] md:p-8 md:pb-8"
           tabIndex={-1}
         >
           {children}
         </main>
       </div>
+
+      {/* ── Mobile Bottom Navigation Bar ── */}
+      <nav
+        aria-label={t("shell.bottomNav")}
+        className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-brand-navy/12 bg-white/97 shadow-[0_-4px_24px_-8px_rgba(10,42,94,0.12)] backdrop-blur-md md:hidden"
+      >
+        {bottomItems.map((item) => {
+          const Icon = item.icon;
+          const active =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium leading-tight transition-colors",
+                active ? "text-brand-navy" : "text-slate-400"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+                  active ? "bg-brand-navy/10" : ""
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "h-[1.15rem] w-[1.15rem]",
+                    active ? "text-brand-navy" : "text-slate-400"
+                  )}
+                />
+              </span>
+              {item.href === "/alerts" ? (
+                <span className="absolute right-[calc(50%-18px)] top-1">
+                  <AlertCountPill />
+                </span>
+              ) : null}
+              <span>{t(item.labelKey)}</span>
+            </Link>
+          );
+        })}
+
+        {/* "More" button — opens full nav drawer */}
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          aria-label={t("shell.menu")}
+          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium leading-tight text-slate-400 transition-colors hover:text-brand-navy"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl">
+            <Menu className="h-[1.15rem] w-[1.15rem]" />
+          </span>
+          <span>{t("shell.more")}</span>
+        </button>
+      </nav>
+
+      {/* ── Mobile Full Nav Drawer (bottom sheet) ── */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden
+          />
+          {/* Sheet panel */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("shell.menu")}
+            className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl"
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pb-1 pt-3" aria-hidden>
+              <div className="h-1 w-10 rounded-full bg-slate-200" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <p className="text-sm font-semibold text-brand-navy">
+                {t("shell.menu")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-brand-navy"
+                aria-label={t("common.close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* All nav items */}
+            <nav className="space-y-0.5 p-3">
+              {nav.map((item) => {
+                const Icon = item.icon;
+                const active =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={cn(
+                      "flex min-h-[3rem] items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-brand-navy text-white shadow-sm"
+                        : "text-brand-navy/90 hover:bg-brand-gold/12 hover:text-brand-navy"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span className="truncate">{t(item.labelKey)}</span>
+                      {item.href === "/alerts" ? <AlertCountPill /> : null}
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* User info + logout */}
+            <div className="border-t border-slate-100 px-4 pb-8 pt-4">
+              <p className="mb-3 truncate text-xs text-slate-500">
+                {data?.user?.email}
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                type="button"
+                onClick={() =>
+                  void signOut({
+                    callbackUrl: `${window.location.origin}/login`,
+                  })
+                }
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {t("shell.logout")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

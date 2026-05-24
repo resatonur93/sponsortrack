@@ -201,8 +201,8 @@ export default function DashboardPage(): JSX.Element {
         </DialogContent>
       </Dialog>
       <div>
-        <h1 className="text-2xl font-bold text-brand-navy">{t("dashboard.title")}</h1>
-        <p className="text-slate-600">{t("dashboard.subtitle")}</p>
+        <h1 className="text-xl font-bold text-brand-navy sm:text-2xl">{t("dashboard.title")}</h1>
+        <p className="text-sm text-slate-600 sm:text-base">{t("dashboard.subtitle")}</p>
       </div>
       <ComplianceTrafficLight traffic={data.complianceTraffic} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -273,16 +273,16 @@ export default function DashboardPage(): JSX.Element {
           <h2 className="text-sm font-semibold text-red-900">
             {t("dashboard.highPriorityMissing")}
           </h2>
-          <ul className="mt-2 space-y-1 text-sm">
+          <ul className="mt-2 space-y-2 text-sm">
             {data.highPriorityMissing.map((h) => (
-              <li key={h.workerId}>
+              <li key={h.workerId} className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-1">
                 <Link
                   href={`/workers/${h.workerId}`}
-                  className="font-medium text-brand-navy underline"
+                  className="font-semibold text-brand-navy underline-offset-2 hover:underline"
                 >
                   {h.name}
                 </Link>
-                : {h.labels.join(", ")}
+                <span className="text-xs text-red-700 sm:text-sm">{h.labels.join(", ")}</span>
               </li>
             ))}
           </ul>
@@ -355,71 +355,133 @@ export default function DashboardPage(): JSX.Element {
         {!data.missingDocumentsTable || data.missingDocumentsTable.length === 0 ? (
           <p className="text-sm text-slate-500">{t("dashboard.noMissingDocs")}</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">{t("dashboard.tableSn")}</TableHead>
-                <TableHead>{t("dashboard.tableWorker")}</TableHead>
-                <TableHead>{t("dashboard.tableMissingTitles")}</TableHead>
-                <TableHead className="w-24">{t("dashboard.tableHigh")}</TableHead>
-                <TableHead className="w-24">{t("dashboard.tableMedium")}</TableHead>
-                <TableHead className="w-24">{t("dashboard.tableLow")}</TableHead>
-                <TableHead className="w-24 text-right">
-                  {t("dashboard.tableDetail")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile card list */}
+            <div className="space-y-2 md:hidden">
               {data.missingDocumentsTable.map((row, idx) => (
-                <TableRow key={row.workerId}>
-                  <TableCell>{idx + 1}</TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/workers/${row.workerId}`}
-                      className="font-medium text-brand-navy underline"
-                    >
-                      {row.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {row.labels.slice(0, 3).map((label) => (
-                        <Badge key={`${row.workerId}-${label}`} variant="outline">
-                          {label}
-                        </Badge>
-                      ))}
-                      {row.labels.length > 3 ? (
-                        <Badge variant="outline">+{row.labels.length - 3}</Badge>
-                      ) : null}
+                <div
+                  key={row.workerId}
+                  className="rounded-xl border border-brand-navy/12 bg-brand-surface/50 p-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="mr-2 text-xs font-medium text-slate-400">
+                        #{idx + 1}
+                      </span>
+                      <Link
+                        href={`/workers/${row.workerId}`}
+                        className="font-semibold text-brand-navy underline-offset-2 hover:underline"
+                      >
+                        {row.name}
+                      </Link>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.highCount > 0 ? "danger" : "outline"}>
-                      {row.highCount}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.mediumCount > 0 ? "warning" : "outline"}>
-                      {row.mediumCount}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.lowCount > 0 ? "success" : "outline"}>
-                      {row.lowCount}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      href={`/workers/${row.workerId}`}
-                      className="text-sm text-brand-navy underline"
-                    >
-                      {t("common.open")}
-                    </Link>
-                  </TableCell>
-                </TableRow>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {row.highCount > 0 && (
+                        <Badge variant="danger" className="px-2 py-0 text-[11px]">
+                          H:{row.highCount}
+                        </Badge>
+                      )}
+                      {row.mediumCount > 0 && (
+                        <Badge variant="warning" className="px-2 py-0 text-[11px]">
+                          M:{row.mediumCount}
+                        </Badge>
+                      )}
+                      {row.lowCount > 0 && (
+                        <Badge variant="success" className="px-2 py-0 text-[11px]">
+                          L:{row.lowCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {row.labels.slice(0, 3).map((label) => (
+                      <Badge
+                        key={`${row.workerId}-${label}`}
+                        variant="outline"
+                        className="text-[11px]"
+                      >
+                        {label}
+                      </Badge>
+                    ))}
+                    {row.labels.length > 3 ? (
+                      <Badge variant="outline" className="text-[11px]">
+                        +{row.labels.length - 3}
+                      </Badge>
+                    ) : null}
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">{t("dashboard.tableSn")}</TableHead>
+                    <TableHead>{t("dashboard.tableWorker")}</TableHead>
+                    <TableHead>{t("dashboard.tableMissingTitles")}</TableHead>
+                    <TableHead className="w-24">{t("dashboard.tableHigh")}</TableHead>
+                    <TableHead className="w-24">{t("dashboard.tableMedium")}</TableHead>
+                    <TableHead className="w-24">{t("dashboard.tableLow")}</TableHead>
+                    <TableHead className="w-24 text-right">
+                      {t("dashboard.tableDetail")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.missingDocumentsTable.map((row, idx) => (
+                    <TableRow key={row.workerId}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/workers/${row.workerId}`}
+                          className="font-medium text-brand-navy underline"
+                        >
+                          {row.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {row.labels.slice(0, 3).map((label) => (
+                            <Badge key={`${row.workerId}-${label}`} variant="outline">
+                              {label}
+                            </Badge>
+                          ))}
+                          {row.labels.length > 3 ? (
+                            <Badge variant="outline">+{row.labels.length - 3}</Badge>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.highCount > 0 ? "danger" : "outline"}>
+                          {row.highCount}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.mediumCount > 0 ? "warning" : "outline"}>
+                          {row.mediumCount}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.lowCount > 0 ? "success" : "outline"}>
+                          {row.lowCount}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/workers/${row.workerId}`}
+                          className="text-sm text-brand-navy underline"
+                        >
+                          {t("common.open")}
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
       <RecentEvents events={data.recentEvents} />

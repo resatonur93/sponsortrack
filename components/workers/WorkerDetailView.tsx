@@ -228,7 +228,7 @@ export function WorkerDetailView(): JSX.Element {
   const managerEmail = data.lineManager?.email ?? data.lineManagerEmail ?? "—";
 
   const tabTriggerClass =
-    "flex-1 rounded-lg px-4 py-2.5 text-sm font-medium sm:flex-initial data-[state=active]:bg-brand-navy data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-slate-700 data-[state=inactive]:hover:text-brand-navy";
+    "shrink-0 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap sm:px-4 sm:py-2.5 sm:text-sm data-[state=active]:bg-brand-navy data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-slate-700 data-[state=inactive]:hover:text-brand-navy";
 
   const lastReviewLabel = data.roleCompliance?.lastReviewed
     ? formatLocaleDateTime(data.roleCompliance.lastReviewed, locale)
@@ -245,7 +245,7 @@ export function WorkerDetailView(): JSX.Element {
             "px-4 py-3 shadow-sm backdrop-blur-md md:px-8"
           )}
         >
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <Link
               href="/workers"
               className="text-sm font-medium text-brand-navy hover:underline"
@@ -260,7 +260,7 @@ export function WorkerDetailView(): JSX.Element {
                 type="button"
                 variant="default"
                 size="sm"
-                className="min-w-[7rem] font-semibold"
+                className="min-h-[2.5rem] min-w-[7rem] font-semibold sm:min-h-0"
                 onClick={() => setEditOpen((v) => !v)}
               >
                 {editOpen ? t("workerDetail.closeEdit") : t("workerDetail.edit")}
@@ -269,7 +269,7 @@ export function WorkerDetailView(): JSX.Element {
                 type="button"
                 variant="danger"
                 size="sm"
-                className="font-semibold"
+                className="min-h-[2.5rem] font-semibold sm:min-h-0"
                 onClick={() => void terminate()}
               >
                 {t("workerDetail.terminate")}
@@ -278,11 +278,18 @@ export function WorkerDetailView(): JSX.Element {
                 type="button"
                 variant="secondary"
                 size="sm"
+                className="min-h-[2.5rem] sm:min-h-0"
                 onClick={() => window.print()}
               >
                 {t("workerDetail.generateReport")}
               </Button>
-              <Button type="button" variant="secondary" size="sm" asChild>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="min-h-[2.5rem] sm:min-h-0"
+                asChild
+              >
                 <Link href="/compliance/audit">{t("workerDetail.viewAudit")}</Link>
               </Button>
             </nav>
@@ -293,8 +300,8 @@ export function WorkerDetailView(): JSX.Element {
       <Tabs defaultValue="overview" className="space-y-5">
         <TabsList
           className={cn(
-            "flex h-auto w-full snap-x snap-mandatory flex-col gap-1 overflow-x-auto pb-1",
-            "rounded-xl border border-brand-navy/12 bg-white p-1.5 shadow-sm sm:flex-row sm:flex-wrap sm:justify-start sm:overflow-visible sm:pb-0"
+            "flex h-auto w-full flex-row gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            "rounded-xl border border-brand-navy/12 bg-white p-1.5 shadow-sm sm:flex-wrap sm:overflow-visible sm:pb-0"
           )}
         >
           <TabsTrigger value="overview" className={cn(tabTriggerClass, "snap-start")}>
@@ -321,14 +328,14 @@ export function WorkerDetailView(): JSX.Element {
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                   <div
                     className={cn(
-                      "flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-navy/18 to-brand-navy/8 text-3xl font-bold tracking-tight text-brand-navy ring-[3px] ring-white shadow-md"
+                      "flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-navy/18 to-brand-navy/8 text-2xl font-bold tracking-tight text-brand-navy ring-[3px] ring-white shadow-md sm:h-28 sm:w-28 sm:text-3xl"
                     )}
                   >
                     {initials}
                   </div>
-                  <div className="min-w-0 flex-1 space-y-4">
+                  <div className="min-w-0 flex-1 space-y-3">
                     <div>
-                      <h1 className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">
+                      <h1 className="text-xl font-bold tracking-tight text-brand-navy sm:text-2xl lg:text-3xl">
                         {data.firstName} {data.lastName}
                       </h1>
                       <p className="mt-1 text-sm text-slate-600">{data.email}</p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { WorkerTable } from "@/components/workers/WorkerTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,21 +75,25 @@ export default function WorkersPage(): JSX.Element {
   }, [debouncedSearch, listFilter]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      {/* Page header */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-navy">
+          <h1 className="text-xl font-bold text-brand-navy sm:text-2xl">
             {t("workers.title")}
           </h1>
-          <p className="text-slate-600">{t("workers.subtitle")}</p>
+          <p className="text-sm text-slate-600">{t("workers.subtitle")}</p>
         </div>
-        <Link href="/workers/new">
+        {/* Desktop CTA — hidden on mobile (FAB covers it) */}
+        <Link href="/workers/new" className="hidden sm:block">
           <Button>{t("workers.new")}</Button>
         </Link>
       </div>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <div className="min-w-0 flex-1 space-y-2">
-          <Label htmlFor="workers-search" className="text-slate-600">
+
+      {/* Search + filter row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Label htmlFor="workers-search" className="text-sm text-slate-600">
             {t("workers.searchLabel")}
           </Label>
           <Input
@@ -99,10 +104,11 @@ export default function WorkersPage(): JSX.Element {
             onChange={(e) => setSearch(e.target.value)}
             autoComplete="off"
             spellCheck={false}
+            className="h-11"
           />
         </div>
-        <div className="w-full space-y-2 sm:min-w-[14rem] lg:w-64">
-          <Label htmlFor="workers-status" className="text-slate-600">
+        <div className="w-full space-y-1.5 sm:w-52">
+          <Label htmlFor="workers-status" className="text-sm text-slate-600">
             {t("workers.statusLabel")}
           </Label>
           <Select
@@ -112,6 +118,7 @@ export default function WorkersPage(): JSX.Element {
             <SelectTrigger
               id="workers-status"
               aria-label={t("workers.statusLabel")}
+              className="h-11"
             >
               <SelectValue placeholder={t("workers.statusLabel")} />
             </SelectTrigger>
@@ -166,6 +173,15 @@ export default function WorkersPage(): JSX.Element {
           <WorkerTable workers={workers} />
         </div>
       )}
+
+      {/* Mobile FAB — fixed above bottom nav bar */}
+      <Link
+        href="/workers/new"
+        aria-label={t("workers.new")}
+        className="fixed bottom-[4.75rem] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-navy text-white shadow-lg transition-transform hover:scale-105 hover:bg-brand-gold hover:text-brand-navy active:scale-95 sm:hidden"
+      >
+        <Plus className="h-6 w-6" />
+      </Link>
     </div>
   );
 }
