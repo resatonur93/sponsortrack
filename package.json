@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "start": "npm run db:repair:notification-type && prisma migrate deploy && next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -71,6 +74,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
-    "tsx": "^4.19.2"
+    "@vitest/coverage-v8": "^4.1.8",
+    "tsx": "^4.19.2",
+    "vitest": "^4.1.8"
   }
 }

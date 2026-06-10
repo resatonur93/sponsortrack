@@ -771,7 +771,7 @@ model Document {
   workerId            String
   worker              Worker         @relation(fields: [workerId], references: [id])
   documentType      DocumentType
-  vaultFolder         DocumentVaultFolder @default(OTHER)
+  vaultFolder         DocumentFolder @default(OTHER)
   fileName            String
   fileUrl             String
   mimeType            String?
@@ -897,19 +897,6 @@ enum DocumentFolder {
   ABSENCE_LEAVE
   ADDRESS_CONTACT
   ROLE_DUTIES
-  RECRUITMENT_VACANCY
-  REPORTING_SUBMISSIONS
-  COMPLIANCE_VISIT_PACK
-}
-
-enum DocumentVaultFolder {
-  IDENTITY_IMMIGRATION
-  RIGHT_TO_WORK
-  COS_APPLICATION
-  EMPLOYMENT_CONTRACT
-  PAYROLL_SALARY
-  ABSENCE_LEAVE
-  ADDRESS_CONTACT
   ROLE_ORG_CHART
   RECRUITMENT_VACANCY
   REPORTING_SUBMISSIONS

@@ -1,4 +1,4 @@
-import type { DocumentType, DocumentVaultFolder } from "@prisma/client";
+import type { DocumentType, DocumentFolder } from "@prisma/client";
 
 const TYPE_TR: Record<DocumentType, string> = {
   PASSPORT: "Pasaport",
@@ -42,7 +42,7 @@ const TYPE_EN: Record<DocumentType, string> = {
   RECRUITMENT_FILE: "Recruitment file (CV / advert / interview)",
 };
 
-const VAULT_TR: Record<DocumentVaultFolder, string> = {
+const FOLDER_TR: Record<DocumentFolder, string> = {
   IDENTITY_IMMIGRATION: "Kimlik / göç",
   RIGHT_TO_WORK: "Çalışma hakkı",
   COS_APPLICATION: "CoS / başvuru",
@@ -50,6 +50,7 @@ const VAULT_TR: Record<DocumentVaultFolder, string> = {
   PAYROLL_SALARY: "Bordro / maaş",
   ABSENCE_LEAVE: "İzin / devamsızlık",
   ADDRESS_CONTACT: "Adres / iletişim",
+  ROLE_DUTIES: "Rol / görevler",
   ROLE_ORG_CHART: "Rol / org şeması",
   RECRUITMENT_VACANCY: "İşe alım",
   REPORTING_SUBMISSIONS: "Raporlama",
@@ -57,7 +58,7 @@ const VAULT_TR: Record<DocumentVaultFolder, string> = {
   OTHER: "Diğer",
 };
 
-const VAULT_EN: Record<DocumentVaultFolder, string> = {
+const FOLDER_EN: Record<DocumentFolder, string> = {
   IDENTITY_IMMIGRATION: "Identity & Immigration",
   RIGHT_TO_WORK: "Right to work",
   COS_APPLICATION: "CoS & application",
@@ -65,6 +66,7 @@ const VAULT_EN: Record<DocumentVaultFolder, string> = {
   PAYROLL_SALARY: "Payroll / salary",
   ABSENCE_LEAVE: "Absence & leave",
   ADDRESS_CONTACT: "Address / contact",
+  ROLE_DUTIES: "Role / duties",
   ROLE_ORG_CHART: "Role / org chart",
   RECRUITMENT_VACANCY: "Recruitment",
   REPORTING_SUBMISSIONS: "Reporting",
@@ -82,12 +84,12 @@ export function documentTypeTitleEn(dt: DocumentType): string {
 
 export function formatDocumentHumanSummary(
   documentType: DocumentType,
-  vaultFolder: DocumentVaultFolder
+  vaultFolder: DocumentFolder
 ): string {
   const typeTr = TYPE_TR[documentType] ?? documentType;
   const typeEn = TYPE_EN[documentType] ?? documentType;
-  const vfTr = VAULT_TR[vaultFolder] ?? vaultFolder;
-  const vfEn = VAULT_EN[vaultFolder] ?? vaultFolder;
+  const vfTr = FOLDER_TR[vaultFolder] ?? vaultFolder;
+  const vfEn = FOLDER_EN[vaultFolder] ?? vaultFolder;
   return [
     `Belge / Document: ${typeTr} / ${typeEn}`,
     `Kod / Code: ${documentType}`,

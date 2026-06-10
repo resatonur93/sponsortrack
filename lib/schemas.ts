@@ -6,7 +6,6 @@ import {
   ComplianceRiskLevel,
   DocumentFolder,
   DocumentType,
-  DocumentVaultFolder,
   EmploymentStatus,
   EventStatus,
   EventType,
@@ -131,7 +130,7 @@ export const documentVerifySchema = z.object({
 export const documentUploadSchema = z.object({
   workerId: z.string().min(1),
   documentType: z.nativeEnum(DocumentType),
-  vaultFolder: z.nativeEnum(DocumentVaultFolder).optional(),
+  vaultFolder: z.nativeEnum(DocumentFolder).optional(),
   fileName: z.string().min(1),
   fileUrl: z.string().min(1),
   mimeType: z.string().min(1),

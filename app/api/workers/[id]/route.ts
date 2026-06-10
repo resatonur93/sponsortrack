@@ -6,34 +6,14 @@ import { logger } from "@/lib/logger";
 import { visaNotificationsToCreate } from "@/lib/notification-rules";
 import { buildComplianceEventData } from "@/lib/compliance-event-factory";
 import { getReportDeadlineForEvent } from "@/lib/deadline-rules";
-import {
-  type ComplianceRiskLevel,
-  type NotificationStatus,
-} from "@prisma/client";
 import { createComplianceReportingEvent } from "@/lib/compliance-reporting-engine";
 import { normalizeEmail } from "@/lib/registration";
 import { nextResponseForPrismaUniqueViolation } from "@/lib/prisma-unique-response";
+import { computeWorkerRiskSnapshot } from "@/lib/risk/snapshot";
 
 export const dynamic = "force-dynamic";
 
 type RouteParams = { params: { id: string } };
-
-function computeRiskSnapshot(input: {
-  notifications: { status: NotificationStatus }[];
-  documents: { expiryDate: Date | null }[];
-}): ComplianceRiskLevel {
-  const overdue = input.notifications.filter((n) => n.status === "OVERDUE").length;
-  const pending = input.notifications.filter((n) => n.status === "PENDING").length;
-  const soon = new Date();
-  soon.setDate(soon.getDate() + 30);
-  const docGap = input.documents.some(
-    (d) => d.expiryDate && d.expiryDate < soon && d.expiryDate > new Date()
-  );
-  if (overdue > 0) return "CRITICAL";
-  if (pending > 2 || docGap) return "HIGH";
-  if (pending > 0) return "MEDIUM";
-  return "LOW";
-}
 
 export async function GET(
   req: NextRequest,
@@ -72,7 +52,7 @@ export async function GET(
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
-      const riskSnapshot = computeRiskSnapshot({
+      const riskSnapshot = computeWorkerRiskSnapshot({
         notifications: worker.notifications,
         documents: worker.documents,
       });
@@ -223,7 +203,6 @@ export async function PUT(
         "sponsorshipEndDate",
         d.sponsorshipEndDate ? new Date(d.sponsorshipEndDate) : undefined
       );
-      set("complianceRiskLevel", d.complianceRiskLevel);
       set("requiresAtasCertificate", d.requiresAtasCertificate);
       set("preRegistrationNurse", d.preRegistrationNurse);
 
@@ -506,14 +485,22 @@ export async function PUT(
       });
 
       const riskSnapshot = fresh
-        ? computeRiskSnapshot({
+        ? computeWorkerRiskSnapshot({
             notifications: fresh.notifications,
             documents: fresh.documents,
           })
-        : "LOW";
+        : ("LOW" as const);
+
+      // complianceRiskLevel'ı snapshot ile senkronize et
+      if (fresh && fresh.complianceRiskLevel !== riskSnapshot) {
+        await prisma.worker.update({
+          where: { id },
+          data: { complianceRiskLevel: riskSnapshot },
+        });
+      }
 
       return NextResponse.json({
-        data: fresh ? { ...fresh, riskSnapshot } : null,
+        data: fresh ? { ...fresh, riskSnapshot, complianceRiskLevel: riskSnapshot } : null,
       });
     });
   } catch (error) {
