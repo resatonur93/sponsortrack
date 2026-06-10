@@ -58,14 +58,42 @@ const config: Config = {
         "draw-check": {
           to: { "stroke-dashoffset": "0" },
         },
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "slide-in-left": {
+          "0%": { opacity: "0", transform: "translateX(-8px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         "draw-check": "draw-check 0.5s ease-out forwards",
+        "fade-up": "fade-up 0.4s ease-out forwards",
+        "fade-in": "fade-in 0.3s ease-out forwards",
+        "slide-in-left": "slide-in-left 0.3s ease-out forwards",
+        shimmer: "shimmer 2s linear infinite",
       },
       boxShadow: {
         card: "0 4px 24px -4px rgba(10, 42, 94, 0.08), 0 2px 8px -4px rgba(10, 42, 94, 0.04)",
         "card-hover":
-          "0 8px 32px -6px rgba(10, 42, 94, 0.12), 0 4px 12px -4px rgba(212, 175, 135, 0.15)",
+          "0 8px 32px -6px rgba(10, 42, 94, 0.14), 0 4px 12px -4px rgba(212, 175, 135, 0.18)",
+        "card-gold":
+          "0 0 0 1px rgba(212, 175, 135, 0.4), 0 8px 24px -4px rgba(212, 175, 135, 0.2)",
+        "sidebar":
+          "4px 0 32px -8px rgba(10, 42, 94, 0.25)",
+        "stat":
+          "0 4px 20px -4px rgba(10, 42, 94, 0.10), inset 0 1px 0 rgba(255,255,255,0.8)",
+        "stat-hover":
+          "0 8px 28px -4px rgba(10, 42, 94, 0.16), inset 0 1px 0 rgba(255,255,255,0.9)",
       },
     },
   },

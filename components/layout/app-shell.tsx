@@ -83,11 +83,16 @@ export function AppShell({
       </a>
 
       {/* ── Desktop Sidebar ── */}
-      <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col border-r border-brand-navy/12 bg-white shadow-[2px_0_24px_-12px_rgba(10,42,94,0.08)] md:flex">
-        <div className="flex h-[4.25rem] items-center border-b border-brand-navy/10 bg-white px-3">
-          <Logo href="/dashboard" mark="compact" variant="light" size="sm" />
+      <aside
+        className="hidden min-h-screen w-56 flex-shrink-0 flex-col shadow-sidebar md:flex"
+        style={{
+          background: "linear-gradient(180deg, #071d42 0%, #0a2a5e 40%, #0d3270 100%)",
+        }}
+      >
+        <div className="flex h-[4.25rem] items-center border-b border-white/8 px-4">
+          <Logo href="/dashboard" mark="compact" variant="dark" size="sm" />
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-0.5 px-2 py-3">
           {nav.map((item) => {
             const Icon = item.icon;
             const active =
@@ -97,13 +102,18 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                   active
-                    ? "bg-brand-navy text-white shadow-sm"
-                    : "text-brand-navy/90 hover:bg-brand-gold/12 hover:text-brand-navy"
+                    ? "bg-white/12 text-white shadow-[inset_3px_0_0_#D4AF87]"
+                    : "text-white/75 hover:bg-white/7 hover:text-white"
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0 opacity-95" />
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    active ? "text-brand-gold opacity-100" : "opacity-70"
+                  )}
+                />
                 <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                   <span className="truncate">{t(item.labelKey)}</span>
                   {item.href === "/alerts" ? <AlertCountPill /> : null}
@@ -112,23 +122,27 @@ export function AppShell({
             );
           })}
         </nav>
-        <div className="border-t border-brand-navy/10 bg-brand-surface/50 p-3">
-          <p className="truncate text-xs font-medium text-slate-700">
-            {data?.user?.email}
-          </p>
-          <Button
-            variant="outline"
-            className="mt-2 w-full"
+        <div className="border-t border-white/10 px-3 py-4">
+          <div className="mb-3 flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-gold/20 text-xs font-bold text-brand-gold">
+              {data?.user?.email?.[0]?.toUpperCase() ?? "?"}
+            </span>
+            <p className="truncate text-xs font-medium text-white/60">
+              {data?.user?.email}
+            </p>
+          </div>
+          <button
             type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/60 transition-colors hover:bg-white/8 hover:text-white"
             onClick={() =>
               void signOut({
                 callbackUrl: `${window.location.origin}/login`,
               })
             }
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="h-4 w-4 shrink-0" />
             {t("shell.logout")}
-          </Button>
+          </button>
         </div>
       </aside>
 
@@ -141,14 +155,14 @@ export function AppShell({
         </header>
 
         {/* Desktop top bar */}
-        <div className="hidden items-center justify-end border-b border-brand-navy/10 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-sm md:flex">
+        <div className="hidden items-center justify-end border-b border-brand-navy/8 bg-white/80 px-6 py-2.5 shadow-[0_1px_0_rgba(10,42,94,0.06)] backdrop-blur-md md:flex">
           <LanguageSwitcher />
         </div>
 
         <main
           id="main-content"
           /* extra bottom padding so content isn't hidden under the mobile bottom bar */
-          className="flex-1 scroll-mt-16 bg-brand-surface p-4 pb-[5.5rem] md:p-8 md:pb-8"
+          className="flex-1 scroll-mt-16 bg-[#f4f6fb] p-4 pb-[5.5rem] md:p-8 md:pb-8"
           tabIndex={-1}
         >
           {children}

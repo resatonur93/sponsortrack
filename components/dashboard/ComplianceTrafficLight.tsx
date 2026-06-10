@@ -272,10 +272,10 @@ export function ComplianceTrafficLight({
   return (
     <section className={cn("space-y-4", className)}>
       <div>
-        <h2 className="text-base font-semibold text-brand-navy">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
           {t("dashboard.complianceTraffic.title")}
         </h2>
-        <p className="text-sm text-slate-600">
+        <p className="mt-0.5 text-sm text-slate-500">
           {t("dashboard.complianceTraffic.subtitle")}
         </p>
       </div>
@@ -344,9 +344,9 @@ export function ComplianceTrafficLight({
         })}
       </div>
 
-      <div className="rounded-xl border border-brand-navy/15 bg-white p-4 shadow-card">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-brand-navy">
+      <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
             {selected
               ? `${labelFor(selected)} — ${t("dashboard.complianceTraffic.detailHeading")}`
               : t("dashboard.complianceTraffic.allCategoriesHeading")}
@@ -354,10 +354,10 @@ export function ComplianceTrafficLight({
           {selected ? (
             <button
               type="button"
-              className="text-xs font-medium text-brand-navy underline"
+              className="text-xs font-semibold text-brand-navy transition-colors hover:text-brand-gold"
               onClick={() => setSelected(null)}
             >
-              {t("dashboard.complianceTraffic.clearFilter")}
+              {t("dashboard.complianceTraffic.clearFilter")} ×
             </button>
           ) : null}
         </div>

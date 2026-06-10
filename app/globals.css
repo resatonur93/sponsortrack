@@ -13,20 +13,52 @@
     --muted: 210 18% 95%;
     --muted-foreground: 215 12% 45%;
     --border: 218 22% 90%;
-    --radius: 0.375rem;
+    --radius: 0.5rem;
 
     --brand-navy: #0a2a5e;
+    --brand-navy-deep: #071d42;
     --brand-gold: #d4af87;
+    --brand-gold-light: #e8cfa8;
     --brand-royal: #d4af87;
     --brand-surface: #f8f9fa;
     --brand-teal: #0d9488;
     --brand-slate: #5c6570;
     --brand-emerald: #059669;
     --brand-rose: #c41e3a;
+
+    /* sidebar gradient tokens */
+    --sidebar-bg: #0a2a5e;
+    --sidebar-bg-deep: #071d42;
+    --sidebar-item-active: rgba(255, 255, 255, 0.12);
+    --sidebar-item-hover: rgba(255, 255, 255, 0.07);
+    --sidebar-text: rgba(255, 255, 255, 0.85);
+    --sidebar-text-muted: rgba(255, 255, 255, 0.5);
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: smooth;
+  }
+
+  /* Premium custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(10, 42, 94, 0.15);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(10, 42, 94, 0.28);
   }
 
   body {
-    @apply bg-background text-slate-900 antialiased;
+    @apply bg-[#f4f6fb] text-slate-900 antialiased;
     font-feature-settings: "tnum" 1, "lnum" 1;
   }
 
@@ -77,6 +109,59 @@
 }
 
 @layer components {
+  /* ── Premium card ── */
+  .card-premium {
+    @apply rounded-xl border border-white/60 bg-white shadow-card transition-shadow duration-200 hover:shadow-card-hover;
+    background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+  }
+
+  /* ── Stat card value ── */
+  .stat-value {
+    @apply text-3xl font-bold tabular-nums tracking-tight text-brand-navy;
+    font-variant-numeric: lining-nums;
+  }
+
+  /* ── Section header ── */
+  .section-header {
+    @apply flex items-center justify-between gap-3 pb-3;
+  }
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-widest text-brand-navy/50;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Premium gradient background for page header ── */
+  .page-hero {
+    @apply relative overflow-hidden rounded-2xl px-6 py-5;
+    background: linear-gradient(135deg, #0a2a5e 0%, #1a4a9e 50%, #0d3470 100%);
+  }
+  .page-hero::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* ── Stagger animation helpers ── */
+  .animate-stagger-1 { animation-delay: 0.05s; }
+  .animate-stagger-2 { animation-delay: 0.10s; }
+  .animate-stagger-3 { animation-delay: 0.15s; }
+  .animate-stagger-4 { animation-delay: 0.20s; }
+  .animate-stagger-5 { animation-delay: 0.25s; }
+
+  /* ── Sidebar premium nav item ── */
+  .sidebar-nav-item {
+    @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150;
+    color: var(--sidebar-text);
+  }
+  .sidebar-nav-item:hover {
+    background: var(--sidebar-item-hover);
+  }
+  .sidebar-nav-item.active {
+    background: var(--sidebar-item-active);
+    color: #ffffff;
+    box-shadow: inset 3px 0 0 var(--brand-gold);
+  }
+
   .logo-brand:hover .logo-brand-track {
     transform: translateX(2px);
     transition: transform 300ms ease-out;
