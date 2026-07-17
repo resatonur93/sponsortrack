@@ -97,17 +97,12 @@ export const prisma = prismaBase.$extends({
         if (!ctx?.tenantId || !TENANT_MODELS.has(model)) {
           return query(args);
         }
-        const where = args.where as { id?: string } | undefined;
-        const id = where?.id;
-        if (!id) {
-          return query(args);
-        }
         const key = toDelegateKey(model);
         const delegate = prismaBase[key] as {
           findFirst: (a: object) => Promise<unknown>;
         };
         return delegate.findFirst({
-          where: { id, tenantId: ctx.tenantId },
+          where: mergeWhere(args.where as object | undefined, ctx.tenantId),
           include: (args as { include?: object }).include,
           select: (args as { select?: object }).select,
         });

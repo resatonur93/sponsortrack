@@ -11,6 +11,7 @@ import { canAccessAdminPanel } from "@/lib/admin-panel-access";
 import { readClientIpFromHeaders } from "@/lib/security/ip-match";
 import { bootstrapAuthArtifactsOnSignIn } from "@/lib/security/bootstrap-jwt-session";
 import { isTenantLoginIpAllowed } from "@/lib/security/tenant-login-ip";
+import { isLoginRateLimited, recordLoginFailure, LoginAttemptScope } from "@/lib/security/login-rate-limit";
 
 const credentialsSchema = z.object({
   email: z.string().trim().email(),
@@ -33,30 +34,53 @@ export const authOptions: NextAuthOptions = {
         }
         const { email, password } = parsed.data;
         const normalized = normalizeEmail(email);
+
+        let ip = "0.0.0.0";
+        try {
+          ip = readClientIpFromHeaders(await headers());
+        } catch {
+          logger.warn("login: request headers unavailable for IP resolution");
+        }
+
+        if (
+          await isLoginRateLimited({
+            email: normalized,
+            ip,
+            scope: LoginAttemptScope.TENANT_USER,
+          })
+        ) {
+          logger.warn("login rejected: rate limited", { email: normalized, ip });
+          return null;
+        }
+
         const user = await prismaBase.user.findFirst({
           where: { email: normalized, isActive: true },
           include: { tenant: true },
         });
         if (!user?.tenant.isActive) {
+          await recordLoginFailure({
+            email: normalized,
+            ip,
+            scope: LoginAttemptScope.TENANT_USER,
+          });
           return null;
         }
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) {
+          await recordLoginFailure({
+            email: normalized,
+            ip,
+            scope: LoginAttemptScope.TENANT_USER,
+          });
           return null;
         }
 
         if (user.role !== Role.SYSTEM_ADMIN) {
-          try {
-            const hdrs = await headers();
-            const ip = readClientIpFromHeaders(hdrs);
-            const allowed = await isTenantLoginIpAllowed({
-              tenantId: user.tenantId,
-              resolvedClientIp: ip,
-            });
-            if (!allowed) return null;
-          } catch {
-            logger.warn("login IP whitelist headers unavailable — allowing");
-          }
+          const allowed = await isTenantLoginIpAllowed({
+            tenantId: user.tenantId,
+            resolvedClientIp: ip,
+          });
+          if (!allowed) return null;
         }
 
         return {

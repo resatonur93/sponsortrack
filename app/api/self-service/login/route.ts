@@ -8,6 +8,12 @@ import {
   signWorkerPortalToken,
   verifyWorkerPortalToken,
 } from "@/lib/self-service-token";
+import { readClientIpFromHeaders } from "@/lib/security/ip-match";
+import {
+  isLoginRateLimited,
+  recordLoginFailure,
+  LoginAttemptScope,
+} from "@/lib/security/login-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +85,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const normalized = normalizeEmail(email);
+    const ip = readClientIpFromHeaders(req.headers);
+
+    if (
+      await isLoginRateLimited({
+        email: normalized,
+        ip,
+        scope: LoginAttemptScope.SELF_SERVICE_WORKER,
+      })
+    ) {
+      logger.warn("self-service login rejected: rate limited", { email: normalized, ip });
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const worker = await prismaBase.worker.findFirst({
       where: {
         OR: [{ email: normalized }, { personalEmail: normalized }],
@@ -87,6 +109,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!worker || !dobMatches(worker.dateOfBirth, dateOfBirth)) {
+      await recordLoginFailure({
+        email: normalized,
+        ip,
+        scope: LoginAttemptScope.SELF_SERVICE_WORKER,
+      });
       return NextResponse.json(
         { error: "Invalid email or date of birth" },
         { status: 401 }

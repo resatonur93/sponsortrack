@@ -1141,3 +1141,20 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([tenantId, createdAt])
 }
+
+/// Failed login attempts (tenant credentials + self-service worker portal), pre-auth so no tenant context yet.
+enum LoginAttemptScope {
+  TENANT_USER
+  SELF_SERVICE_WORKER
+}
+
+model LoginAttempt {
+  id        String            @id @default(cuid())
+  email     String
+  ip        String
+  scope     LoginAttemptScope
+  createdAt DateTime          @default(now())
+
+  @@index([email, scope, createdAt])
+  @@index([ip, scope, createdAt])
+}
