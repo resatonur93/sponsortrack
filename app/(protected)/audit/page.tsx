@@ -123,6 +123,15 @@ function buildQueryParams(f: FilterState, extra: Record<string, string>): string
   return p.toString();
 }
 
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
+
 function workerInitials(first: string, last: string): string {
   const a = first.trim().charAt(0);
   const b = last.trim().charAt(0);
@@ -755,7 +764,9 @@ function AuditDashboardContent(): JSX.Element | null {
                         <RiskLevelBadge level={w.complianceRiskLevel} t={t} />
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs font-medium text-slate-700">{w.employmentStatus}</span>
+                        <span className="text-xs font-medium text-slate-700">
+                          {tEnum(t, `workerDetail.employment.${w.employmentStatus}`, w.employmentStatus)}
+                        </span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-slate-700">
                         {w.visaExpiryDate ? fmtShort(w.visaExpiryDate, localeTag) : "—"}

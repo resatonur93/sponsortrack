@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LeadStatusBadge } from "@/components/admin/LeadStatusBadge";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type AssignUser = { id: string; firstName: string; lastName: string; email: string };
 
@@ -54,6 +55,7 @@ const STATUSES: LeadStatus[] = [
 ];
 
 export default function AdminLeadDetailPage(): JSX.Element {
+  const { t } = useTranslation();
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
@@ -212,7 +214,7 @@ export default function AdminLeadDetailPage(): JSX.Element {
             {lead.companyName ?? "—"} · {lead.source}
           </p>
         </div>
-        <LeadStatusBadge status={lead.status} />
+        <LeadStatusBadge status={lead.status} label={t(`admin.leadStatus.${lead.status}`)} />
       </div>
 
       <div className="grid gap-6 rounded-lg border border-brand-navy/10 bg-white p-6 shadow-card md:grid-cols-2">
@@ -234,7 +236,7 @@ export default function AdminLeadDetailPage(): JSX.Element {
               <SelectContent>
                 {STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s}
+                    {t(`admin.leadStatus.${s}`)}
                   </SelectItem>
                 ))}
               </SelectContent>

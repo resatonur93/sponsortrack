@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { documentTypeTitleEn, documentTypeTitleTr } from "@/lib/documents/document-email-labels";
 
 export type TimelineRow = {
   document: Document;
@@ -78,7 +79,9 @@ export function DocumentCard(props: {
       <CardHeader className="space-y-2 pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <CardTitle className="font-mono text-sm font-semibold leading-tight tracking-tight text-brand-navy">
-            {doc.documentType}
+            {locale === "tr"
+              ? documentTypeTitleTr(doc.documentType)
+              : documentTypeTitleEn(doc.documentType)}
             <span className="ml-2 text-slate-500">· v{doc.version}</span>
           </CardTitle>
           <Badge variant={badgeVariant} className="shrink-0">

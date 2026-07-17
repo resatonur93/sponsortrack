@@ -17,22 +17,31 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { WorkerDocumentChecklist } from "@/components/workers/WorkerDocumentChecklist";
+import { useTranslation } from "@/contexts/LanguageContext";
 
-const FOLDER_LABELS: Record<DocumentFolder, string> = {
-  IDENTITY_IMMIGRATION: "Identity & Immigration",
-  RIGHT_TO_WORK: "Right to Work",
-  COS_APPLICATION: "CoS & Application",
-  EMPLOYMENT_CONTRACT: "Employment Contract",
-  PAYROLL_SALARY: "Payroll & Salary Evidence",
-  ABSENCE_LEAVE: "Absence & Leave",
-  ADDRESS_CONTACT: "Address / Contact Evidence",
-  ROLE_DUTIES: "Role / Duties",
-  ROLE_ORG_CHART: "Role / Org Chart",
-  RECRUITMENT_VACANCY: "Recruitment / Vacancy Evidence",
-  REPORTING_SUBMISSIONS: "Reporting Submissions",
-  COMPLIANCE_VISIT_PACK: "Compliance Visit Pack",
-  OTHER: "Other",
-};
+const FOLDER_KEYS: DocumentFolder[] = [
+  "IDENTITY_IMMIGRATION",
+  "RIGHT_TO_WORK",
+  "COS_APPLICATION",
+  "EMPLOYMENT_CONTRACT",
+  "PAYROLL_SALARY",
+  "ABSENCE_LEAVE",
+  "ADDRESS_CONTACT",
+  "ROLE_DUTIES",
+  "ROLE_ORG_CHART",
+  "RECRUITMENT_VACANCY",
+  "REPORTING_SUBMISSIONS",
+  "COMPLIANCE_VISIT_PACK",
+  "OTHER",
+];
+
+function folderLabel(
+  folder: DocumentFolder,
+  t: (key: string, fallback?: string) => string
+): string {
+  const v = t(`documentVault.folder.${folder}`, folder);
+  return v === `documentVault.folder.${folder}` ? folder : v;
+}
 
 type VaultPayload = {
   folders: DocumentFolder[];
@@ -40,7 +49,7 @@ type VaultPayload = {
 };
 
 function isDocumentFolderKey(v: string): v is DocumentFolder {
-  return Object.prototype.hasOwnProperty.call(FOLDER_LABELS, v);
+  return (FOLDER_KEYS as string[]).includes(v);
 }
 
 type VersionEntry = {
@@ -63,13 +72,16 @@ function parseHistory(raw: unknown): VersionEntry[] {
   );
 }
 
-function expiryBadge(expiry: Date | string | null | undefined): {
+function expiryBadge(
+  expiry: Date | string | null | undefined,
+  t: (key: string, fallback?: string) => string
+): {
   label: string;
   className: string;
 } {
   if (!expiry) {
     return {
-      label: "No expiry",
+      label: t("docChecklist.noExpiry"),
       className: "border-brand-navy/20 bg-brand-surface text-brand-navy/75",
     };
   }
@@ -77,26 +89,27 @@ function expiryBadge(expiry: Date | string | null | undefined): {
   const now = new Date();
   const dayMs = 86400000;
   const days = Math.ceil((d.getTime() - now.getTime()) / dayMs);
+  const daysLeftLabel = t("documentVault.daysLeft").replace("{n}", String(days));
   if (days < 0) {
     return {
-      label: "Expired",
+      label: t("documentVault.expired"),
       className: "bg-red-100 text-red-800 border-red-200",
     };
   }
   if (days <= 7) {
     return {
-      label: `${days}d left`,
+      label: daysLeftLabel,
       className: "bg-red-100 text-red-800 border-red-200",
     };
   }
   if (days <= 30) {
     return {
-      label: `${days}d left`,
+      label: daysLeftLabel,
       className: "bg-amber-100 text-amber-900 border-amber-200",
     };
   }
   return {
-    label: `${days}d left`,
+    label: daysLeftLabel,
     className: "bg-emerald-100 text-emerald-900 border-emerald-200",
   };
 }
@@ -117,6 +130,7 @@ async function uploadWithPresign(input: {
   workerId: string;
   folder: DocumentFolder;
   file: File;
+  t: (key: string, fallback?: string) => string;
 }): Promise<{
   fileName: string;
   fileUrl: string;
@@ -150,7 +164,7 @@ async function uploadWithPresign(input: {
     error?: string;
   };
   if (!presign.ok || !presignJson.data) {
-    throw new Error(presignJson.error ?? "Could not prepare upload");
+    throw new Error(presignJson.error ?? input.t("documentVault.presignFailed"));
   }
 
   const transport = presignJson.data.uploadTransport ?? "s3-binary";
@@ -169,9 +183,8 @@ async function uploadWithPresign(input: {
   }
   if (!put.ok) {
     const detail = await put.text().catch(() => "");
-    throw new Error(
-      detail ? `Upload to storage failed: ${detail.slice(0, 200)}` : "Upload to storage failed"
-    );
+    const base = input.t("documentVault.storageUploadFailed");
+    throw new Error(detail ? `${base}: ${detail.slice(0, 200)}` : base);
   }
   return {
     fileName: input.file.name,
@@ -183,6 +196,8 @@ async function uploadWithPresign(input: {
 }
 
 export default function WorkerDocumentVaultPage(): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
   const params = useParams();
   const workerId = params.id as string;
   const [vault, setVault] = useState<VaultPayload | null>(null);
@@ -218,7 +233,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
         fetch(`/api/workers/${workerId}/documents`, { credentials: "include" }),
       ]);
       if (!vRes.ok) {
-        setError("Could not load document vault");
+        setError(t("documentVault.loadFailed"));
         setVault(null);
         return;
       }
@@ -236,7 +251,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [workerId]);
+  }, [workerId, t]);
 
   useEffect(() => {
     void load();
@@ -287,7 +302,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
     try {
       const expStr = expiryByFolder[folder];
       for (const file of list) {
-        const upload = await uploadWithPresign({ workerId, folder, file });
+        const upload = await uploadWithPresign({ workerId, folder, file, t });
         const res = await fetch(`/api/workers/${workerId}/documents`, {
           method: "POST",
           credentials: "include",
@@ -304,13 +319,13 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
         });
         if (!res.ok) {
           const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? "Upload failed");
+          throw new Error(j.error ?? t("documentVault.uploadFailed"));
         }
       }
       await load();
       bumpChecklist();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : t("documentVault.uploadFailed"));
     } finally {
       setUploadingFolder(null);
     }
@@ -336,13 +351,13 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
   }, [historyTarget]);
 
   async function softDelete(doc: DocumentVault): Promise<void> {
-    if (!window.confirm(`Remove “${doc.fileName}” from the vault?`)) return;
+    if (!window.confirm(t("documentVault.removeConfirm").replace("{name}", doc.fileName))) return;
     const res = await fetch(`/api/documents/${doc.id}`, {
       method: "DELETE",
       credentials: "include",
     });
     if (!res.ok) {
-      setError("Delete failed");
+      setError(t("documentVault.deleteFailed"));
       return;
     }
     await load();
@@ -358,6 +373,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
         workerId,
         folder: versionTarget.folder,
         file: versionFile,
+        t,
       });
       const res = await fetch(`/api/documents/${versionTarget.id}`, {
         method: "PUT",
@@ -373,7 +389,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? "Update failed");
+        throw new Error(j.error ?? t("documentVault.updateFailed"));
       }
       setVersionOpen(false);
       setVersionTarget(null);
@@ -381,7 +397,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       await load();
       bumpChecklist();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Update failed");
+      setError(e instanceof Error ? e.message : t("documentVault.updateFailed"));
     } finally {
       setVersionSaving(false);
     }
@@ -390,7 +406,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
   if (loading && !vault) {
     return (
       <div className="mx-auto max-w-6xl p-6 text-sm text-slate-600">
-        Loading document vault…
+        {t("documentVault.loading")}
       </div>
     );
   }
@@ -400,18 +416,15 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Document Vault
+            {t("documentVault.title")}
           </p>
           <h1 className="text-2xl font-semibold text-slate-900">
-            {workerName || "Worker"}
+            {workerName || t("documentVault.workerFallback")}
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Klasör bazlı saklama ve sürüm geçmişi. Aşağıda zorunlu belge durumu özeti
-            var.
-          </p>
+          <p className="mt-1 text-sm text-slate-600">{t("documentVault.subtitle")}</p>
         </div>
         <Button variant="secondary" asChild>
-          <Link href={`/workers/${workerId}`}>← Back to profile</Link>
+          <Link href={`/workers/${workerId}`}>{t("documentVault.backToProfile")}</Link>
         </Button>
       </div>
 
@@ -434,11 +447,11 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
             >
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <h2 className="text-lg font-medium text-brand-navy">
-                  {FOLDER_LABELS[folder]}
+                  {folderLabel(folder, t)}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <Label className="sr-only" htmlFor={`exp-${folder}`}>
-                    Default expiry for uploads
+                    {t("documentVault.defaultExpiryLabel")}
                   </Label>
                   <Input
                     id={`exp-${folder}`}
@@ -467,7 +480,9 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                       input.click();
                     }}
                   >
-                    {uploadingFolder === folder ? "Uploading…" : "Upload"}
+                    {uploadingFolder === folder
+                      ? t("documentVault.uploading")
+                      : t("documentVault.upload")}
                   </Button>
                 </div>
               </div>
@@ -494,12 +509,12 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
               >
                 {docs.length === 0 ? (
                   <p className="py-8 text-center text-sm text-slate-500">
-                    Drop files here or use Upload.
+                    {t("documentVault.dropHint")}
                   </p>
                 ) : (
                   <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {docs.map((doc) => {
-                      const exp = expiryBadge(doc.expiryDate);
+                      const exp = expiryBadge(doc.expiryDate, t);
                       return (
                         <li key={doc.id}>
                           <Card className="h-full border-brand-navy/15 shadow-card">
@@ -517,9 +532,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                               </div>
                               <p className="text-xs text-slate-500">
                                 v{doc.version} ·{" "}
-                                {new Date(doc.createdAt).toLocaleDateString(
-                                  "en-GB"
-                                )}
+                                {new Date(doc.createdAt).toLocaleDateString(localeTag)}
                               </p>
                             </CardHeader>
                             <CardContent className="flex flex-wrap gap-2 pt-0">
@@ -529,7 +542,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                                   target="_blank"
                                   rel="noreferrer"
                                 >
-                                  Open
+                                  {t("documentVault.open")}
                                 </a>
                               </Button>
                               <Button
@@ -541,7 +554,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                                   setHistoryOpen(true);
                                 }}
                               >
-                                Versions
+                                {t("documentVault.versions")}
                               </Button>
                               <Button
                                 variant="ghost"
@@ -553,7 +566,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                                   setVersionOpen(true);
                                 }}
                               >
-                                New version
+                                {t("documentVault.newVersion")}
                               </Button>
                               <Button
                                 variant="ghost"
@@ -562,7 +575,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                                 type="button"
                                 onClick={() => void softDelete(doc)}
                               >
-                                Remove
+                                {t("documentVault.remove")}
                               </Button>
                             </CardContent>
                           </Card>
@@ -580,7 +593,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Version history</DialogTitle>
+            <DialogTitle>{t("documentVault.versionHistoryTitle")}</DialogTitle>
             {historyTarget ? (
               <p className="text-sm text-slate-600">{historyTarget.fileName}</p>
             ) : null}
@@ -594,7 +607,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium">v{h.version}</span>
                   <span className="text-xs text-slate-500">
-                    {new Date(h.createdAt).toLocaleString("en-GB")}
+                    {new Date(h.createdAt).toLocaleString(localeTag)}
                   </span>
                 </div>
                 <p className="mt-1 break-all text-slate-800">{h.fileName}</p>
@@ -604,7 +617,7 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                   rel="noreferrer"
                   className="text-xs font-medium text-brand-navy underline-offset-2 hover:underline"
                 >
-                  Open file
+                  {t("documentVault.openFile")}
                 </a>
               </li>
             ))}
@@ -624,10 +637,12 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload new version</DialogTitle>
+            <DialogTitle>{t("documentVault.uploadNewVersionTitle")}</DialogTitle>
             {versionTarget ? (
               <p className="text-sm text-slate-600">
-                Replaces v{versionTarget.version} of {versionTarget.fileName}
+                {t("documentVault.replacesVersion")
+                  .replace("{version}", String(versionTarget.version))
+                  .replace("{fileName}", versionTarget.fileName)}
               </p>
             ) : null}
           </DialogHeader>
@@ -642,14 +657,14 @@ export default function WorkerDocumentVaultPage(): JSX.Element {
                 variant="outline"
                 onClick={() => setVersionOpen(false)}
               >
-                Cancel
+                {t("documentVault.cancel")}
               </Button>
               <Button
                 type="button"
                 disabled={!versionFile || versionSaving}
                 onClick={() => void submitNewVersion()}
               >
-                {versionSaving ? "Saving…" : "Save version"}
+                {versionSaving ? t("documentVault.saving") : t("documentVault.saveVersion")}
               </Button>
             </div>
           </div>

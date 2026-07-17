@@ -9,8 +9,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toDateOnlyIso } from "@/lib/uk-working-days";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type ContactRow = { date: string; method: string; result: string };
+
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
+
+const ABSENCE_TYPES = [
+  "UNAUTHORISED",
+  "SICK",
+  "ANNUAL_LEAVE",
+  "SUSPENDED",
+  "MATERNITY_PATERNITY",
+  "OTHER",
+] as const;
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -38,6 +57,8 @@ export function AbsenceTrackerPanel(props: {
   workerId: string;
   onChanged: () => void;
 }): JSX.Element {
+  const { t, locale } = useTranslation();
+  const dateTag = locale === "tr" ? "tr-TR" : "en-GB";
   const [rows, setRows] = useState<AbsenceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +92,11 @@ export function AbsenceTrackerPanel(props: {
   const [rtwDate, setRtwDate] = useState("");
   const [rtwNotes, setRtwNotes] = useState("");
 
+  const weekdayLabels = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(dateTag, { weekday: "short" });
+    return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(2024, 0, 1 + i)));
+  }, [dateTag]);
+
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -79,7 +105,7 @@ export function AbsenceTrackerPanel(props: {
         credentials: "include",
       });
       if (!res.ok) {
-        setError("Could not load absences");
+        setError(t("absenceTracker.loadFailed"));
         return;
       }
       const json = (await res.json()) as { data: AbsenceRecord[] };
@@ -87,7 +113,7 @@ export function AbsenceTrackerPanel(props: {
     } finally {
       setLoading(false);
     }
-  }, [props.workerId]);
+  }, [props.workerId, t]);
 
   useEffect(() => {
     void load();
@@ -127,7 +153,7 @@ export function AbsenceTrackerPanel(props: {
     const attempts: ContactRow[] = [];
     if (formType === AbsenceType.UNAUTHORISED) {
       if (!caDate || !caMethod.trim() || !caResult.trim()) {
-        setError("Unauthorised absence requires a contact attempt (date, method, result).");
+        setError(t("absenceTracker.unauthorisedRequiresContact"));
         return;
       }
       attempts.push({ date: caDate, method: caMethod.trim(), result: caResult.trim() });
@@ -150,7 +176,7 @@ export function AbsenceTrackerPanel(props: {
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(j.error ?? "Save failed");
+        setError(j.error ?? t("absenceTracker.saveFailed"));
         return;
       }
       setFormStart("");
@@ -184,7 +210,7 @@ export function AbsenceTrackerPanel(props: {
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(j.error ?? "Update failed");
+        setError(j.error ?? t("absenceTracker.updateFailed"));
         return;
       }
       await load();
@@ -197,7 +223,7 @@ export function AbsenceTrackerPanel(props: {
   async function addContactAttempt(): Promise<void> {
     if (!selected) return;
     if (!addCaDate || !addCaMethod.trim() || !addCaResult.trim()) {
-      setError("Fill contact attempt date, method, and result.");
+      setError(t("absenceTracker.fillContactAttempt"));
       return;
     }
     setSaving(true);
@@ -218,7 +244,7 @@ export function AbsenceTrackerPanel(props: {
       );
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(j.error ?? "Failed to add attempt");
+        setError(j.error ?? t("absenceTracker.addAttemptFailed"));
         return;
       }
       setAddCaDate("");
@@ -247,7 +273,7 @@ export function AbsenceTrackerPanel(props: {
 
   if (loading && rows.length === 0) {
     return (
-      <p className="text-sm text-slate-600">Loading absences…</p>
+      <p className="text-sm text-slate-600">{t("absenceTracker.loading")}</p>
     );
   }
 
@@ -262,7 +288,7 @@ export function AbsenceTrackerPanel(props: {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base">Calendar</CardTitle>
+            <CardTitle className="text-base">{t("absenceTracker.calendarTitle")}</CardTitle>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -277,7 +303,7 @@ export function AbsenceTrackerPanel(props: {
                 ←
               </Button>
               <span className="text-sm font-medium text-slate-700">
-                {new Date(cursor.y, cursor.m).toLocaleString("en-GB", {
+                {new Date(cursor.y, cursor.m).toLocaleString(dateTag, {
                   month: "long",
                   year: "numeric",
                 })}
@@ -296,15 +322,12 @@ export function AbsenceTrackerPanel(props: {
               </Button>
             </div>
           </div>
-          <p className="text-xs text-slate-500">
-            UK working-day calendar days coloured by absence: red = unauthorised,
-            green = other types.
-          </p>
+          <p className="text-xs text-slate-500">{t("absenceTracker.calendarHint")}</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase text-slate-500">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-              <div key={d}>{d}</div>
+            {weekdayLabels.map((d, i) => (
+              <div key={`${d}-${i}`}>{d}</div>
             ))}
           </div>
           <div className="mt-1 grid grid-cols-7 gap-1">
@@ -327,13 +350,13 @@ export function AbsenceTrackerPanel(props: {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">New absence</CardTitle>
+            <CardTitle className="text-sm">{t("absenceTracker.newAbsenceTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form className="space-y-3 text-sm" onSubmit={(e) => void submitNew(e)}>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label>Start</Label>
+                  <Label>{t("absenceTracker.start")}</Label>
                   <Input
                     type="date"
                     value={formStart}
@@ -342,7 +365,7 @@ export function AbsenceTrackerPanel(props: {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>End (optional)</Label>
+                  <Label>{t("absenceTracker.endOptional")}</Label>
                   <Input
                     type="date"
                     value={formEnd}
@@ -351,43 +374,34 @@ export function AbsenceTrackerPanel(props: {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label>Type</Label>
+                <Label>{t("absenceTracker.type")}</Label>
                 <select
                   className="h-10 w-full rounded-md border border-slate-300 bg-white px-3"
                   value={formType}
                   onChange={(e) => setFormType(e.target.value as AbsenceType)}
                 >
-                  {(
-                    [
-                      "UNAUTHORISED",
-                      "SICK",
-                      "ANNUAL_LEAVE",
-                      "SUSPENDED",
-                      "MATERNITY_PATERNITY",
-                      "OTHER",
-                    ] as const
-                  ).map((t) => (
-                    <option key={t} value={t}>
-                      {t.replace(/_/g, " ")}
+                  {ABSENCE_TYPES.map((at) => (
+                    <option key={at} value={at}>
+                      {tEnum(t, `absenceTracker.type.${at}`, at.replace(/_/g, " "))}
                     </option>
                   ))}
                 </select>
               </div>
               <Input
-                placeholder="Reason (optional)"
+                placeholder={t("absenceTracker.reasonPlaceholder")}
                 value={formReason}
                 onChange={(e) => setFormReason(e.target.value)}
               />
               <textarea
                 className="min-h-[72px] w-full rounded-md border border-slate-300 p-2 text-sm"
-                placeholder="Notes"
+                placeholder={t("absenceTracker.notesPlaceholder")}
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
               />
               {formType === AbsenceType.UNAUTHORISED ? (
                 <div className="rounded-md border border-amber-200 bg-amber-50/80 p-3 space-y-2">
                   <p className="text-xs font-semibold text-amber-900">
-                    Contact attempt (required)
+                    {t("absenceTracker.contactAttemptRequired")}
                   </p>
                   <Input
                     type="date"
@@ -395,19 +409,19 @@ export function AbsenceTrackerPanel(props: {
                     onChange={(e) => setCaDate(e.target.value)}
                   />
                   <Input
-                    placeholder="Method (e.g. phone, email)"
+                    placeholder={t("absenceTracker.methodPlaceholder")}
                     value={caMethod}
                     onChange={(e) => setCaMethod(e.target.value)}
                   />
                   <Input
-                    placeholder="Result"
+                    placeholder={t("absenceTracker.resultPlaceholder")}
                     value={caResult}
                     onChange={(e) => setCaResult(e.target.value)}
                   />
                 </div>
               ) : null}
               <Button type="submit" size="sm" disabled={saving}>
-                {saving ? "Saving…" : "Create absence"}
+                {saving ? t("absenceTracker.saving") : t("absenceTracker.createAbsence")}
               </Button>
             </form>
           </CardContent>
@@ -415,11 +429,11 @@ export function AbsenceTrackerPanel(props: {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Records</CardTitle>
+            <CardTitle className="text-sm">{t("absenceTracker.recordsTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {rows.length === 0 ? (
-              <p className="text-sm text-slate-500">No absences yet.</p>
+              <p className="text-sm text-slate-500">{t("absenceTracker.noAbsencesYet")}</p>
             ) : (
               <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
                 {rows.map((r) => (
@@ -435,25 +449,28 @@ export function AbsenceTrackerPanel(props: {
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">
-                          {new Date(r.startDate).toLocaleDateString("en-GB")} –{" "}
+                          {new Date(r.startDate).toLocaleDateString(dateTag)} –{" "}
                           {r.endDate
-                            ? new Date(r.endDate).toLocaleDateString("en-GB")
-                            : "ongoing"}
+                            ? new Date(r.endDate).toLocaleDateString(dateTag)
+                            : t("absenceTracker.ongoing")}
                         </span>
                         <Badge variant="outline" className="text-[10px]">
-                          {r.type.replace(/_/g, " ")}
+                          {tEnum(t, `absenceTracker.type.${r.type}`, r.type.replace(/_/g, " "))}
                         </Badge>
                         {r.isReportable ||
                         (r.type === AbsenceType.UNAUTHORISED &&
                           (r.consecutiveWorkingDays ?? 0) >= 10) ? (
-                          <Badge variant="danger">10 working days</Badge>
+                          <Badge variant="danger">{t("absenceTracker.tenWorkingDays")}</Badge>
                         ) : null}
                       </div>
                       <div className="text-xs text-slate-500">
                         {r.consecutiveWorkingDays != null
-                          ? `${r.consecutiveWorkingDays} UK working days`
+                          ? t("absenceTracker.ukWorkingDays").replace(
+                              "{n}",
+                              String(r.consecutiveWorkingDays)
+                            )
                           : null}{" "}
-                        · {r.status}
+                        · {tEnum(t, `absenceTracker.status.${r.status}`, r.status)}
                       </div>
                     </button>
                   </li>
@@ -465,11 +482,11 @@ export function AbsenceTrackerPanel(props: {
               <div className="space-y-4 border-t border-slate-100 pt-4">
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                    Contact attempts
+                    {t("absenceTracker.contactAttemptsTitle")}
                   </p>
                   <ul className="space-y-2 text-xs">
                     {attempts.length === 0 ? (
-                      <li className="text-slate-500">None logged.</li>
+                      <li className="text-slate-500">{t("absenceTracker.noneLogged")}</li>
                     ) : (
                       attempts.map((a, idx) => (
                         <li
@@ -488,12 +505,12 @@ export function AbsenceTrackerPanel(props: {
                       onChange={(e) => setAddCaDate(e.target.value)}
                     />
                     <Input
-                      placeholder="Method"
+                      placeholder={t("absenceTracker.methodPlaceholder")}
                       value={addCaMethod}
                       onChange={(e) => setAddCaMethod(e.target.value)}
                     />
                     <Input
-                      placeholder="Result"
+                      placeholder={t("absenceTracker.resultPlaceholder")}
                       value={addCaResult}
                       onChange={(e) => setAddCaResult(e.target.value)}
                     />
@@ -506,13 +523,13 @@ export function AbsenceTrackerPanel(props: {
                     disabled={saving}
                     onClick={() => void addContactAttempt()}
                   >
-                    Add attempt
+                    {t("absenceTracker.addAttempt")}
                   </Button>
                 </div>
 
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                    Return to work
+                    {t("absenceTracker.returnToWorkTitle")}
                   </p>
                   <Input
                     type="date"
@@ -522,7 +539,7 @@ export function AbsenceTrackerPanel(props: {
                   />
                   <textarea
                     className="min-h-[60px] w-full rounded-md border border-slate-300 p-2 text-sm"
-                    placeholder="Return to work notes"
+                    placeholder={t("absenceTracker.returnToWorkNotesPlaceholder")}
                     value={rtwNotes}
                     onChange={(e) => setRtwNotes(e.target.value)}
                   />
@@ -533,7 +550,7 @@ export function AbsenceTrackerPanel(props: {
                     disabled={saving}
                     onClick={() => void saveReturnToWork()}
                   >
-                    Save return to work
+                    {t("absenceTracker.saveReturnToWork")}
                   </Button>
                 </div>
               </div>

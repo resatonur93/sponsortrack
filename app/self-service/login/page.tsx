@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 export default function SelfServiceLoginPage(): JSX.Element {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -34,7 +36,7 @@ export default function SelfServiceLoginPage(): JSX.Element {
     setBusy(false);
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      setError(j.error ?? "Sign-in failed");
+      setError(j.error ?? t("selfService.loginFailed"));
       return;
     }
     router.push("/self-service/dashboard");
@@ -44,11 +46,8 @@ export default function SelfServiceLoginPage(): JSX.Element {
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">Worker sign-in</CardTitle>
-        <p className="text-sm text-slate-600">
-          Use your work or personal email on file and your date of birth, or a portal
-          token if your employer sent you one.
-        </p>
+        <CardTitle className="text-lg">{t("selfService.loginTitle")}</CardTitle>
+        <p className="text-sm text-slate-600">{t("selfService.loginHint")}</p>
       </CardHeader>
       <CardContent>
         <div className="mb-4 flex gap-2">
@@ -58,7 +57,7 @@ export default function SelfServiceLoginPage(): JSX.Element {
             variant={mode === "dob" ? "default" : "outline"}
             onClick={() => setMode("dob")}
           >
-            Email + date of birth
+            {t("selfService.modeDob")}
           </Button>
           <Button
             type="button"
@@ -66,14 +65,14 @@ export default function SelfServiceLoginPage(): JSX.Element {
             variant={mode === "token" ? "default" : "outline"}
             onClick={() => setMode("token")}
           >
-            Token
+            {t("selfService.modeToken")}
           </Button>
         </div>
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
           {mode === "dob" ? (
             <>
               <div className="space-y-1">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("selfService.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -84,7 +83,7 @@ export default function SelfServiceLoginPage(): JSX.Element {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="dob">Date of birth</Label>
+                <Label htmlFor="dob">{t("selfService.dob")}</Label>
                 <Input
                   id="dob"
                   type="date"
@@ -96,7 +95,7 @@ export default function SelfServiceLoginPage(): JSX.Element {
             </>
           ) : (
             <div className="space-y-1">
-              <Label htmlFor="token">Portal token</Label>
+              <Label htmlFor="token">{t("selfService.token")}</Label>
               <Input
                 id="token"
                 value={portalToken}
@@ -108,12 +107,12 @@ export default function SelfServiceLoginPage(): JSX.Element {
           )}
           {error ? <p className="text-sm text-brand-rose">{error}</p> : null}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Signing in…" : "Continue"}
+            {busy ? t("selfService.signingIn") : t("selfService.continue")}
           </Button>
         </form>
         <p className="mt-4 text-center text-xs text-slate-500">
           <Link href="/login" className="text-brand-navy underline">
-            Staff login
+            {t("selfService.staffLogin")}
           </Link>
         </p>
       </CardContent>

@@ -5,6 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dedupeVisaExpiringByWorker } from "@/lib/recent-notifications";
 import { useTranslation } from "@/contexts/LanguageContext";
 
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
+
 type EventRow = {
   id: string;
   eventType: NotificationType;
@@ -61,9 +70,12 @@ export function RecentEvents(props: { events: EventRow[] }): JSX.Element {
                 <span className="font-medium text-brand-navy">
                   {e.worker.firstName} {e.worker.lastName}
                 </span>
-                <span className="text-slate-600">{e.eventType}</span>
+                <span className="text-slate-600">
+                  {tEnum(t, `notifications.type.${e.eventType}`, e.eventType)}
+                </span>
                 <span className="text-xs text-slate-500">
-                  {new Date(e.dueDate).toLocaleDateString(localeTag)} · {e.status}
+                  {new Date(e.dueDate).toLocaleDateString(localeTag)} ·{" "}
+                  {tEnum(t, `notifications.status.${e.status}`, e.status)}
                 </span>
               </li>
             ))

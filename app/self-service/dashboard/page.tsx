@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type Profile = {
   workerId: string;
@@ -19,7 +20,17 @@ type Profile = {
   emergencyPhone: string | null;
 };
 
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
+
 export default function SelfServiceDashboardPage(): JSX.Element {
+  const { t } = useTranslation();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,13 +46,13 @@ export default function SelfServiceDashboardPage(): JSX.Element {
         return;
       }
       if (!res.ok) {
-        setError("Could not load profile");
+        setError(t("selfService.loadFailed"));
         return;
       }
       const json = (await res.json()) as { data: Profile };
       setProfile(json.data);
     })();
-  }, [router]);
+  }, [router, t]);
 
   async function logout(): Promise<void> {
     await fetch("/api/self-service/logout", {
@@ -56,40 +67,47 @@ export default function SelfServiceDashboardPage(): JSX.Element {
     return <p className="text-sm text-brand-rose">{error}</p>;
   }
   if (!profile) {
-    return <p className="text-sm text-slate-600">Loading…</p>;
+    return <p className="text-sm text-slate-600">{t("common.loading")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-brand-navy">
-          Hello, {profile.firstName}
+          {t("selfService.hello")}, {profile.firstName}
         </h1>
         <Button type="button" variant="outline" size="sm" onClick={() => void logout()}>
-          Sign out
+          {t("selfService.signOut")}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Your details</CardTitle>
-          <p className="text-xs text-slate-500">
-            Work email and name are read-only. You can request updates to contact
-            fields — your employer will be notified for compliance review.
-          </p>
+          <CardTitle className="text-base">{t("selfService.yourDetails")}</CardTitle>
+          <p className="text-xs text-slate-500">{t("selfService.readOnlyHint")}</p>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <Row label="Name" value={`${profile.firstName} ${profile.lastName}`} />
-          <Row label="Work email" value={profile.workEmail} />
-          <Row label="Status" value={profile.employmentStatus} />
-          <Row label="Address" value={profile.currentAddress ?? "—"} />
-          <Row label="Phone" value={profile.phone ?? "—"} />
-          <Row label="Personal email" value={profile.personalEmail ?? "—"} />
-          <Row label="Emergency contact" value={profile.emergencyContact ?? "—"} />
-          <Row label="Emergency phone" value={profile.emergencyPhone ?? "—"} />
+          <Row label={t("selfService.name")} value={`${profile.firstName} ${profile.lastName}`} />
+          <Row label={t("selfService.workEmail")} value={profile.workEmail} />
+          <Row
+            label={t("selfService.status")}
+            value={tEnum(
+              t,
+              `workerDetail.employment.${profile.employmentStatus}`,
+              profile.employmentStatus
+            )}
+          />
+          <Row label={t("selfService.address")} value={profile.currentAddress ?? "—"} />
+          <Row label={t("selfService.phone")} value={profile.phone ?? "—"} />
+          <Row label={t("selfService.personalEmail")} value={profile.personalEmail ?? "—"} />
+          <Row
+            label={t("selfService.emergencyContact")}
+            value={profile.emergencyContact ?? "—"}
+          />
+          <Row label={t("selfService.emergencyPhone")} value={profile.emergencyPhone ?? "—"} />
         </CardContent>
       </Card>
       <Button asChild className="w-full">
-        <Link href="/self-service/update">Update contact details</Link>
+        <Link href="/self-service/update">{t("selfService.updateContact")}</Link>
       </Button>
     </div>
   );

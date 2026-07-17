@@ -42,6 +42,15 @@ import {
 
 const URGENT_POPUP_SESSION_KEY = "st-dashboard-urgent-v1";
 
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
+
 function dashboardHasUrgentSignals(d: FullDashboardData): boolean {
   if (d.stats.overdueNotifications > 0) return true;
   if (d.highPriorityMissing?.length) return true;
@@ -388,7 +397,7 @@ export default function DashboardPage(): JSX.Element {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {a.alertType}
+                      {tEnum(t, `alerts.type.${a.alertType}`, a.alertType)}
                     </Badge>
                     {a.worker ? (
                       <Link

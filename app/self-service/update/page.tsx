@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 type Profile = {
   currentAddress: string | null;
@@ -17,6 +18,7 @@ type Profile = {
 };
 
 export default function SelfServiceUpdatePage(): JSX.Element {
+  const { t } = useTranslation();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,7 +70,7 @@ export default function SelfServiceUpdatePage(): JSX.Element {
     setSaving(false);
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
-      setError(j.error ?? "Update failed");
+      setError(j.error ?? t("selfService.updateFailed"));
       return;
     }
     router.push("/self-service/dashboard");
@@ -76,21 +78,19 @@ export default function SelfServiceUpdatePage(): JSX.Element {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading…</p>;
+    return <p className="text-sm text-slate-600">{t("common.loading")}</p>;
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Update contact details</CardTitle>
-        <p className="text-xs text-slate-500">
-          Saving creates compliance events and notifies HR where required.
-        </p>
+        <CardTitle className="text-base">{t("selfService.updateTitle")}</CardTitle>
+        <p className="text-xs text-slate-500">{t("selfService.updateHint")}</p>
       </CardHeader>
       <CardContent>
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="addr">Address</Label>
+            <Label htmlFor="addr">{t("selfService.address")}</Label>
             <textarea
               id="addr"
               className="min-h-[88px] w-full rounded-md border border-slate-300 p-2 text-sm"
@@ -99,7 +99,7 @@ export default function SelfServiceUpdatePage(): JSX.Element {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">{t("selfService.phone")}</Label>
             <Input
               id="phone"
               type="tel"
@@ -108,7 +108,7 @@ export default function SelfServiceUpdatePage(): JSX.Element {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="pemail">Personal email</Label>
+            <Label htmlFor="pemail">{t("selfService.personalEmail")}</Label>
             <Input
               id="pemail"
               type="email"
@@ -117,7 +117,7 @@ export default function SelfServiceUpdatePage(): JSX.Element {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="ec">Emergency contact name</Label>
+            <Label htmlFor="ec">{t("selfService.emergencyContact")}</Label>
             <Input
               id="ec"
               value={emergencyContact}
@@ -125,7 +125,7 @@ export default function SelfServiceUpdatePage(): JSX.Element {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="eph">Emergency contact phone</Label>
+            <Label htmlFor="eph">{t("selfService.emergencyPhone")}</Label>
             <Input
               id="eph"
               type="tel"
@@ -136,10 +136,10 @@ export default function SelfServiceUpdatePage(): JSX.Element {
           {error ? <p className="text-sm text-brand-rose">{error}</p> : null}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit" disabled={saving} className="flex-1">
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? t("selfService.saving") : t("selfService.save")}
             </Button>
             <Button type="button" variant="outline" asChild className="flex-1">
-              <Link href="/self-service/dashboard">Cancel</Link>
+              <Link href="/self-service/dashboard">{t("selfService.cancel")}</Link>
             </Button>
           </div>
         </form>
