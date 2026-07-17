@@ -3,6 +3,28 @@ import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { startOfDay } from "@/lib/dates";
 import { evaluateMissingDocuments } from "@/lib/required-documents";
+import { translate } from "@/lib/i18n/dictionaries";
+
+/** Alert.message her zaman Türkçe üretilir (varsayılan kiracı dili); ham enum kodu asla gösterilmez. */
+function trLabel(key: string, fallback: string): string {
+  return translate("tr", key, fallback);
+}
+
+function eventTypeLabel(eventType: string): string {
+  return trLabel(`notifications.type.${eventType}`, eventType);
+}
+
+function complianceEventTypeLabel(eventType: string): string {
+  return trLabel(`events.eventType.${eventType}`, eventType);
+}
+
+function alertLevelLabel(level: AlertLevel): string {
+  return trLabel(`alerts.level.${level}`, level);
+}
+
+function orgChangeTypeLabel(changeType: string): string {
+  return trLabel(`orgChange.type.${changeType}`, changeType.replace(/_/g, " "));
+}
 
 /** Takvim günü farkı (deadline - now). Negatif = gecikmiş. */
 export function calendarDaysUntil(deadline: Date, now: Date): number {
@@ -127,13 +149,14 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
       const { level, overdue } = escalationFromDaysRemaining(days);
       const name = ce.worker
         ? `${ce.worker.firstName} ${ce.worker.lastName}`
-        : "Worker";
+        : "Çalışan";
       const alertType: AlertType = overdue
         ? "DEADLINE_OVERDUE"
         : "DEADLINE_APPROACHING";
+      const deadlineStr = ce.reportDeadline.toISOString().slice(0, 10);
       const msg = overdue
-        ? `CRITICAL: Compliance report overdue (${Math.abs(days)}d) — ${name} — ${ce.eventType} (deadline ${ce.reportDeadline.toISOString().slice(0, 10)}).`
-        : `${level}: Report due in ${days}d — ${name} — ${ce.eventType} (deadline ${ce.reportDeadline.toISOString().slice(0, 10)}).`;
+        ? `KRİTİK: Uyum raporu gecikti (${Math.abs(days)} gün) — ${name} — ${complianceEventTypeLabel(ce.eventType)} (son tarih ${deadlineStr}).`
+        : `${alertLevelLabel(level)}: Rapor son tarihi ${days} gün sonra — ${name} — ${complianceEventTypeLabel(ce.eventType)} (son tarih ${deadlineStr}).`;
 
       await upsertAlert({
         tenantId,
@@ -172,13 +195,13 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
       const { level, overdue } = escalationFromDaysRemaining(days);
       const name = n.worker
         ? `${n.worker.firstName} ${n.worker.lastName}`
-        : "Worker";
+        : "Çalışan";
       const alertType: AlertType = overdue
         ? "DEADLINE_OVERDUE"
         : "DEADLINE_APPROACHING";
       const msg = overdue
-        ? `Overdue notification: ${n.eventType} — ${name} (${Math.abs(days)}d late).`
-        : `Notification deadline: ${n.eventType} — ${name} — ${days}d left.`;
+        ? `Gecikmiş bildirim: ${eventTypeLabel(n.eventType)} — ${name} (${Math.abs(days)} gün gecikti).`
+        : `Bildirim son tarihi: ${eventTypeLabel(n.eventType)} — ${name} — ${days} gün kaldı.`;
 
       await upsertAlert({
         tenantId,
@@ -198,7 +221,7 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
           dedupeKey: `salary:${n.workerId}`,
           alertType: "SALARY_MISMATCH",
           level: "CRITICAL",
-          message: `CRITICAL: Salary mismatch flagged — ${name}. Review payroll vs sponsorship.`,
+          message: `KRİTİK: Maaş uyuşmazlığı tespit edildi — ${name}. Bordro ile sponsorluk kaydını karşılaştırın.`,
           forceUnreadOnEscalate: true,
         });
         upserts += 1;
@@ -213,7 +236,7 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
           dedupeKey: `absence:${n.id}`,
           alertType: "UNEXPLAINED_ABSENCE",
           level: n.status === "OVERDUE" ? "CRITICAL" : "HIGH",
-          message: `Absence / pay event requires action — ${name} — ${n.eventType}.`,
+          message: `Devamsızlık / ücret olayı işlem gerektiriyor — ${name} — ${eventTypeLabel(n.eventType)}.`,
           forceUnreadOnEscalate: true,
         });
         upserts += 1;
@@ -225,7 +248,7 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
           dedupeKey: `role:${n.id}`,
           alertType: "ROLE_CODE_MISMATCH",
           level: "HIGH",
-          message: `Role / duties change pending SMS — ${name}.`,
+          message: `Rol / görev değişikliği için SMS bildirimi bekleniyor — ${name}.`,
           forceUnreadOnEscalate: true,
         });
         upserts += 1;
@@ -251,7 +274,7 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
         dedupeKey: `org:${oc.id}`,
         alertType: "ORG_CHANGE_PENDING",
         level,
-        message: `Organisation change (${oc.changeType.replace(/_/g, " ")})${days < 0 ? " (overdue)" : ` (${days}d to HO deadline)`}.`,
+        message: `Kuruluş değişikliği (${orgChangeTypeLabel(oc.changeType)})${days < 0 ? " (gecikti)" : ` (İçişleri Bakanlığı son tarihine ${days} gün)`}.`,
         forceUnreadOnEscalate: true,
       });
       upserts += 1;
@@ -290,7 +313,7 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
         dedupeKey: `missing:${w.id}`,
         alertType: "MISSING_DOCUMENT",
         level,
-        message: `${level}: Missing / invalid documents — ${name}: ${labels}.`,
+        message: `${alertLevelLabel(level)}: Eksik / geçersiz belgeler — ${name}: ${labels}.`,
         forceUnreadOnEscalate: true,
       });
       upserts += 1;
@@ -326,8 +349,8 @@ export async function runEscalationAlertsCron(now: Date = new Date()): Promise<{
       }
       const msg =
         days < 0
-          ? `CRITICAL: Visa expired for ${name} (${Math.abs(days)}d ago). Possible illegal working risk.`
-          : `Visa expiring in ${days}d — ${name}.`;
+          ? `KRİTİK: ${name} için vize süresi doldu (${Math.abs(days)} gün önce). Yasa dışı çalıştırma riski olabilir.`
+          : `Vize süresi ${days} gün içinde doluyor — ${name}.`;
       await upsertAlert({
         tenantId,
         workerId: w.id,

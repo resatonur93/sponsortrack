@@ -2,32 +2,42 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { OrgChange } from "@prisma/client";
-import { OrgChangeType } from "@prisma/client";
+import { OrgChangeStatus, OrgChangeType } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/LanguageContext";
 
-const TYPE_LABELS: Record<OrgChangeType, string> = {
-  COMPANY_SIZE_CHANGE: "Company size change",
-  CHARITY_STATUS_CHANGE: "Charity status change",
-  KEY_PERSONNEL_CHANGE: "Key personnel change",
-  BRANCH_OPEN_CLOSE: "Branch open / close",
-  MERGER: "Merger",
-  TAKEOVER: "Takeover",
-  TUPE_TRANSFER: "TUPE transfer",
-  RESTRUCTURING: "Restructuring",
-  INSOLVENCY: "Insolvency",
-  ADMINISTRATION: "Administration",
-  LIQUIDATION: "Liquidation",
-  CVA: "CVA",
-  ADDRESS_CHANGE: "Address change",
-  NAME_CHANGE: "Name change",
-};
+function tEnum(
+  translate: (key: string, fallback?: string) => string,
+  key: string,
+  fallback: string
+): string {
+  const v = translate(key, fallback);
+  return v === key ? fallback : v;
+}
 
-function deadlineBadge(deadline: Date): {
+function orgChangeTypeLabel(
+  type: OrgChangeType,
+  t: (key: string, fallback?: string) => string
+): string {
+  return tEnum(t, `orgChange.type.${type}`, type);
+}
+
+function orgChangeStatusLabel(
+  status: OrgChangeStatus,
+  t: (key: string, fallback?: string) => string
+): string {
+  return tEnum(t, `orgChange.status.${status}`, status);
+}
+
+function deadlineBadge(
+  deadline: Date,
+  t: (key: string, fallback?: string) => string
+): {
   label: string;
   variant: "danger" | "warning" | "outline" | "success";
 } {
@@ -36,19 +46,23 @@ function deadlineBadge(deadline: Date): {
   const days = Math.ceil(
     (new Date(deadline).getTime() - now.getTime()) / dayMs
   );
+  const daysLabel = t("orgChange.daysToHoDeadline").replace("{n}", String(days));
   if (days < 0) {
-    return { label: "Overdue", variant: "danger" };
+    return { label: t("orgChange.overdue"), variant: "danger" };
   }
   if (days <= 7) {
-    return { label: `${days}d to HO deadline`, variant: "danger" };
+    return { label: daysLabel, variant: "danger" };
   }
   if (days <= 30) {
-    return { label: `${days}d to HO deadline`, variant: "warning" };
+    return { label: daysLabel, variant: "warning" };
   }
-  return { label: `${days}d to HO deadline`, variant: "outline" };
+  return { label: daysLabel, variant: "outline" };
 }
 
 export default function OrganisationChangesPage(): JSX.Element {
+  const { t, locale } = useTranslation();
+  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
+
   const [rows, setRows] = useState<OrgChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +82,7 @@ export default function OrganisationChangesPage(): JSX.Element {
     try {
       const res = await fetch("/api/org-changes", { credentials: "include" });
       if (!res.ok) {
-        setError("Could not load organisation changes");
+        setError(t("orgChange.loadFailed"));
         return;
       }
       const json = (await res.json()) as { data: OrgChange[] };
@@ -76,7 +90,7 @@ export default function OrganisationChangesPage(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -102,7 +116,7 @@ export default function OrganisationChangesPage(): JSX.Element {
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(j.error ?? "Create failed");
+        setError(j.error ?? t("orgChange.createFailed"));
         return;
       }
       setDescription("");
@@ -114,7 +128,7 @@ export default function OrganisationChangesPage(): JSX.Element {
   }
 
   async function reportToHo(id: string): Promise<void> {
-    if (!window.confirm("Mark as reported to the Home Office?")) return;
+    if (!window.confirm(t("orgChange.confirmReportToHo"))) return;
     setSaving(true);
     setError(null);
     try {
@@ -126,7 +140,7 @@ export default function OrganisationChangesPage(): JSX.Element {
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(j.error ?? "Update failed");
+        setError(j.error ?? t("orgChange.updateFailed"));
         return;
       }
       await load();
@@ -139,12 +153,9 @@ export default function OrganisationChangesPage(): JSX.Element {
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-brand-navy">
-          Organisation changes
+          {t("orgChange.title")}
         </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Track sponsor-relevant company changes, HO reporting deadlines, and
-          evidence references.
-        </p>
+        <p className="mt-1 text-sm text-slate-600">{t("orgChange.subtitle")}</p>
       </div>
 
       {error ? (
@@ -155,12 +166,12 @@ export default function OrganisationChangesPage(): JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">New change</CardTitle>
+          <CardTitle className="text-base">{t("orgChange.newChangeTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-3 text-sm" onSubmit={(e) => void createRecord(e)}>
             <div className="space-y-1">
-              <Label>Change type</Label>
+              <Label>{t("orgChange.labelChangeType")}</Label>
               <select
                 className="h-10 w-full rounded-md border border-slate-300 bg-white px-3"
                 value={changeType}
@@ -168,26 +179,26 @@ export default function OrganisationChangesPage(): JSX.Element {
                   setChangeType(e.target.value as OrgChangeType)
                 }
               >
-                {(Object.keys(TYPE_LABELS) as OrgChangeType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_LABELS[t]}
+                {Object.values(OrgChangeType).map((ct) => (
+                  <option key={ct} value={ct}>
+                    {orgChangeTypeLabel(ct, t)}
                   </option>
                 ))}
               </select>
             </div>
             <div className="space-y-1">
-              <Label>Description</Label>
+              <Label>{t("orgChange.labelDescription")}</Label>
               <textarea
                 className="min-h-[100px] w-full rounded-md border border-slate-300 p-2"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
-                placeholder="What changed and sponsor impact"
+                placeholder={t("orgChange.placeholderDescription")}
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label>Effective date</Label>
+                <Label>{t("orgChange.labelEffectiveDate")}</Label>
                 <Input
                   type="date"
                   value={effectiveDate}
@@ -196,7 +207,7 @@ export default function OrganisationChangesPage(): JSX.Element {
                 />
               </div>
               <div className="space-y-1">
-                <Label>HO report deadline</Label>
+                <Label>{t("orgChange.labelHoDeadline")}</Label>
                 <Input
                   type="date"
                   value={hoReportDeadline}
@@ -206,30 +217,32 @@ export default function OrganisationChangesPage(): JSX.Element {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Notes (optional)</Label>
+              <Label>{t("orgChange.labelNotes")}</Label>
               <Input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Internal notes"
+                placeholder={t("orgChange.placeholderNotes")}
               />
             </div>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Add change"}
+              {saving ? t("orgChange.saving") : t("orgChange.addChange")}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <div>
-        <h2 className="mb-4 text-lg font-medium text-slate-900">Timeline</h2>
+        <h2 className="mb-4 text-lg font-medium text-slate-900">
+          {t("orgChange.timelineTitle")}
+        </h2>
         {loading ? (
-          <p className="text-sm text-slate-600">Loading…</p>
+          <p className="text-sm text-slate-600">{t("common.loading")}</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-slate-500">No records yet.</p>
+          <p className="text-sm text-slate-500">{t("orgChange.emptyState")}</p>
         ) : (
           <ul className="relative space-y-0 border-l-2 border-slate-200 pl-6">
             {rows.map((r) => {
-              const dl = deadlineBadge(new Date(r.hoReportDeadline));
+              const dl = deadlineBadge(new Date(r.hoReportDeadline), t);
               const reported = r.reportedToHO;
               return (
                 <li key={r.id} className="relative pb-10 last:pb-0">
@@ -238,12 +251,12 @@ export default function OrganisationChangesPage(): JSX.Element {
                     <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 pb-2">
                       <div>
                         <CardTitle className="text-sm font-semibold text-slate-900">
-                          {TYPE_LABELS[r.changeType] ?? r.changeType}
+                          {orgChangeTypeLabel(r.changeType, t)}
                         </CardTitle>
                         <p className="text-xs text-slate-500">
-                          Effective{" "}
-                          {new Date(r.effectiveDate).toLocaleDateString("en-GB")}{" "}
-                          · Status {r.status}
+                          {t("orgChange.effective")}{" "}
+                          {new Date(r.effectiveDate).toLocaleDateString(localeTag)}{" "}
+                          · {t("orgChange.status")} {orgChangeStatusLabel(r.status, t)}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-1">
@@ -258,22 +271,26 @@ export default function OrganisationChangesPage(): JSX.Element {
                                   : "outline"
                           }
                         >
-                          {reported ? "Reported to HO" : dl.label}
+                          {reported ? t("orgChange.reportedToHo") : dl.label}
                         </Badge>
-                        <Badge variant="outline">{r.status}</Badge>
+                        <Badge variant="outline">
+                          {orgChangeStatusLabel(r.status, t)}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm text-slate-700">
                       <p className="whitespace-pre-wrap">{r.description}</p>
                       {r.hoReportDate ? (
                         <p className="text-xs text-slate-500">
-                          HO report date:{" "}
-                          {new Date(r.hoReportDate).toLocaleDateString("en-GB")}
+                          {t("orgChange.hoReportDatePrefix")}:{" "}
+                          {new Date(r.hoReportDate).toLocaleDateString(localeTag)}
                         </p>
                       ) : null}
                       {r.evidenceDocuments.length > 0 ? (
                         <p className="text-xs">
-                          <span className="font-medium">Evidence: </span>
+                          <span className="font-medium">
+                            {t("orgChange.evidencePrefix")}:{" "}
+                          </span>
                           {r.evidenceDocuments.join(", ")}
                         </p>
                       ) : null}
@@ -291,7 +308,7 @@ export default function OrganisationChangesPage(): JSX.Element {
                           )}
                           onClick={() => void reportToHo(r.id)}
                         >
-                          Report to HO
+                          {t("orgChange.reportToHoButton")}
                         </Button>
                       ) : null}
                     </CardContent>
