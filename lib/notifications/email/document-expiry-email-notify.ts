@@ -39,7 +39,7 @@ type DocMailPayload = {
   workerId: string;
   expiryDate: Date;
   documentType: import("@prisma/client").DocumentType;
-  vaultFolder: import("@prisma/client").DocumentVaultFolder;
+  vaultFolder: import("@prisma/client").DocumentFolder;
   fileName: string;
   worker: {
     employmentStatus: import("@prisma/client").EmploymentStatus;

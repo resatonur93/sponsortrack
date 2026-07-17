@@ -13,6 +13,7 @@ import type {
   RiskLevel,
 } from "@prisma/client";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { AlertLevelDot } from "@/components/layout/AlertCountPill";
 import {
@@ -31,6 +32,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Users,
+  BriefcaseBusiness,
+  BellRing,
+  AlertCircle,
+  FileX,
+} from "lucide-react";
 
 const URGENT_POPUP_SESSION_KEY = "st-dashboard-urgent-v1";
 
@@ -146,7 +154,7 @@ export default function DashboardPage(): JSX.Element {
   return (
     <div className="space-y-8">
       <Dialog open={urgentPopupOpen} onOpenChange={(o) => !o && dismissUrgentPopup()}>
-        <DialogContent className="max-w-md border-amber-200 bg-amber-50/95 sm:rounded-lg">
+        <DialogContent className="max-w-md border-amber-200 bg-amber-50/95 sm:rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-amber-950">
               {t("dashboard.urgentPopup.title")}
@@ -182,14 +190,14 @@ export default function DashboardPage(): JSX.Element {
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Link
               href="/notifications"
-              className="inline-flex h-10 items-center justify-center rounded-md bg-brand-navy px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-gold hover:text-brand-navy"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-navy px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-gold hover:text-brand-navy"
               onClick={() => dismissUrgentPopup()}
             >
               {t("dashboard.urgentPopup.gotoNotifications")}
             </Link>
             <Link
               href="/alerts"
-              className="inline-flex h-10 items-center justify-center rounded-md border border-brand-navy/25 bg-white px-4 text-sm font-medium text-brand-navy transition-colors hover:border-brand-gold hover:bg-brand-gold/15"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-brand-navy/25 bg-white px-4 text-sm font-medium text-brand-navy transition-colors hover:border-brand-gold hover:bg-brand-gold/15"
               onClick={() => dismissUrgentPopup()}
             >
               {t("dashboard.urgentPopup.gotoAlerts")}
@@ -200,41 +208,76 @@ export default function DashboardPage(): JSX.Element {
           </div>
         </DialogContent>
       </Dialog>
-      <div>
-        <h1 className="text-xl font-bold text-brand-navy sm:text-2xl">{t("dashboard.title")}</h1>
-        <p className="text-sm text-slate-600 sm:text-base">{t("dashboard.subtitle")}</p>
+
+      {/* ── Page header ── */}
+      <div className="page-hero">
+        <div className="relative z-10">
+          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+            {t("dashboard.title")}
+          </h1>
+          <p className="mt-1 text-sm text-white/65 sm:text-base">
+            {t("dashboard.subtitle")}
+          </p>
+        </div>
+        {/* Decorative circle */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full opacity-10"
+          style={{
+            background: "radial-gradient(circle, #d4af87 0%, transparent 70%)",
+          }}
+        />
       </div>
-      <ComplianceTrafficLight traffic={data.complianceTraffic} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatsCard title={t("dashboard.totalWorkers")} value={data.stats.totalWorkers} />
+
+      {/* ── Stats grid ── */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatsCard
+          title={t("dashboard.totalWorkers")}
+          value={data.stats.totalWorkers}
+          icon={Users}
+          accent="default"
+          className="animate-fade-up animate-stagger-1"
+        />
         <StatsCard
           title={t("dashboard.activeSponsorships")}
           value={data.stats.activeSponsorships}
+          icon={BriefcaseBusiness}
+          accent="default"
+          className="animate-fade-up animate-stagger-2"
         />
         <StatsCard
           title={t("dashboard.pendingNotifications")}
           value={data.stats.pendingNotifications}
+          icon={BellRing}
+          accent={data.stats.pendingNotifications > 0 ? "warning" : "default"}
+          className="animate-fade-up animate-stagger-3"
         />
         <StatsCard
           title={t("dashboard.overdueNotifications")}
           value={data.stats.overdueNotifications}
+          icon={AlertCircle}
+          accent={data.stats.overdueNotifications > 0 ? "danger" : "default"}
+          className="animate-fade-up animate-stagger-4"
         />
         <StatsCard
           title={t("dashboard.missingDocs")}
           value={data.stats.missingDocumentIssues ?? 0}
+          icon={FileX}
+          accent={(data.stats.missingDocumentIssues ?? 0) > 0 ? "warning" : "default"}
+          className="animate-fade-up animate-stagger-5"
         />
       </div>
 
-      <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-brand-navy">
+      <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
             {t("dashboard.riskEngine")}
           </h2>
           <Link
             href="/risk-report"
-            className="text-sm font-medium text-brand-navy underline"
+            className="text-xs font-semibold text-brand-navy transition-colors hover:text-brand-gold"
           >
-            {t("dashboard.riskEngineFullRanking")}
+            {t("dashboard.riskEngineFullRanking")} →
           </Link>
         </div>
         {data.riskEngine.workerScores === 0 ? (
@@ -248,12 +291,32 @@ export default function DashboardPage(): JSX.Element {
             {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]).map((lvl) => (
               <div
                 key={lvl}
-                className="rounded-md border border-brand-navy/12 bg-brand-surface px-3 py-2"
+                className={cn(
+                  "rounded-xl border px-4 py-3 transition-colors",
+                  lvl === "CRITICAL"
+                    ? "border-danger/20 bg-danger/5"
+                    : lvl === "HIGH"
+                    ? "border-warning/20 bg-warning/5"
+                    : lvl === "MEDIUM"
+                    ? "border-brand-amber/20 bg-amber-50"
+                    : "border-success/20 bg-success/5"
+                )}
               >
-                <p className="text-xs font-medium text-brand-navy/60">
+                <p
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest",
+                    lvl === "CRITICAL"
+                      ? "text-danger"
+                      : lvl === "HIGH"
+                      ? "text-warning"
+                      : lvl === "MEDIUM"
+                      ? "text-amber-700"
+                      : "text-success"
+                  )}
+                >
                   {t(`risk.${lvl}`)}
                 </p>
-                <p className="text-lg font-semibold tabular-nums text-brand-navy">
+                <p className="mt-1 text-2xl font-bold tabular-nums text-brand-navy">
                   {data.riskEngine.byLevel[lvl]}
                 </p>
               </div>
@@ -269,8 +332,11 @@ export default function DashboardPage(): JSX.Element {
       </div>
 
       {data.highPriorityMissing && data.highPriorityMissing.length > 0 ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <h2 className="text-sm font-semibold text-red-900">
+        <div className="rounded-xl border border-danger/20 bg-danger/5 p-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-danger">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger/15 text-[10px] font-bold">
+              {data.highPriorityMissing.length}
+            </span>
             {t("dashboard.highPriorityMissing")}
           </h2>
           <ul className="mt-2 space-y-2 text-sm">
@@ -297,13 +363,16 @@ export default function DashboardPage(): JSX.Element {
         </div>
       </div>
 
-      <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-brand-navy">
+      <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
             {t("dashboard.alerts")}
           </h2>
-          <Link href="/alerts" className="text-sm text-brand-navy underline">
-            {t("dashboard.alertsAll")}
+          <Link
+            href="/alerts"
+            className="text-xs font-semibold text-brand-navy transition-colors hover:text-brand-gold"
+          >
+            {t("dashboard.alertsAll")} →
           </Link>
         </div>
         {!data.recentAlerts?.length ? (
@@ -342,12 +411,12 @@ export default function DashboardPage(): JSX.Element {
           </ul>
         )}
       </div>
-      <div className="rounded-lg border border-brand-navy/15 bg-white p-4 shadow-card">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-brand-navy">
+      <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
             {t("dashboard.missingDocTracking")}
           </h2>
-          <span className="text-xs text-slate-500">
+          <span className="rounded-full bg-brand-navy/8 px-2.5 py-0.5 text-xs font-semibold text-brand-navy">
             {data.missingDocumentsTable?.length ?? 0}{" "}
             {t("dashboard.missingDocListed")}
           </span>

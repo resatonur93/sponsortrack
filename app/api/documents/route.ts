@@ -4,7 +4,7 @@ import { prisma, prismaBase } from "@/lib/prisma";
 import { processDocumentExpiryRemindersForDocumentId } from "@/lib/notifications/email/document-expiry-email-notify";
 import { documentUploadSchema } from "@/lib/schemas";
 import { logger } from "@/lib/logger";
-import { DocumentVaultFolder } from "@prisma/client";
+import { DocumentFolder } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       const payload = {
-        vaultFolder: d.vaultFolder ?? DocumentVaultFolder.OTHER,
+        vaultFolder: d.vaultFolder ?? DocumentFolder.OTHER,
         fileName: d.fileName,
         fileUrl: d.fileUrl,
         mimeType: d.mimeType,

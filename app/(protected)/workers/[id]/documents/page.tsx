@@ -26,10 +26,12 @@ const FOLDER_LABELS: Record<DocumentFolder, string> = {
   PAYROLL_SALARY: "Payroll & Salary Evidence",
   ABSENCE_LEAVE: "Absence & Leave",
   ADDRESS_CONTACT: "Address / Contact Evidence",
-  ROLE_DUTIES: "Role / Duties / Org Chart",
+  ROLE_DUTIES: "Role / Duties",
+  ROLE_ORG_CHART: "Role / Org Chart",
   RECRUITMENT_VACANCY: "Recruitment / Vacancy Evidence",
   REPORTING_SUBMISSIONS: "Reporting Submissions",
   COMPLIANCE_VISIT_PACK: "Compliance Visit Pack",
+  OTHER: "Other",
 };
 
 type VaultPayload = {

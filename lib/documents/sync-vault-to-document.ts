@@ -5,7 +5,6 @@ import type {
   Prisma,
 } from "@prisma/client";
 import {
-  mapDocumentFolderToVaultFolder,
   mapFolderToDocumentType,
 } from "@/lib/documents/document-folder-mapping";
 
@@ -55,8 +54,6 @@ export async function syncVaultToDocument(
     return null;
   }
 
-  const vaultFolder = mapDocumentFolderToVaultFolder(vault.folder);
-
   const byVault = await tx.document.findFirst({
     where: { tenantId, vaultFileId: vault.id, isDeleted: false },
   });
@@ -74,7 +71,7 @@ export async function syncVaultToDocument(
     workerId,
     tenantId,
     documentType,
-    vaultFolder,
+    vaultFolder: vault.folder,
     fileName: vault.fileName,
     fileUrl: vault.fileUrl,
     mimeType: vault.mimeType,
