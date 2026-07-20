@@ -6,6 +6,7 @@ import type {
   NotificationEvent,
   RightToWorkCheck,
   RiskLevel,
+  SupplementaryEmployment,
   Worker,
   WorkerChangeLog,
 } from "@prisma/client";
@@ -58,6 +59,7 @@ export type WorkerDetailPayload = Worker & {
   notifications: NotificationEvent[];
   changeLogs: WorkerChangeLog[];
   absences: AbsenceRecord[];
+  supplementaryEmployments: SupplementaryEmployment[];
   rtwChecks: RightToWorkCheck[];
   riskSnapshot: ComplianceRiskLevel;
   roleCompliance: WorkerRoleComplianceReviewBrief;

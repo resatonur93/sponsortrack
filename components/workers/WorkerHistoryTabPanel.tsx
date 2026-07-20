@@ -5,6 +5,7 @@ import type { ChangeCategory } from "@prisma/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityTimeline } from "@/components/timeline/ActivityTimeline";
 import { AbsenceTrackerPanel } from "@/components/workers/AbsenceTrackerPanel";
+import { SupplementaryEmploymentPanel } from "@/components/workers/SupplementaryEmploymentPanel";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -76,6 +77,12 @@ export function WorkerHistoryTabPanel(props: {
         >
           {t("workerDetail.tabAbsence")}
         </TabsTrigger>
+        <TabsTrigger
+          value="supplementary-employment"
+          className={cn(innerTabTriggerClass, "snap-start")}
+        >
+          {t("workerDetail.tabSupplementaryEmployment")}
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="summary" className="space-y-6">
         <WorkerChangeLogForm
@@ -99,6 +106,9 @@ export function WorkerHistoryTabPanel(props: {
       </TabsContent>
       <TabsContent value="absence" className="space-y-4">
         <AbsenceTrackerPanel workerId={workerId} onChanged={() => onRefresh()} />
+      </TabsContent>
+      <TabsContent value="supplementary-employment" className="space-y-4">
+        <SupplementaryEmploymentPanel workerId={workerId} onChanged={() => onRefresh()} />
       </TabsContent>
     </Tabs>
   );

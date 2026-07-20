@@ -13,6 +13,8 @@ import {
   OrgChangeType,
   PolicyCategory,
   RtwCheckMethod,
+  SupplementaryEmploymentStatus,
+  VacancyStatus,
 } from "@prisma/client";
 
 const employmentStatusSchema = z.nativeEnum(EmploymentStatus);
@@ -219,6 +221,67 @@ export const absenceUpdateSchema = z.object({
 
 export const absenceContactAttemptSchema = contactAttemptSchema;
 
+export const supplementaryEmploymentCreateSchema = z
+  .object({
+    employerName: z.string().min(1),
+    occupationCode: z.string().min(1),
+    isSameOccupation: z.boolean().optional().default(true),
+    isShortageOccupation: z.boolean().optional().default(false),
+    hoursPerWeek: z.number().int().positive(),
+    startDate: dateInput,
+    endDate: optionalDateInput,
+    status: z.nativeEnum(SupplementaryEmploymentStatus).optional(),
+    notes: z.string().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.endDate && new Date(data.endDate) < new Date(data.startDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date cannot be before start date",
+        path: ["endDate"],
+      });
+    }
+  });
+
+export const supplementaryEmploymentUpdateSchema = z.object({
+  employerName: z.string().min(1).optional(),
+  occupationCode: z.string().min(1).optional(),
+  isSameOccupation: z.boolean().optional(),
+  isShortageOccupation: z.boolean().optional(),
+  hoursPerWeek: z.number().int().positive().optional(),
+  endDate: optionalDateInput,
+  status: z.nativeEnum(SupplementaryEmploymentStatus).optional(),
+  notes: z.string().optional().nullable(),
+});
+
+export const vacancyCreateSchema = z.object({
+  jobTitle: z.string().min(1),
+  occupationCode: z.string().min(1),
+  proposedSalary: z.number().int().nonnegative(),
+  hoursPerWeek: z.number().int().positive().optional().nullable(),
+  workLocation: z.string().min(1),
+  jobDescription: z.string().min(1),
+  genuineVacancyChecklist: z.record(z.boolean()).optional().nullable(),
+  genuineVacancyNotes: z.string().optional().nullable(),
+  status: z.nativeEnum(VacancyStatus).optional(),
+  notes: z.string().optional().nullable(),
+});
+
+export const vacancyUpdateSchema = vacancyCreateSchema.partial();
+
+/** Fields required to create the Worker record — not present on Vacancy itself. */
+export const vacancyConvertSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  nationality: z.string().min(1),
+  visaType: z.string().min(1),
+  cosReference: z.string().min(1),
+  cosAssignDate: dateInput,
+  cosExpiryDate: dateInput,
+  employmentStartDate: optionalDateInput,
+});
+
 export const changeLogCreateSchema = z.object({
   changeCategory: z.nativeEnum(ChangeCategory),
   summary: z.string().min(1),
@@ -227,15 +290,37 @@ export const changeLogCreateSchema = z.object({
   effectiveDate: optionalDateInput,
 });
 
-export const rtwCheckCreateSchema = z.object({
-  checkedAt: optionalDateInput,
-  checkMethod: z.nativeEnum(RtwCheckMethod),
-  outcomeSummary: z.string().optional().nullable(),
-  shareCodeUsed: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  evidenceDocumentId: z.string().optional().nullable(),
-  nextCheckDueAt: optionalDateInput,
-});
+export const rtwCheckCreateSchema = z
+  .object({
+    checkedAt: optionalDateInput,
+    checkMethod: z.nativeEnum(RtwCheckMethod),
+    outcomeSummary: z.string().optional().nullable(),
+    shareCodeUsed: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    evidenceDocumentId: z.string().optional().nullable(),
+    nextCheckDueAt: optionalDateInput,
+  })
+  .superRefine((data, ctx) => {
+    if (data.checkMethod === "ONLINE_SHARE_CODE" && !data.shareCodeUsed?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Share code is required for an online share code check",
+        path: ["shareCodeUsed"],
+      });
+    }
+    if (
+      (data.checkMethod === "MANUAL_DOCUMENT_CHECK" ||
+        data.checkMethod === "EMPLOYER_PORTAL" ||
+        data.checkMethod === "RE_VERIFICATION") &&
+      !data.evidenceDocumentId?.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Evidence document is required for this check method",
+        path: ["evidenceDocumentId"],
+      });
+    }
+  });
 
 export const orgChangeCreateSchema = z.object({
   changeType: z.nativeEnum(OrgChangeType),
@@ -293,6 +378,11 @@ export const workflowNotesSchema = z.object({
 
 export const workflowEscalateSchema = z.object({
   assignToUserId: z.string().cuid(),
+  notes: z.string().optional().nullable(),
+});
+
+/** Side-channel: notify an external immigration adviser, does not touch workflowState/WorkflowStep. */
+export const escalateExternalSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 

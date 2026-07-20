@@ -362,6 +362,36 @@ export function NotificationSettingsPanel(): JSX.Element {
                 className="border-brand-navy/15"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="notif-adviser-name">
+                {t("admin.settings.notifications.adviserName")}
+              </Label>
+              <Input
+                id="notif-adviser-name"
+                value={cfg.externalAdviserName ?? ""}
+                onChange={(e) =>
+                  setCfg((c) => (c ? { ...c, externalAdviserName: e.target.value } : c))
+                }
+                className="border-brand-navy/15"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notif-adviser-email">
+                {t("admin.settings.notifications.adviserEmail")}
+              </Label>
+              <Input
+                id="notif-adviser-email"
+                type="email"
+                value={cfg.externalAdviserEmail ?? ""}
+                onChange={(e) =>
+                  setCfg((c) => (c ? { ...c, externalAdviserEmail: e.target.value } : c))
+                }
+                className="border-brand-navy/15"
+              />
+              <p className="text-xs text-brand-slate">
+                {t("admin.settings.notifications.adviserHint")}
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -372,6 +402,8 @@ export function NotificationSettingsPanel(): JSX.Element {
                   void persistPatch({
                     ccRecipients: cfg.ccRecipients,
                     bccRecipients: cfg.bccRecipients,
+                    externalAdviserName: cfg.externalAdviserName,
+                    externalAdviserEmail: cfg.externalAdviserEmail,
                   })
                 }
               >

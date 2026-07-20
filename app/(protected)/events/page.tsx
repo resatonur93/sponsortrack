@@ -80,6 +80,8 @@ type EventRow = {
   evidenceRequired: string[];
   smsDraft: string | null;
   notes: string | null;
+  escalatedAt?: string | null;
+  escalationNote?: string | null;
   worker: {
     id: string;
     firstName: string;
@@ -458,6 +460,23 @@ export default function EventsPage(): JSX.Element {
     }
     setWorkflowNotes("");
     setEscalateUserId("");
+    await reloadDetailAndList();
+  }
+
+  async function escalateExternal(): Promise<void> {
+    if (!detail) return;
+    const res = await fetch(`/api/events/${detail.id}/escalate-external`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: workflowNotes.trim() || null }),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      alert(j.error ?? t("events.alertEscalateExternalFailed"));
+      return;
+    }
+    setWorkflowNotes("");
     await reloadDetailAndList();
   }
 
@@ -1032,7 +1051,20 @@ export default function EventsPage(): JSX.Element {
                   </div>
                 </>
               ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void escalateExternal()}
+              >
+                {t("events.escalateExternal")}
+              </Button>
             </div>
+            {detail.escalatedAt ? (
+              <p className="text-xs text-amber-800">
+                {t("events.escalatedExternalNotice")}
+              </p>
+            ) : null}
             <div>
               <p className="text-slate-500">{t("events.evidenceRequired")}</p>
               <ul className="mt-1 list-inside list-disc">

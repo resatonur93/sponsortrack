@@ -38,6 +38,8 @@ const STATIC_DEFAULT_ROWS: Omit<
   documentRemind7Enabled: true,
   documentRemind7Days: 7,
   documentRemindLastDayEnabled: true,
+  externalAdviserName: null,
+  externalAdviserEmail: null,
 };
 
 export function coerceEffectiveNotificationConfig(

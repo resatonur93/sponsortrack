@@ -43,6 +43,11 @@ const notificationConfigPatchSchema = z.object({
   documentRemind7Enabled: z.boolean().optional(),
   documentRemind7Days: z.number().int().min(1).max(730).optional(),
   documentRemindLastDayEnabled: z.boolean().optional(),
+  externalAdviserName: z.string().max(200).nullable().optional(),
+  externalAdviserEmail: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.string().email().nullable().optional()
+  ),
 });
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

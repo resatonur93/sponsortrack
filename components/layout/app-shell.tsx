@@ -17,6 +17,7 @@ import {
   LayoutPanelLeft,
   Gauge,
   BookOpen,
+  Briefcase,
   Menu,
   X,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import { useState } from "react";
 
 const navBase = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/vacancies", labelKey: "nav.vacancies", icon: Briefcase },
   { href: "/workers", labelKey: "nav.workers", icon: Users },
   { href: "/events", labelKey: "nav.events", icon: CalendarClock },
   { href: "/alerts", labelKey: "nav.alerts", icon: TriangleAlert },

@@ -40,6 +40,7 @@ model Tenant {
   trustedDevices        UserTrustedDevice[]
   notificationConfig    NotificationConfig?
   emailTemplates        EmailTemplate[]
+  vacancies             Vacancy[]
 }
 
 /// Kiracı başına otomatik uyum / belge e-posta hatırlatıcı takvimi ve dağıtım listeleri.
@@ -86,6 +87,10 @@ model NotificationConfig {
   documentRemind7Enabled       Boolean @default(true)
   documentRemind7Days          Int     @default(7)
   documentRemindLastDayEnabled Boolean @default(true)
+
+  /// Uyum olaylarını harici bir göçmenlik danışmanına iletmek için (bkz. app/api/events/[id]/escalate-external).
+  externalAdviserName  String?
+  externalAdviserEmail String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -405,6 +410,7 @@ model Worker {
   documentVaults            DocumentVault[]
   changeLogs                WorkerChangeLog[]
   absences                  AbsenceRecord[]
+  supplementaryEmployments  SupplementaryEmployment[]
   rtwChecks                 RightToWorkCheck[]
   salaryHistory             SalaryHistory[]
   createdAt                 DateTime @default(now())
@@ -416,6 +422,7 @@ model Worker {
   salaryRecords             SalaryRecord[]
   riskScores                RiskScore[]
   ukLawCheck                UkLawCheck?
+  vacancyAsConverted        Vacancy?  @relation("VacancyConvertedWorker")
 
   @@unique([cosReference, tenantId])
   @@index([visaExpiryDate])
@@ -542,6 +549,10 @@ model ComplianceEvent {
   approvedBy       String?
   reportedDate     DateTime?
   notes            String?     @db.Text
+  /// Yan-kanal harici danışman bildirimi — WorkflowStep/workflowState'e dokunmaz (bkz. escalate-external route).
+  escalatedAt       DateTime?
+  escalatedByUserId String?
+  escalationNote    String?     @db.Text
   tenantId         String
   tenant           Tenant      @relation(fields: [tenantId], references: [id])
   createdAt        DateTime    @default(now())
@@ -1024,6 +1035,70 @@ enum AbsenceStatus {
   RETURNED
   TERMINATED
   CONVERTED_TO_LEAVE
+}
+
+/// UK sponsor rule: max 20h/week, same occupation code or on the shortage-occupation list.
+model SupplementaryEmployment {
+  id                   String    @id @default(cuid())
+  workerId             String
+  worker               Worker    @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  employerName         String
+  occupationCode       String
+  isSameOccupation     Boolean   @default(true)
+  isShortageOccupation Boolean   @default(false)
+  hoursPerWeek         Int
+  startDate            DateTime
+  endDate              DateTime?
+  status               SupplementaryEmploymentStatus @default(ACTIVE)
+  /// Computed by lib/supplementary-employment-flags.ts; recorded even when a rule is breached, never blocks a save.
+  flags                String[]  @default([])
+  notes                String?   @db.Text
+  tenantId             String
+  createdAt            DateTime  @default(now())
+
+  @@index([workerId])
+  @@index([tenantId])
+}
+
+enum SupplementaryEmploymentStatus {
+  ACTIVE
+  ENDED
+}
+
+/// Pre-hire vacancy assessment (SOC code, salary, genuine-vacancy checklist) prior to CoS assignment.
+/// v1 scope: no automated going-rate validation, no evidence-document upload (see plan) — text notes only.
+model Vacancy {
+  id                      String        @id @default(cuid())
+  tenantId                String
+  tenant                  Tenant        @relation(fields: [tenantId], references: [id])
+  jobTitle                String
+  occupationCode          String
+  proposedSalary          Int
+  hoursPerWeek            Int?
+  workLocation            String
+  jobDescription          String        @db.Text
+  /// {questionId: boolean} answers to a fixed genuine-vacancy questionnaire (see lib/vacancies/genuine-vacancy-checklist.ts).
+  genuineVacancyChecklist Json?
+  genuineVacancyNotes     String?       @db.Text
+  status                  VacancyStatus @default(DRAFT)
+  createdByUserId         String
+  convertedWorkerId       String?       @unique
+  convertedWorker         Worker?       @relation("VacancyConvertedWorker", fields: [convertedWorkerId], references: [id])
+  notes                   String?       @db.Text
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+enum VacancyStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  CONVERTED
+  REJECTED
+  CLOSED
 }
 
 model SalaryHistory {
