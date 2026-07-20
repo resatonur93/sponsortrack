@@ -18,6 +18,7 @@ import {
   isSupabaseStorageConfigured,
   supabasePublicObjectUrl,
 } from "@/lib/supabase-storage";
+import { isAllowedUploadMimeType } from "@/lib/documents/upload-mime-allowlist";
 
 type PresignUploadTransport = "supabase-formdata" | "s3-binary";
 
@@ -39,13 +40,6 @@ const presignSchema = z.object({
   fileHash: z.string().min(32),
 });
 
-const allowedMimeTypes = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const user = await getSessionUser();
@@ -61,7 +55,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
     const d = parsed.data;
-    if (!allowedMimeTypes.has(d.mimeType)) {
+    if (!isAllowedUploadMimeType(d.mimeType)) {
       return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
 
