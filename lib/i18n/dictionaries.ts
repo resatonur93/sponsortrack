@@ -1555,6 +1555,9 @@ const tr: Record<string, string> = {
   "workerDetail.rtwEvidenceHint": "Bu yöntem için bir kanıt dosyası yükleyin.",
   "workerDetail.rtwEvidenceUploaded": "Yüklendi",
   "workerDetail.rtwEvidenceOnFile": "Kanıt belgesi kayıtlı",
+  "workerDetail.rtwSaveFailed": "Kayıt eklenemedi. Lütfen tekrar deneyin.",
+  "workerDetail.rtwSaveSuccess": "Kayıt eklendi.",
+  "workerDetail.rtwValidationFailed": "Lütfen zorunlu alanları kontrol edin.",
   "workerDetail.complianceChecklistIntro":
     "Sponsor işveren uyumunun temel sütunları. Her madde profil verisine göre güncellenir.",
   "workerDetail.complianceProgressLabel": "İlerleme",
@@ -3285,6 +3288,9 @@ const en: Record<string, string> = {
   "workerDetail.rtwEvidenceHint": "Upload an evidence file for this method.",
   "workerDetail.rtwEvidenceUploaded": "Uploaded",
   "workerDetail.rtwEvidenceOnFile": "Evidence document on file",
+  "workerDetail.rtwSaveFailed": "Could not add the record. Please try again.",
+  "workerDetail.rtwSaveSuccess": "Record added.",
+  "workerDetail.rtwValidationFailed": "Please check the required fields.",
   "workerDetail.complianceChecklistIntro":
     "Core sponsor duties derived from profile data — review regularly.",
   "workerDetail.complianceProgressLabel": "Progress",

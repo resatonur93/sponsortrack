@@ -41,7 +41,18 @@ const RTW_METHOD_LABEL_KEY: Record<RtwCheckMethod, string> = {
   OTHER: "workerDetail.rtwOptOther",
 };
 
-function requiresEvidenceUpload(method: RtwCheckMethod): boolean {
+/** Must match the server-side superRefine in lib/schemas.ts (rtwCheckCreateSchema). */
+const EVIDENCE_REQUIRED_METHODS: RtwCheckMethod[] = [
+  "MANUAL_DOCUMENT_CHECK",
+  "EMPLOYER_PORTAL",
+  "RE_VERIFICATION",
+];
+
+function isEvidenceRequired(method: RtwCheckMethod): boolean {
+  return EVIDENCE_REQUIRED_METHODS.includes(method);
+}
+
+function showsEvidenceUpload(method: RtwCheckMethod): boolean {
   return method !== "ONLINE_SHARE_CODE";
 }
 
@@ -82,6 +93,8 @@ export function WorkerRtwSection(props: {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const [evidenceFileName, setEvidenceFileName] = useState<string | null>(null);
   const [step, setStep] = useState<WizardStep>(1);
 
@@ -94,15 +107,20 @@ export function WorkerRtwSection(props: {
   const shareCodeUsed = form.watch("shareCodeUsed");
   const evidenceDocumentId = form.watch("evidenceDocumentId");
 
-  const needsEvidence = requiresEvidenceUpload(method);
-  const step2Complete = needsEvidence
-    ? !!evidenceDocumentId
-    : !!shareCodeUsed?.trim();
+  const needsEvidence = showsEvidenceUpload(method);
+  const evidenceRequired = isEvidenceRequired(method);
+  const step2Complete =
+    method === "ONLINE_SHARE_CODE"
+      ? !!shareCodeUsed?.trim()
+      : evidenceRequired
+        ? !!evidenceDocumentId
+        : true;
 
   function resetWizard(): void {
     form.reset(DEFAULT_VALUES);
     setEvidenceFileName(null);
     setUploadError(null);
+    setSubmitError(null);
     setStep(1);
   }
 
@@ -139,6 +157,7 @@ export function WorkerRtwSection(props: {
 
   async function onSubmit(values: RtwFormValues): Promise<void> {
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const res = await fetch(`/api/workers/${workerId}/rtw-checks`, {
         method: "POST",
@@ -155,10 +174,20 @@ export function WorkerRtwSection(props: {
         }),
       });
       if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          details?: { fieldErrors?: Record<string, string[]> };
+        };
+        const fieldError = Object.values(j.details?.fieldErrors ?? {})[0]?.[0];
+        setSubmitError(fieldError ?? j.error ?? t("workerDetail.rtwSaveFailed"));
         return;
       }
       resetWizard();
+      setJustSaved(true);
+      window.setTimeout(() => setJustSaved(false), 4000);
       onDone();
+    } catch {
+      setSubmitError(t("workerDetail.rtwSaveFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -238,6 +267,22 @@ export function WorkerRtwSection(props: {
         </div>
 
         <div className="border-t border-slate-100 pt-6">
+          {justSaved ? (
+            <p
+              role="status"
+              className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900"
+            >
+              {t("workerDetail.rtwSaveSuccess")}
+            </p>
+          ) : null}
+          {submitError ? (
+            <p
+              role="alert"
+              className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            >
+              {submitError}
+            </p>
+          ) : null}
           <div className="mb-4 flex items-center gap-2">
             {([1, 2, 3] as WizardStep[]).map((s) => (
               <div
@@ -260,7 +305,10 @@ export function WorkerRtwSection(props: {
           </div>
 
           <form
-            onSubmit={form.handleSubmit((v) => void onSubmit(v))}
+            onSubmit={form.handleSubmit(
+              (v) => void onSubmit(v),
+              () => setSubmitError(t("workerDetail.rtwValidationFailed"))
+            )}
             className="space-y-5"
           >
             {step === 1 ? (
