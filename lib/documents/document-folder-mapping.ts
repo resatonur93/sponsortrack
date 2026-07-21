@@ -29,3 +29,38 @@ export function mapFolderToDocumentType(folder: DocumentFolder): DocumentType | 
       return null;
   }
 }
+
+/**
+ * Reverse of `mapFolderToDocumentType`, plus a few document types that have no
+ * dedicated vault folder (fall back to OTHER). Used to deep-link "upload now"
+ * actions from the Appendix D checklist to the right vault folder.
+ */
+const DOCUMENT_TYPE_TO_FOLDER: Partial<Record<DocumentType, DocumentFolder>> = {
+  PASSPORT: DocumentFolder.IDENTITY_IMMIGRATION,
+  EVISA: DocumentFolder.IDENTITY_IMMIGRATION,
+  VISA: DocumentFolder.IDENTITY_IMMIGRATION,
+  BRP: DocumentFolder.IDENTITY_IMMIGRATION,
+  SHARE_CODE: DocumentFolder.RIGHT_TO_WORK,
+  RIGHT_TO_WORK: DocumentFolder.RIGHT_TO_WORK,
+  COS: DocumentFolder.COS_APPLICATION,
+  EMPLOYMENT_CONTRACT: DocumentFolder.EMPLOYMENT_CONTRACT,
+  PAYSLIP_PAYMENT_PROOF: DocumentFolder.PAYROLL_SALARY,
+  CONTACT_DETAILS_RECORD: DocumentFolder.ADDRESS_CONTACT,
+  PROOF_OF_ADDRESS: DocumentFolder.ADDRESS_CONTACT,
+  RECRUITMENT_FILE: DocumentFolder.RECRUITMENT_VACANCY,
+  ATAS_CERTIFICATE: DocumentFolder.OTHER,
+  VESSEL_ASSIGNMENT_LETTER: DocumentFolder.OTHER,
+  NMC_REGISTRATION: DocumentFolder.OTHER,
+  DBS_CHECK: DocumentFolder.OTHER,
+  QUALIFICATION: DocumentFolder.OTHER,
+  PROFESSIONAL_REGISTRATION: DocumentFolder.OTHER,
+};
+
+/** First matching folder among the accepted document types; OTHER if none map. */
+export function folderForDocumentTypes(accepted: DocumentType[]): DocumentFolder {
+  for (const type of accepted) {
+    const folder = DOCUMENT_TYPE_TO_FOLDER[type];
+    if (folder) return folder;
+  }
+  return DocumentFolder.OTHER;
+}

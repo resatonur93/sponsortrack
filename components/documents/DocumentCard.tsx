@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { documentTypeTitleEn, documentTypeTitleTr } from "@/lib/documents/document-email-labels";
+import { folderForDocumentTypes } from "@/lib/documents/document-folder-mapping";
+import { documentsPageFolderQuery } from "@/lib/notifications/notification-vault-folder";
 
 export type TimelineRow = {
   document: Document;
@@ -70,7 +72,8 @@ export function DocumentCard(props: {
     ([, v]) => v !== undefined && v !== null && v !== ""
   );
 
-  const vaultHref = `/workers/${props.workerId}/documents`;
+  const targetFolder = folderForDocumentTypes([doc.documentType]);
+  const vaultHref = `/workers/${props.workerId}/documents?${documentsPageFolderQuery(targetFolder)}`;
 
   return (
     <Card

@@ -4,8 +4,11 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { DocumentType } from "@prisma/client";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import { folderForDocumentTypes } from "@/lib/documents/document-folder-mapping";
+import { documentsPageFolderQuery } from "@/lib/notifications/notification-vault-folder";
 
 export type MissingDoc = {
   slotId?: string;
@@ -23,7 +26,16 @@ export function MissingDocumentsAlert(props: {
   if (props.items.length === 0) return null;
 
   const critical = props.items.some((m) => m.urgency === "HIGH");
-  const vaultHref = `/workers/${props.workerId}/documents`;
+  const vaultBaseHref = `/workers/${props.workerId}/documents`;
+  // Deep-link straight to the right folder only when there's one thing to fix — with
+  // several missing items across different folders, jumping to just one would be
+  // misleading, so fall back to the plain vault page.
+  const vaultHref =
+    props.items.length === 1
+      ? `${vaultBaseHref}?${documentsPageFolderQuery(
+          folderForDocumentTypes([props.items[0].documentType as DocumentType])
+        )}`
+      : vaultBaseHref;
 
   return (
     <div

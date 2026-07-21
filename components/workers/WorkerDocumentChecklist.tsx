@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { folderForDocumentTypes } from "@/lib/documents/document-folder-mapping";
+import { documentsPageFolderQuery } from "@/lib/notifications/notification-vault-folder";
 
 type ChecklistItem = {
   slotId: string;
@@ -79,7 +81,7 @@ type Props = {
 export function WorkerDocumentChecklist(props: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
-  const vaultHref = `/workers/${props.workerId}/documents`;
+  const vaultBaseHref = `/workers/${props.workerId}/documents`;
 
   const statusLabel: Record<ChecklistItem["status"], string> = {
     ok: t("docChecklist.uploaded"),
@@ -235,7 +237,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
                   <DocSlotCard
                     row={row}
                     localeTag={localeTag}
-                    vaultHref={vaultHref}
+                    vaultBaseHref={vaultBaseHref}
                     statusLabel={statusLabel}
                     accentBarClass={accentBarClass}
                     surfaceClass={itemSurfaceClass(row.status)}
@@ -259,7 +261,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
                   <DocSlotCard
                     row={row}
                     localeTag={localeTag}
-                    vaultHref={vaultHref}
+                    vaultBaseHref={vaultBaseHref}
                     statusLabel={statusLabel}
                     accentBarClass={accentBarClass}
                     surfaceClass={itemSurfaceClass(row.status)}
@@ -278,7 +280,7 @@ export function WorkerDocumentChecklist(props: Props): JSX.Element {
 function DocSlotCard(props: {
   row: ChecklistItem;
   localeTag: string;
-  vaultHref: string;
+  vaultBaseHref: string;
   statusLabel: Record<ChecklistItem["status"], string>;
   accentBarClass: (s: ChecklistItem["status"]) => string;
   surfaceClass: string;
@@ -287,7 +289,7 @@ function DocSlotCard(props: {
   const {
     row,
     localeTag,
-    vaultHref,
+    vaultBaseHref,
     statusLabel,
     accentBarClass,
     surfaceClass,
@@ -295,6 +297,8 @@ function DocSlotCard(props: {
   } = props;
   const showUpload = row.status === "missing" || row.status === "expired";
   const uploadAria = t("docChecklist.uploadNowAria").replace("{label}", row.label);
+  const targetFolder = folderForDocumentTypes(row.documentTypesAccepted);
+  const vaultHref = `${vaultBaseHref}?${documentsPageFolderQuery(targetFolder)}`;
 
   return (
     <div

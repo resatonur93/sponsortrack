@@ -24,9 +24,11 @@ const FOLDER_ORDER: DocumentFolder[] = [
   DocumentFolder.ABSENCE_LEAVE,
   DocumentFolder.ADDRESS_CONTACT,
   DocumentFolder.ROLE_DUTIES,
+  DocumentFolder.ROLE_ORG_CHART,
   DocumentFolder.RECRUITMENT_VACANCY,
   DocumentFolder.REPORTING_SUBMISSIONS,
   DocumentFolder.COMPLIANCE_VISIT_PACK,
+  DocumentFolder.OTHER,
 ];
 
 type RouteParams = { params: { id: string } };
