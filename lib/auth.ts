@@ -1,21 +1,19 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { headers } from "next/headers";
-import { Role } from "@prisma/client";
-import { prismaBase } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-import { normalizeEmail } from "@/lib/registration";
 import { canAccessAdminPanel } from "@/lib/admin-panel-access";
 import { readClientIpFromHeaders } from "@/lib/security/ip-match";
 import { bootstrapAuthArtifactsOnSignIn } from "@/lib/security/bootstrap-jwt-session";
-import { isTenantLoginIpAllowed } from "@/lib/security/tenant-login-ip";
-import { isLoginRateLimited, recordLoginFailure, LoginAttemptScope } from "@/lib/security/login-rate-limit";
+import { verifyTenantCredentials } from "@/lib/security/verify-tenant-credentials";
+import { verifyOtpChallenge } from "@/lib/security/login-otp";
 
 const credentialsSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(1),
+  otpCode: z.string().trim().regex(/^\d{6}$/),
+  challengeId: z.string().trim().min(1),
 });
 
 export const authOptions: NextAuthOptions = {
@@ -25,6 +23,8 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        otpCode: { label: "OTP", type: "text" },
+        challengeId: { label: "ChallengeId", type: "text" },
       },
       async authorize(credentials) {
         const parsed = credentialsSchema.safeParse(credentials);
@@ -32,8 +32,7 @@ export const authOptions: NextAuthOptions = {
           logger.warn("login validation failed", { issues: parsed.error.flatten() });
           return null;
         }
-        const { email, password } = parsed.data;
-        const normalized = normalizeEmail(email);
+        const { email, password, otpCode, challengeId } = parsed.data;
 
         let ip = "0.0.0.0";
         try {
@@ -42,55 +41,20 @@ export const authOptions: NextAuthOptions = {
           logger.warn("login: request headers unavailable for IP resolution");
         }
 
-        if (
-          await isLoginRateLimited({
-            email: normalized,
-            ip,
-            scope: LoginAttemptScope.TENANT_USER,
-          })
-        ) {
-          logger.warn("login rejected: rate limited", { email: normalized, ip });
-          return null;
-        }
+        const cred = await verifyTenantCredentials({ email, password, ip });
+        if (!cred.ok) return null;
 
-        const user = await prismaBase.user.findFirst({
-          where: { email: normalized, isActive: true },
-          include: { tenant: true },
+        const otpResult = await verifyOtpChallenge({
+          challengeId,
+          userId: cred.user.id,
+          code: otpCode,
         });
-        if (!user?.tenant.isActive) {
-          await recordLoginFailure({
-            email: normalized,
-            ip,
-            scope: LoginAttemptScope.TENANT_USER,
-          });
-          return null;
-        }
-        const ok = await bcrypt.compare(password, user.password);
-        if (!ok) {
-          await recordLoginFailure({
-            email: normalized,
-            ip,
-            scope: LoginAttemptScope.TENANT_USER,
-          });
-          return null;
+        if (!otpResult.ok) {
+          logger.warn("login rejected: otp", { userId: cred.user.id, reason: otpResult.reason });
+          throw new Error(`OTP_${otpResult.reason}`);
         }
 
-        if (user.role !== Role.SYSTEM_ADMIN) {
-          const allowed = await isTenantLoginIpAllowed({
-            tenantId: user.tenantId,
-            resolvedClientIp: ip,
-          });
-          if (!allowed) return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          tenantId: user.tenantId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        };
+        return cred.user;
       },
     }),
   ],

@@ -38,6 +38,7 @@ model Tenant {
   allowedIpRules        AllowedIpRule[]
   authSessions          UserAuthSession[]
   trustedDevices        UserTrustedDevice[]
+  loginOtpChallenges    LoginOtpChallenge[]
   notificationConfig    NotificationConfig?
   emailTemplates        EmailTemplate[]
   vacancies             Vacancy[]
@@ -135,6 +136,7 @@ model User {
   policyAcknowledgements Acknowledgement[]
   authSessions           UserAuthSession[]
   trustedDevices         UserTrustedDevice[]
+  otpChallenges          LoginOtpChallenge[]
 
   @@unique([email])
   @@index([tenantId])
@@ -208,6 +210,26 @@ model UserTrustedDevice {
 
   @@unique([userId, fingerprint])
   @@index([tenantId])
+}
+
+/// Girişte şifre doğrulandıktan sonra e-posta ile gönderilen tek kullanımlık kod. Henüz tenant
+/// context (AsyncLocalStorage) kurulmadan prismaBase ile erişilir — LoginAttempt gibi.
+model LoginOtpChallenge {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash     String
+  ip           String
+  attemptCount Int       @default(0)
+  maxAttempts  Int       @default(5)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, consumedAt, expiresAt])
+  @@index([createdAt])
 }
 
 enum PolicyCategory {
