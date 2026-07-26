@@ -13,6 +13,11 @@ model Tenant {
   licenceNumber String   @unique
   address       String?
   isActive      Boolean  @default(true)
+  /// Serbest metin (örn. "Worker" / "Temporary Worker") — sabit bir taksonomi henüz yok.
+  licenceType   String?
+  /// Serbest metin (örn. "A Rating" / "B Rating") — sabit bir taksonomi henüz yok.
+  licenceRating String?
+  licenceExpiryDate DateTime?
   createdAt     DateTime @default(now())
   users         User[]
   workers       Worker[]

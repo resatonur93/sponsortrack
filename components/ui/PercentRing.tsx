@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/utils";
 
-/** SVG ring showing 0–100% (conversion etc.). */
-export function AdminConversionRing(props: {
+/** SVG ring showing 0–100% (conversion, compliance, etc.). */
+export function PercentRing(props: {
   percent: number;
   className?: string;
   size?: number;

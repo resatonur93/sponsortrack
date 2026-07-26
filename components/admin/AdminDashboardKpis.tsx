@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Layers, PieChart, UserPlus, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AdminConversionRing } from "@/components/admin/AdminConversionRing";
+import { PercentRing } from "@/components/ui/PercentRing";
 import { cn } from "@/lib/utils";
 
 function KpiCard(props: {
@@ -59,7 +59,7 @@ export function AdminDashboardKpis(props: {
       </KpiCard>
       <KpiCard icon={PieChart} label={props.t("admin.dashboard.kpi.conversion")} hint={props.conversionHint}>
         <div className="flex items-center gap-4">
-          <AdminConversionRing percent={props.conversionPercent} size={92} stroke="#0b4a9e" />
+          <PercentRing percent={props.conversionPercent} size={92} stroke="#0b4a9e" />
           <div>
             <p className="text-xs font-semibold text-brand-slate">{props.t("admin.dashboard.kpi.perTotal")}</p>
             <p className="text-lg font-bold leading-tight text-brand-navy">{props.convertedLabel}</p>

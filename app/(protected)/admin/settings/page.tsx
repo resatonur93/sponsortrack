@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadFormSettingsPanel } from "@/components/admin/settings/LeadFormSettingsPanel";
+import { LicenceSettingsPanel } from "@/components/admin/settings/LicenceSettingsPanel";
 import { NotificationSettingsPanel } from "@/components/admin/settings/NotificationSettingsPanel";
 import { SecuritySettingsPanel } from "@/components/admin/settings/SecuritySettingsPanel";
 import { AdminPageHeader, AdminSurfaceCard } from "@/components/admin/shell/AdminPageShell";
@@ -128,6 +129,8 @@ export default function AdminSettingsPage(): JSX.Element {
         </TabsList>
 
         <TabsContent value="general" className="mt-6 space-y-10 focus-visible:ring-0">
+          <LicenceSettingsPanel />
+
           <AdminSurfaceCard className="relative overflow-hidden p-8 md:p-10">
             <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-amber-200/30 blur-3xl" aria-hidden />
             <div className="relative flex flex-col items-center gap-4 text-center md:flex-row md:items-start md:text-left">

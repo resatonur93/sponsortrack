@@ -15,7 +15,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return await withTenant(user, req, async () => {
       const rows = await prisma.user.findMany({
         where: { tenantId: user.tenantId, isActive: true },
-        select: { id: true, firstName: true, lastName: true, email: true },
+        select: { id: true, firstName: true, lastName: true, email: true, role: true },
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       });
       return NextResponse.json({ data: rows });

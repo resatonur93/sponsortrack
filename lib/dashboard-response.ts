@@ -1,4 +1,4 @@
-import type { AlertLevel, AlertType, NotificationType } from "@prisma/client";
+import type { AlertLevel, AlertType, NotificationType, Role } from "@prisma/client";
 import type { RiskLevel } from "@prisma/client";
 import type { PrismaTenantClient } from "@/lib/prisma";
 import type { DashboardSummary } from "@/lib/compliance/types";
@@ -56,14 +56,34 @@ export type RiskEngineSummary = {
   lastCalculatedAt: Date | string | null;
 };
 
-export type FullDashboardData = DashboardPayload & {
-  complianceTraffic: DashboardSummary;
-  riskEngine: RiskEngineSummary;
+export type RecordKeepingSummary = {
+  keyPersonnel: { id: string; firstName: string; lastName: string; role: Role }[];
+  recruitment: { draft: number; underReview: number; approved: number };
+  rtwSummary: { overdue: number; dueSoon: number };
+  payrollAttendance: { salaryAnomalies: number; openAbsenceIssues: number };
+  smsReporting: { draft: number; approved: number; sent: number };
+  auditHistory: { recentCount: number; lastEntryAt: string | null };
 };
+
+export type LicenceOverview = {
+  companyName: string;
+  licenceNumber: string;
+  licenceType: string | null;
+  licenceRating: string | null;
+  licenceExpiryDate: string | null;
+};
+
+export type FullDashboardData = DashboardPayload &
+  RecordKeepingSummary & {
+    complianceTraffic: DashboardSummary;
+    riskEngine: RiskEngineSummary;
+    licence: LicenceOverview | null;
+  };
 
 type DashboardCoreBundle = {
   payload: DashboardPayload;
   riskEngine: RiskEngineSummary;
+  recordKeeping: RecordKeepingSummary;
 };
 
 async function loadDashboardCore(
@@ -88,6 +108,14 @@ async function loadDashboardCore(
     orgRow,
     latestWorkerRisk,
     workerScores,
+    keyPersonnelRows,
+    vacancyGroups,
+    rtwChecks,
+    salaryAnomalies,
+    openAbsenceIssues,
+    smsDrafts,
+    auditRecentCount,
+    latestAuditEntry,
   ] = await Promise.all([
     prisma.worker.count(),
     prisma.worker.count({ where: { employmentStatus: "ACTIVE" } }),
@@ -153,6 +181,33 @@ async function loadDashboardCore(
       select: { calculatedAt: true },
     }),
     prisma.riskScore.count({ where: { isTenantAggregate: false } }),
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, firstName: true, lastName: true, role: true },
+      orderBy: [{ role: "asc" }, { lastName: "asc" }],
+    }),
+    prisma.vacancy.groupBy({
+      by: ["status"],
+      where: { status: { in: ["DRAFT", "UNDER_REVIEW", "APPROVED"] } },
+      _count: { _all: true },
+    }),
+    prisma.rightToWorkCheck.findMany({
+      where: { nextCheckDueAt: { not: null } },
+      orderBy: { checkedAt: "desc" },
+      select: { workerId: true, nextCheckDueAt: true },
+    }),
+    prisma.salaryRecord.count({ where: { isCompliant: false } }),
+    prisma.absenceRecord.count({ where: { isReportable: true, status: "ACTIVE" } }),
+    prisma.smsReportDraft.findMany({
+      select: { approvedAt: true, sentToHO: true },
+    }),
+    prisma.auditLog.count({
+      where: { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+    }),
+    prisma.auditLog.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   const risk = computeRiskScore({
@@ -244,6 +299,54 @@ async function loadDashboardCore(
       latestWorkerRisk?.calculatedAt ?? orgRow?.calculatedAt ?? null,
   };
 
+  const latestRtwByWorker = new Map<string, Date>();
+  for (const c of rtwChecks) {
+    if (!c.nextCheckDueAt) continue;
+    if (!latestRtwByWorker.has(c.workerId)) {
+      latestRtwByWorker.set(c.workerId, c.nextCheckDueAt);
+    }
+  }
+  const in30ForRtw = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  let rtwOverdue = 0;
+  let rtwDueSoon = 0;
+  for (const due of Array.from(latestRtwByWorker.values())) {
+    if (due.getTime() < now.getTime()) rtwOverdue += 1;
+    else if (due.getTime() <= in30ForRtw.getTime()) rtwDueSoon += 1;
+  }
+
+  let smsDraft = 0;
+  let smsApproved = 0;
+  let smsSent = 0;
+  for (const d of smsDrafts) {
+    if (d.sentToHO) smsSent += 1;
+    else if (d.approvedAt) smsApproved += 1;
+    else smsDraft += 1;
+  }
+
+  const vacancyCountFor = (status: string): number =>
+    vacancyGroups.find((g) => g.status === status)?._count._all ?? 0;
+
+  const recordKeeping: RecordKeepingSummary = {
+    keyPersonnel: keyPersonnelRows,
+    recruitment: {
+      draft: vacancyCountFor("DRAFT"),
+      underReview: vacancyCountFor("UNDER_REVIEW"),
+      approved: vacancyCountFor("APPROVED"),
+    },
+    rtwSummary: { overdue: rtwOverdue, dueSoon: rtwDueSoon },
+    payrollAttendance: {
+      salaryAnomalies,
+      openAbsenceIssues,
+    },
+    smsReporting: { draft: smsDraft, approved: smsApproved, sent: smsSent },
+    auditHistory: {
+      recentCount: auditRecentCount,
+      lastEntryAt: latestAuditEntry?.createdAt
+        ? latestAuditEntry.createdAt.toISOString()
+        : null,
+    },
+  };
+
   const payload: DashboardPayload = {
     stats: {
       totalWorkers,
@@ -261,7 +364,7 @@ async function loadDashboardCore(
     recentAlerts,
   };
 
-  return { payload, riskEngine };
+  return { payload, riskEngine, recordKeeping };
 }
 
 /** Eski `/api/dashboard` yanıtı — uyum trafiği hesaplanmaz. */
@@ -278,13 +381,27 @@ export async function buildFullDashboard(
   tenantId: string,
   now: Date = new Date()
 ): Promise<FullDashboardData> {
-  const [complianceTraffic, core] = await Promise.all([
+  const [complianceTraffic, core, tenantRow] = await Promise.all([
     getComplianceDashboardSummary(tenantId, prisma, now),
     loadDashboardCore(prisma, now),
+    prisma.tenant.findUnique({ where: { id: tenantId } }),
   ]);
+  const licence: LicenceOverview | null = tenantRow
+    ? {
+        companyName: tenantRow.companyName,
+        licenceNumber: tenantRow.licenceNumber,
+        licenceType: tenantRow.licenceType,
+        licenceRating: tenantRow.licenceRating,
+        licenceExpiryDate: tenantRow.licenceExpiryDate
+          ? tenantRow.licenceExpiryDate.toISOString()
+          : null,
+      }
+    : null;
   return {
     complianceTraffic,
     riskEngine: core.riskEngine,
+    licence,
     ...core.payload,
+    ...core.recordKeeping,
   };
 }

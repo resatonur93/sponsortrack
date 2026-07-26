@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { ComplianceTrafficLight } from "@/components/dashboard/ComplianceTrafficLight";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
 import { RecentEvents } from "@/components/dashboard/RecentEvents";
+import { UrgentAlertsPanel } from "@/components/dashboard/UrgentAlertsPanel";
+import { ComplianceCategoryCards } from "@/components/dashboard/ComplianceCategoryCards";
+import { UpcomingDeadlines } from "@/components/dashboard/UpcomingDeadlines";
+import { RecordKeepingCards } from "@/components/dashboard/RecordKeepingCards";
+import { PercentRing } from "@/components/ui/PercentRing";
+import { getGreetingKey } from "@/lib/greeting";
 import type { FullDashboardData } from "@/lib/dashboard-response";
 import type {
   AlertLevel,
@@ -15,7 +22,6 @@ import type {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { AlertLevelDot } from "@/components/layout/AlertCountPill";
 import {
   Table,
   TableBody,
@@ -42,15 +48,6 @@ import {
 
 const URGENT_POPUP_SESSION_KEY = "st-dashboard-urgent-v1";
 
-function tEnum(
-  translate: (key: string, fallback?: string) => string,
-  key: string,
-  fallback: string
-): string {
-  const v = translate(key, fallback);
-  return v === key ? fallback : v;
-}
-
 function dashboardHasUrgentSignals(d: FullDashboardData): boolean {
   if (d.stats.overdueNotifications > 0) return true;
   if (d.highPriorityMissing?.length) return true;
@@ -61,6 +58,7 @@ function dashboardHasUrgentSignals(d: FullDashboardData): boolean {
 
 export default function DashboardPage(): JSX.Element {
   const { t, locale } = useTranslation();
+  const { data: session } = useSession();
   const [data, setData] = useState<FullDashboardData | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
@@ -160,6 +158,33 @@ export default function DashboardPage(): JSX.Element {
     (a) => !a.isRead && (a.level === "CRITICAL" || a.level === "HIGH")
   ).length;
 
+  const greetingKey = getGreetingKey(new Date().getHours());
+  const firstName = session?.user?.firstName;
+  const todayLabel = new Date().toLocaleDateString(localeTag, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const workersWithIssues = new Set(
+    data.complianceTraffic.aggregateItems.map((row) => row.workerId)
+  ).size;
+  const compliancePercent =
+    data.stats.totalWorkers > 0
+      ? Math.round(
+          ((data.stats.totalWorkers - workersWithIssues) / data.stats.totalWorkers) * 100
+        )
+      : null;
+  const complianceStanding: { key: string; className: string } =
+    compliancePercent === null
+      ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700" }
+      : compliancePercent >= 80
+        ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700" }
+        : compliancePercent >= 50
+          ? { key: "needsAttention", className: "bg-amber-100 text-amber-700" }
+          : { key: "atRisk", className: "bg-red-100 text-red-700" };
+
   return (
     <div className="space-y-8">
       <Dialog open={urgentPopupOpen} onOpenChange={(o) => !o && dismissUrgentPopup()}>
@@ -221,8 +246,12 @@ export default function DashboardPage(): JSX.Element {
       {/* ── Page header ── */}
       <div className="page-hero">
         <div className="relative z-10">
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-            {t("dashboard.title")}
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
+            {todayLabel}
+          </p>
+          <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            {t(`dashboard.greeting.${greetingKey}`)}
+            {firstName ? `, ${firstName}` : ""}
           </h1>
           <p className="mt-1 text-sm text-white/65 sm:text-base">
             {t("dashboard.subtitle")}
@@ -237,6 +266,32 @@ export default function DashboardPage(): JSX.Element {
           }}
         />
       </div>
+
+      {/* ── Compliance overview ring ── */}
+      {compliancePercent !== null ? (
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-card sm:flex-row sm:items-center">
+          <PercentRing percent={compliancePercent} size={96} />
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
+              {t("dashboard.complianceRing.title")}
+            </h2>
+            <p className="mt-1 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                  complianceStanding.className
+                )}
+              >
+                {t(`dashboard.complianceRing.${complianceStanding.key}`)}
+              </span>
+              <span className="text-sm text-slate-600">
+                {data.stats.totalWorkers - workersWithIssues}/{data.stats.totalWorkers}{" "}
+                {t("dashboard.complianceRing.workersClean")}
+              </span>
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {/* ── Stats grid ── */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -372,54 +427,22 @@ export default function DashboardPage(): JSX.Element {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
-            {t("dashboard.alerts")}
-          </h2>
-          <Link
-            href="/alerts"
-            className="text-xs font-semibold text-brand-navy transition-colors hover:text-brand-gold"
-          >
-            {t("dashboard.alertsAll")} →
-          </Link>
-        </div>
-        {!data.recentAlerts?.length ? (
-          <p className="text-sm text-slate-500">{t("dashboard.noAlerts")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {data.recentAlerts.map((a) => (
-              <li
-                key={a.id}
-                className="flex gap-2 text-sm text-slate-800"
-              >
-                <AlertLevelDot level={a.level} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {tEnum(t, `alerts.type.${a.alertType}`, a.alertType)}
-                    </Badge>
-                    {a.worker ? (
-                      <Link
-                        href={`/workers/${a.worker.id}`}
-                        className="font-medium text-brand-navy underline"
-                      >
-                        {a.worker.firstName} {a.worker.lastName}
-                      </Link>
-                    ) : null}
-                    {!a.isRead ? (
-                      <span className="text-xs font-medium text-red-600">
-                        {t("dashboard.newBadge")}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 line-clamp-2 text-slate-600">{a.message}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <UrgentAlertsPanel alerts={data.recentAlerts} />
+        <UpcomingDeadlines events={data.recentEvents} />
       </div>
+
+      <ComplianceCategoryCards categories={data.complianceTraffic.categories} />
+
+      <RecordKeepingCards
+        licence={data.licence}
+        keyPersonnel={data.keyPersonnel}
+        recruitment={data.recruitment}
+        rtwSummary={data.rtwSummary}
+        payrollAttendance={data.payrollAttendance}
+        smsReporting={data.smsReporting}
+        auditHistory={data.auditHistory}
+      />
       <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
