@@ -54,6 +54,7 @@ export const workerCreateSchema = z.object({
   actualDayToDayDuties: z.string().optional().nullable(),
   occupationCodeJustification: z.string().optional().nullable(),
   salary: z.number().int().nonnegative(),
+  contractedHoursPerWeek: z.number().int().positive().optional().nullable(),
   workLocation: z.string().min(1),
   employmentStatus: employmentStatusSchema.optional(),
   employmentStartDate: optionalDateInput,
@@ -418,6 +419,12 @@ export const roleComplianceReviewSchema = z.object({
   internalJobDesc: z.string().optional().nullable(),
 });
 
+export const salaryDeductionItemSchema = z.object({
+  label: z.string().min(1).max(200),
+  amount: z.number().int().nonnegative(),
+  category: z.enum(["ACCOMMODATION", "UNIFORM", "TRAINING", "RECRUITMENT_FEE", "OTHER"]),
+});
+
 export const salaryRecordCreateSchema = z.object({
   periodStart: dateInput,
   periodEnd: dateInput,
@@ -426,7 +433,7 @@ export const salaryRecordCreateSchema = z.object({
   currency: z.string().min(1).optional().default("GBP"),
   hoursWorked: z.number().int().optional().nullable(),
   overtime: z.number().int().optional().nullable(),
-  deductions: z.record(z.unknown()).optional().nullable(),
+  deductions: z.array(salaryDeductionItemSchema).optional().nullable(),
   evidenceUrl: z.string().optional().nullable(),
   approvedBy: z.string().optional().nullable(),
 });

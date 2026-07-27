@@ -1,10 +1,12 @@
 import type { AlertLevel, AlertType, NotificationType, Role } from "@prisma/client";
 import type { RiskLevel } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { PrismaTenantClient } from "@/lib/prisma";
 import type { DashboardSummary } from "@/lib/compliance/types";
 import { getComplianceDashboardSummary } from "@/lib/compliance/dashboard-summary";
 import { computeRiskScore } from "@/lib/risk-score";
 import { evaluateMissingDocuments } from "@/lib/required-documents";
+import { hasDisallowedDeduction, parseDeductions } from "@/lib/salary-record-utils";
 import {
   VISA_EXPIRING_TYPES,
   dedupeVisaExpiringByWorker,
@@ -60,7 +62,12 @@ export type RecordKeepingSummary = {
   keyPersonnel: { id: string; firstName: string; lastName: string; role: Role }[];
   recruitment: { draft: number; underReview: number; approved: number };
   rtwSummary: { overdue: number; dueSoon: number };
-  payrollAttendance: { salaryAnomalies: number; openAbsenceIssues: number };
+  payrollAttendance: {
+    salaryAnomalies: number;
+    openAbsenceIssues: number;
+    missingEvidenceCount: number;
+    disallowedDeductionCount: number;
+  };
   smsReporting: { draft: number; approved: number; sent: number };
   auditHistory: { recentCount: number; lastEntryAt: string | null };
 };
@@ -116,6 +123,8 @@ async function loadDashboardCore(
     smsDrafts,
     auditRecentCount,
     latestAuditEntry,
+    missingEvidenceCount,
+    salaryRecordsForDeductionCheck,
   ] = await Promise.all([
     prisma.worker.count(),
     prisma.worker.count({ where: { employmentStatus: "ACTIVE" } }),
@@ -208,7 +217,19 @@ async function loadDashboardCore(
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     }),
+    prisma.salaryRecord.count({
+      where: { OR: [{ evidenceUrl: null }, { evidenceUrl: "" }] },
+    }),
+    prisma.salaryRecord.findMany({
+      where: { deductions: { not: Prisma.JsonNull } },
+      select: { deductions: true },
+      take: 2000,
+    }),
   ]);
+
+  const disallowedDeductionCount = salaryRecordsForDeductionCheck.filter((r) =>
+    hasDisallowedDeduction(parseDeductions(r.deductions))
+  ).length;
 
   const risk = computeRiskScore({
     notifications,
@@ -337,6 +358,8 @@ async function loadDashboardCore(
     payrollAttendance: {
       salaryAnomalies,
       openAbsenceIssues,
+      missingEvidenceCount,
+      disallowedDeductionCount,
     },
     smsReporting: { draft: smsDraft, approved: smsApproved, sent: smsSent },
     auditHistory: {

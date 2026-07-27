@@ -117,6 +117,18 @@ export function RecordKeepingCards(
           </span>{" "}
           {t("dashboard.payrollAttendance.openAbsenceIssues")}
         </p>
+        <p className="text-sm text-slate-700">
+          <span className="font-semibold text-amber-600">
+            {props.payrollAttendance.missingEvidenceCount}
+          </span>{" "}
+          {t("dashboard.payrollAttendance.missingEvidence")}
+        </p>
+        <p className="text-sm text-slate-700">
+          <span className="font-semibold text-red-600">
+            {props.payrollAttendance.disallowedDeductionCount}
+          </span>{" "}
+          {t("dashboard.payrollAttendance.disallowedDeductions")}
+        </p>
       </CardShell>
 
       <CardShell title={t("dashboard.smsReporting.title")} href="/events">

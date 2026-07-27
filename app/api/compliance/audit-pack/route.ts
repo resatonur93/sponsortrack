@@ -30,7 +30,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
       const ids = workers.map((w) => w.id);
 
-      const [notifications, documents, salaryChanges, absences, changeLogs] =
+      const [notifications, documents, salaryChanges, absences, changeLogs, salaryRecords] =
         await Promise.all([
           prisma.notificationEvent.findMany({
             where: {
@@ -113,10 +113,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             take: 2000,
             orderBy: { createdAt: "desc" },
           }),
+          prisma.salaryRecord.findMany({
+            where: {
+              workerId: ids.length ? { in: ids } : undefined,
+              ...(dateFrom || dateTo
+                ? {
+                    periodEnd: {
+                      ...(dateFrom ? { gte: dateFrom } : {}),
+                      ...(dateTo ? { lte: dateTo } : {}),
+                    },
+                  }
+                : {}),
+            },
+            take: 2000,
+            orderBy: { periodEnd: "desc" },
+          }),
         ]);
 
       const anomalies = detectAnomalies({
         workers,
+        salaryRecords,
         salaryHistory: salaryChanges,
         changeLogs,
         documents,
@@ -129,6 +145,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           notifications,
           documents,
           salaryChanges,
+          salaryRecords,
           absences,
           changeLogs,
           anomalies,

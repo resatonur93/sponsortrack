@@ -412,6 +412,8 @@ model Worker {
   actualDayToDayDuties      String?  @db.Text
   occupationCodeJustification String? @db.Text
   salary                    Int
+  /// Sponsorlu ana iş için sözleşmeli haftalık saat — CoS'taki saatle karşılaştırmak için (opsiyonel, SupplementaryEmployment.hoursPerWeek'ten bağımsız).
+  contractedHoursPerWeek    Int?
   workLocation              String
   employmentStatus          EmploymentStatus @default(PENDING_START)
   employmentStartDate       DateTime?
@@ -527,6 +529,10 @@ model SalaryRecord {
   deductions          Json?
   isCompliant         Boolean
   discrepancyReason   String?
+  /// Kayıt oluşturulurken hesaplanır: contractedSalary, çalışanın CoS maaşının (Worker.salary) belirgin şekilde altındaysa true.
+  belowCosThreshold   Boolean  @default(false)
+  /// Kayıt oluşturulurken hesaplanır: hoursWorked, Worker.contractedHoursPerWeek'e göre beklenenden belirgin şekilde farklıysa true.
+  hoursDiscrepancy    Boolean  @default(false)
   evidenceUrl         String?
   approvedBy          String?
   tenantId            String
@@ -1054,6 +1060,7 @@ enum AbsenceType {
   UNAUTHORISED
   SUSPENDED
   MATERNITY_PATERNITY
+  UNPAID_LEAVE
   OTHER
 }
 

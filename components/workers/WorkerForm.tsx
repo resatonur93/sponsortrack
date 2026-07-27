@@ -648,6 +648,23 @@ export function WorkerForm(): JSX.Element {
                   </div>
                   <FieldErr msg={form.formState.errors.salary?.message} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="contractedHoursPerWeek">
+                    {t("workerForm.contractedHoursPerWeek")}
+                  </Label>
+                  <Input
+                    id="contractedHoursPerWeek"
+                    type="number"
+                    className="h-11 border-slate-300/95 tabular-nums"
+                    {...form.register("contractedHoursPerWeek", {
+                      setValueAs: (v) => (v === "" ? null : Number(v)),
+                    })}
+                    min={0}
+                    step={1}
+                    placeholder={t("workerForm.contractedHoursPerWeekPlaceholder")}
+                  />
+                  <FieldErr msg={form.formState.errors.contractedHoursPerWeek?.message} />
+                </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="workLocation">{t("workerForm.workLocation")}</Label>
                   <Input

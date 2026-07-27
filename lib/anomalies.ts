@@ -2,9 +2,11 @@ import type {
   Document,
   NotificationEvent,
   SalaryHistory,
+  SalaryRecord,
   Worker,
   WorkerChangeLog,
 } from "@prisma/client";
+import { hasDisallowedDeduction, parseDeductions } from "@/lib/salary-record-utils";
 
 export type AnomalySeverity = "HIGH" | "MEDIUM";
 
@@ -21,6 +23,7 @@ export function detectAnomalies(input: {
   changeLogs: WorkerChangeLog[];
   documents: Document[];
   notifications: NotificationEvent[];
+  salaryRecords?: SalaryRecord[];
 }): AnomalyFinding[] {
   const findings: AnomalyFinding[] = [];
   const byAddress = new Map<string, string[]>();
@@ -111,6 +114,64 @@ export function detectAnomalies(input: {
       message: "Açık bordro uyumsuzluğu bildirimi",
       workerId: n.workerId,
     });
+  }
+
+  const salaryRecords = input.salaryRecords ?? [];
+
+  for (const r of salaryRecords) {
+    if (!r.evidenceUrl || !r.evidenceUrl.trim()) {
+      findings.push({
+        code: "MISSING_PAYSLIP_EVIDENCE",
+        severity: "MEDIUM",
+        message: `Bordro dönemi için kanıt belgesi eksik (${r.periodEnd.toISOString().slice(0, 10)})`,
+        workerId: r.workerId,
+      });
+    }
+    if (r.belowCosThreshold) {
+      findings.push({
+        code: "CONTRACTED_SALARY_BELOW_COS",
+        severity: "HIGH",
+        message: `Sözleşmeli maaş, CoS'ta taahhüt edilen tutarın belirgin altında (${r.periodEnd.toISOString().slice(0, 10)})`,
+        workerId: r.workerId,
+      });
+    }
+    const deductions = parseDeductions(r.deductions);
+    if (hasDisallowedDeduction(deductions)) {
+      findings.push({
+        code: "DISALLOWED_SALARY_DEDUCTION",
+        severity: "HIGH",
+        message: `Sponsorluk kurallarına göre izin verilmeyen bir kesinti kategorisi kullanılmış (${r.periodEnd.toISOString().slice(0, 10)})`,
+        workerId: r.workerId,
+      });
+    }
+  }
+
+  const recordsByWorker = new Map<string, SalaryRecord[]>();
+  for (const r of salaryRecords) {
+    const arr = recordsByWorker.get(r.workerId) ?? [];
+    arr.push(r);
+    recordsByWorker.set(r.workerId, arr);
+  }
+  for (const [workerId, records] of Array.from(recordsByWorker.entries())) {
+    const sorted = [...records].sort(
+      (a, b) => a.periodEnd.getTime() - b.periodEnd.getTime()
+    );
+    for (let i = 1; i < sorted.length; i += 1) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      if (prev.actualPaid <= 0) continue;
+      const dropped = curr.actualPaid < prev.actualPaid * 0.9;
+      if (!dropped) continue;
+      const hasJust = (curr.discrepancyReason ?? "").trim().length > 10;
+      if (!hasJust) {
+        findings.push({
+          code: "PAYSLIP_DROP_NO_JUSTIFICATION",
+          severity: "HIGH",
+          message: `Önceki döneme göre bordro ödemesi %10+ düştü, yeterli gerekçe yok (${curr.periodEnd.toISOString().slice(0, 10)})`,
+          workerId,
+        });
+      }
+    }
   }
 
   return findings;

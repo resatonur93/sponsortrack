@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma, SalaryRecord } from "@prisma/client";
 import { getSessionUser, withTenant } from "@/lib/api-context";
 import { prisma } from "@/lib/prisma";
-import { salaryRecordCreateSchema } from "@/lib/schemas";
+import { salaryRecordCreateSchema, salaryDeductionItemSchema } from "@/lib/schemas";
+import type { z } from "zod";
 import { logger } from "@/lib/logger";
 import {
   evaluateSalaryCompliance,
   computeExpectedForPeriod,
   parseSalaryCsvDate,
+  checkBelowCosThreshold,
+  checkHoursDiscrepancy,
 } from "@/lib/salary-record-utils";
+import { overlapsUnpaidLeave } from "@/lib/absence-record-compute";
+
+type SalaryDeductionItem = z.infer<typeof salaryDeductionItemSchema>;
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +35,7 @@ async function createRecord(
   workerId: string,
   tenantId: string,
   userId: string,
+  worker: { salary: number; contractedHoursPerWeek: number | null },
   raw: {
     periodStart: string;
     periodEnd: string;
@@ -37,7 +44,7 @@ async function createRecord(
     currency?: string;
     hoursWorked?: number | null;
     overtime?: number | null;
-    deductions?: Record<string, unknown> | null;
+    deductions?: SalaryDeductionItem[] | null;
     evidenceUrl?: string | null;
     approvedBy?: string | null;
   }
@@ -51,6 +58,13 @@ async function createRecord(
   const { isCompliant, discrepancyReason } = evaluateSalaryCompliance(
     raw.contractedSalary,
     raw.actualPaid,
+    periodStart,
+    periodEnd
+  );
+  const belowCosThreshold = checkBelowCosThreshold(raw.contractedSalary, worker.salary);
+  const hoursDiscrepancy = checkHoursDiscrepancy(
+    raw.hoursWorked,
+    worker.contractedHoursPerWeek,
     periodStart,
     periodEnd
   );
@@ -68,10 +82,12 @@ async function createRecord(
       overtime: raw.overtime ?? undefined,
       deductions:
         raw.deductions != null
-          ? (raw.deductions as Prisma.InputJsonValue)
+          ? (raw.deductions as unknown as Prisma.InputJsonValue)
           : undefined,
       isCompliant,
       discrepancyReason,
+      belowCosThreshold,
+      hoursDiscrepancy,
       evidenceUrl: raw.evidenceUrl ?? undefined,
       approvedBy: raw.approvedBy ?? userId,
     },
@@ -82,7 +98,8 @@ function parseSalaryCsvForWorker(
   csv: string,
   workerId: string,
   tenantId: string,
-  userId: string
+  userId: string,
+  worker: { salary: number; contractedHoursPerWeek: number | null }
 ): Promise<SalaryRecord[]> {
   const lines = csv
     .split(/\r?\n/)
@@ -136,7 +153,7 @@ function parseSalaryCsvForWorker(
     const evidenceUrl = evidenceRaw && evidenceRaw.length > 0 ? evidenceRaw : null;
 
     created.push(
-      createRecord(workerId, tenantId, userId, {
+      createRecord(workerId, tenantId, userId, worker, {
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
         contractedSalary,
@@ -172,21 +189,34 @@ export async function GET(
     return await withTenant(user, req, async () => {
       const worker = await prisma.worker.findFirst({
         where: { id: workerId },
-        select: { id: true, salary: true },
+        select: { id: true, salary: true, contractedHoursPerWeek: true },
       });
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
-      const rows = await prisma.salaryRecord.findMany({
-        where: { workerId, periodEnd: { gte: from } },
-        orderBy: { periodEnd: "asc" },
-      });
+      const [rows, unpaidLeaves] = await Promise.all([
+        prisma.salaryRecord.findMany({
+          where: { workerId, periodEnd: { gte: from } },
+          orderBy: { periodEnd: "asc" },
+        }),
+        prisma.absenceRecord.findMany({
+          where: { workerId, type: "UNPAID_LEAVE" },
+          select: { type: true, startDate: true, endDate: true },
+        }),
+      ]);
 
       return NextResponse.json({
         data: {
-          records: rows.map(enrichRecord),
+          records: rows.map((r) => ({
+            ...enrichRecord(r),
+            overlapsUnpaidLeave: overlapsUnpaidLeave(
+              { start: r.periodStart, end: r.periodEnd },
+              unpaidLeaves
+            ),
+          })),
           cosAnnualSalaryGbp: worker.salary,
+          contractedHoursPerWeek: worker.contractedHoursPerWeek,
         },
       });
     });
@@ -214,7 +244,7 @@ export async function POST(
     return await withTenant(user, req, async () => {
       const worker = await prisma.worker.findFirst({
         where: { id: workerId },
-        select: { id: true },
+        select: { id: true, salary: true, contractedHoursPerWeek: true },
       });
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -238,7 +268,8 @@ export async function POST(
             csv,
             workerId,
             user.tenantId,
-            user.id
+            user.id,
+            worker
           );
           return NextResponse.json(
             {
@@ -265,7 +296,7 @@ export async function POST(
       const d = parsed.data;
 
       try {
-        const row = await createRecord(workerId, user.tenantId, user.id, {
+        const row = await createRecord(workerId, user.tenantId, user.id, worker, {
           periodStart: d.periodStart,
           periodEnd: d.periodEnd,
           contractedSalary: d.contractedSalary,

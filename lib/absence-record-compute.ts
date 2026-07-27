@@ -5,6 +5,18 @@ export function deriveIsAuthorised(type: AbsenceType): boolean {
   return type !== "UNAUTHORISED";
 }
 
+/** Bir bordro döneminin, çalışanın UNPAID_LEAVE tipi bir devamsızlığıyla çakışıp çakışmadığını kontrol eder. */
+export function overlapsUnpaidLeave(
+  period: { start: Date; end: Date },
+  absences: { type: AbsenceType; startDate: Date; endDate: Date | null }[]
+): boolean {
+  return absences.some((a) => {
+    if (a.type !== "UNPAID_LEAVE") return false;
+    const absenceEnd = a.endDate ?? period.end;
+    return a.startDate.getTime() <= period.end.getTime() && absenceEnd.getTime() >= period.start.getTime();
+  });
+}
+
 export function computeAbsenceWorkingDayMetrics(
   startDate: Date,
   endDate: Date | null,
