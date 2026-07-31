@@ -16,8 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AuditActivityFeed } from "@/components/compliance/AuditActivityFeed";
-import type { AuditLogFeedItem } from "@/lib/compliance/audit-feed";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +26,6 @@ type Summary = {
   visasExpiring30d: number;
   documentsExpiring30d: number;
   openOrganisationChanges: number;
-  recentAuditLogs: AuditLogFeedItem[];
 };
 
 type PayrollSummary = {
@@ -41,7 +38,6 @@ type PayrollSummary = {
 
 export default function CompliancePage(): JSX.Element | null {
   const { t, locale } = useTranslation();
-  const localeTag = locale === "tr" ? "tr-TR" : "en-GB";
 
   const [data, setData] = useState<Summary | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -167,16 +163,6 @@ export default function CompliancePage(): JSX.Element | null {
           trendLabel={t("compliance.stat.reviewCue")}
         />
       </div>
-
-      <Card className="overflow-hidden border-brand-navy/10 shadow-lg ring-1 ring-slate-100">
-        <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-brand-navy/[0.04] via-white to-slate-50/80">
-          <CardTitle className="text-xl text-brand-navy">{t("compliance.feed.title")}</CardTitle>
-          <CardDescription className="text-sm">{t("compliance.feed.subtitle")}</CardDescription>
-        </CardHeader>
-        <CardContent className="py-8">
-          <AuditActivityFeed items={data.recentAuditLogs} localeTag={localeTag} />
-        </CardContent>
-      </Card>
 
       <Card className="overflow-hidden border-slate-200/90 shadow-md ring-1 ring-amber-200/35">
         <CardHeader className="border-b border-amber-100/80 bg-gradient-to-r from-amber-50/80 to-white">

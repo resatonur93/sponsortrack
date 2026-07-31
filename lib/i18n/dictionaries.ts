@@ -370,13 +370,6 @@ const tr: Record<string, string> = {
   "compliance.stat.docs30d": "30 gün içinde belge süresi dolacak",
   "compliance.stat.orgChanges": "Açık kurumsal değişiklik",
   "compliance.stat.reviewCue": "İncele",
-  "compliance.feed.title": "Son denetim kayıtları",
-  "compliance.feed.subtitle":
-    "Sistemde yapılan önemli değişikliklerin özeti (audit trail).",
-  "compliance.feed.emptyTitle": "Henüz denetim kaydı yok",
-  "compliance.feed.emptyHint":
-    "Çalışan, belge veya uyum kayıtlarında işlem yaptıkça burada zaman çizelgesi olarak görünecek.",
-  "compliance.feed.actorUnknown": "Sistem / bilinmeyen kullanıcı",
   "compliance.payroll.title": "Maaş CSV yükleme",
   "compliance.payroll.subtitle":
     "Bordro veya HR export ile beklenen ve fiili yıllık ücreti karşılaştırın; farklar uyum bildirimi olarak işlenir.",
@@ -2188,13 +2181,6 @@ const en: Record<string, string> = {
   "compliance.stat.docs30d": "Documents expiring within 30 days",
   "compliance.stat.orgChanges": "Open organisational changes",
   "compliance.stat.reviewCue": "Review",
-  "compliance.feed.title": "Recent audit activity",
-  "compliance.feed.subtitle":
-    "A human-readable timeline of important changes captured in your tenant.",
-  "compliance.feed.emptyTitle": "No audit entries yet",
-  "compliance.feed.emptyHint":
-    "Activity appears here after changes to workers, documents, notifications and other compliance entities.",
-  "compliance.feed.actorUnknown": "System / unknown user",
   "compliance.payroll.title": "Payroll CSV import",
   "compliance.payroll.subtitle":
     "Compare expected vs actual annual pay from payroll or HR export; mismatches generate compliance notifications.",
