@@ -177,14 +177,14 @@ export default function DashboardPage(): JSX.Element {
           ((data.stats.totalWorkers - workersWithIssues) / data.stats.totalWorkers) * 100
         )
       : null;
-  const complianceStanding: { key: string; className: string } =
+  const complianceStanding: { key: string; className: string; ringColor: string } =
     compliancePercent === null
-      ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700" }
+      ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700", ringColor: "#059669" }
       : compliancePercent >= 80
-        ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700" }
+        ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700", ringColor: "#059669" }
         : compliancePercent >= 50
-          ? { key: "needsAttention", className: "bg-amber-100 text-amber-700" }
-          : { key: "atRisk", className: "bg-red-100 text-red-700" };
+          ? { key: "needsAttention", className: "bg-amber-100 text-amber-700", ringColor: "#D97706" }
+          : { key: "atRisk", className: "bg-red-100 text-red-700", ringColor: "#DC2626" };
 
   return (
     <div className="space-y-8">
@@ -297,7 +297,11 @@ export default function DashboardPage(): JSX.Element {
           </div>
           {compliancePercent !== null ? (
             <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
-              <PercentRing percent={compliancePercent} size={96} />
+              <PercentRing
+                percent={compliancePercent}
+                size={116}
+                stroke={complianceStanding.ringColor}
+              />
               <div className="grid flex-1 grid-cols-3 gap-3 text-center sm:text-left">
                 <div>
                   <p className="text-2xl font-bold tabular-nums text-brand-navy">

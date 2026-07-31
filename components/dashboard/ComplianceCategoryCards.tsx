@@ -77,12 +77,12 @@ export function ComplianceCategoryCards(props: {
               <div className="flex items-center justify-between">
                 <span
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full",
+                    "flex h-11 w-11 items-center justify-center rounded-full",
                     iconWrapClass(cat.trafficLight)
                   )}
                   aria-hidden
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-5 w-5" />
                 </span>
                 <span
                   className={cn(
