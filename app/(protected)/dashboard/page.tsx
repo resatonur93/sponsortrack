@@ -44,6 +44,7 @@ import {
   BellRing,
   AlertCircle,
   FileX,
+  Plus,
 } from "lucide-react";
 
 const URGENT_POPUP_SESSION_KEY = "st-dashboard-urgent-v1";
@@ -245,17 +246,26 @@ export default function DashboardPage(): JSX.Element {
 
       {/* ── Page header ── */}
       <div className="page-hero">
-        <div className="relative z-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
-            {todayLabel}
-          </p>
-          <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            {t(`dashboard.greeting.${greetingKey}`)}
-            {firstName ? `, ${firstName}` : ""}
-          </h1>
-          <p className="mt-1 text-sm text-white/65 sm:text-base">
-            {t("dashboard.subtitle")}
-          </p>
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
+              {todayLabel}
+            </p>
+            <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              {t(`dashboard.greeting.${greetingKey}`)}
+              {firstName ? `, ${firstName}` : ""}
+            </h1>
+            <p className="mt-1 text-sm text-white/65 sm:text-base">
+              {t("dashboard.subtitle")}
+            </p>
+          </div>
+          <Link
+            href="/organisation-changes"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/25 bg-white/95 px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition-colors hover:bg-brand-gold hover:text-brand-navy"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            {t("dashboard.reportChange")}
+          </Link>
         </div>
         {/* Decorative circle */}
         <div
@@ -267,15 +277,14 @@ export default function DashboardPage(): JSX.Element {
         />
       </div>
 
-      {/* ── Compliance overview ring ── */}
-      {compliancePercent !== null ? (
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-card sm:flex-row sm:items-center">
-          <PercentRing percent={compliancePercent} size={96} />
-          <div className="min-w-0 flex-1 text-center sm:text-left">
+      {/* ── Portfolio compliance + Urgent alerts (top row, mirrors reference layout) ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-5 rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+          <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
               {t("dashboard.complianceRing.title")}
             </h2>
-            <p className="mt-1 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            {compliancePercent !== null ? (
               <span
                 className={cn(
                   "rounded-full px-2.5 py-0.5 text-xs font-semibold",
@@ -284,14 +293,55 @@ export default function DashboardPage(): JSX.Element {
               >
                 {t(`dashboard.complianceRing.${complianceStanding.key}`)}
               </span>
-              <span className="text-sm text-slate-600">
-                {data.stats.totalWorkers - workersWithIssues}/{data.stats.totalWorkers}{" "}
-                {t("dashboard.complianceRing.workersClean")}
-              </span>
-            </p>
+            ) : null}
           </div>
+          {compliancePercent !== null ? (
+            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+              <PercentRing percent={compliancePercent} size={96} />
+              <div className="grid flex-1 grid-cols-3 gap-3 text-center sm:text-left">
+                <div>
+                  <p className="text-2xl font-bold tabular-nums text-brand-navy">
+                    {data.stats.totalWorkers}
+                  </p>
+                  <p className="text-xs text-slate-500">{t("dashboard.totalWorkers")}</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tabular-nums text-brand-navy">
+                    {data.stats.activeSponsorships}
+                  </p>
+                  <p className="text-xs text-slate-500">{t("dashboard.activeSponsorships")}</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tabular-nums text-brand-navy">
+                    {data.stats.overdueNotifications + (data.stats.missingDocumentIssues ?? 0)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {t("dashboard.complianceRing.actionsRequired")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">{t("dashboard.noMissingDocs")}</p>
+          )}
+          <Link
+            href="/audit"
+            className="text-xs font-semibold text-brand-navy transition-colors hover:text-brand-gold"
+          >
+            {t("dashboard.complianceRing.viewOverview")} →
+          </Link>
         </div>
-      ) : null}
+
+        <UrgentAlertsPanel alerts={data.recentAlerts} />
+      </div>
+
+      {/* ── Compliance categories + Upcoming deadlines (second row, mirrors reference layout) ── */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ComplianceCategoryCards categories={data.complianceTraffic.categories} />
+        </div>
+        <UpcomingDeadlines events={data.recentEvents} />
+      </div>
 
       {/* ── Stats grid ── */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -426,13 +476,6 @@ export default function DashboardPage(): JSX.Element {
           <RiskBadge level={data.risk.level} score={data.risk.score} />
         </div>
       </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <UrgentAlertsPanel alerts={data.recentAlerts} />
-        <UpcomingDeadlines events={data.recentEvents} />
-      </div>
-
-      <ComplianceCategoryCards categories={data.complianceTraffic.categories} />
 
       <RecordKeepingCards
         licence={data.licence}
