@@ -133,6 +133,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       const anomalies = detectAnomalies({
         workers,
         salaryRecords,
+        absences,
         salaryHistory: salaryChanges,
         changeLogs,
         documents,

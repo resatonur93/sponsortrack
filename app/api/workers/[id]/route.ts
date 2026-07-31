@@ -177,6 +177,7 @@ export async function PUT(
       );
       set("salary", d.salary);
       set("contractedHoursPerWeek", d.contractedHoursPerWeek ?? undefined);
+      set("applicableSalaryThreshold", d.applicableSalaryThreshold ?? undefined);
       set("workLocation", d.workLocation);
       set("employmentStatus", d.employmentStatus);
       set("isOffshoreWorker", d.isOffshoreWorker);

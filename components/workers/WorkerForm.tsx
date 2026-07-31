@@ -665,6 +665,26 @@ export function WorkerForm(): JSX.Element {
                   />
                   <FieldErr msg={form.formState.errors.contractedHoursPerWeek?.message} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="applicableSalaryThreshold">
+                    {t("workerForm.applicableSalaryThreshold")}
+                  </Label>
+                  <p className="text-xs text-slate-500">
+                    {t("workerForm.applicableSalaryThresholdHint")}
+                  </p>
+                  <Input
+                    id="applicableSalaryThreshold"
+                    type="number"
+                    className="h-11 border-slate-300/95 tabular-nums"
+                    {...form.register("applicableSalaryThreshold", {
+                      setValueAs: (v) => (v === "" ? null : Number(v)),
+                    })}
+                    min={0}
+                    step={500}
+                    placeholder={t("workerForm.applicableSalaryThresholdPlaceholder")}
+                  />
+                  <FieldErr msg={form.formState.errors.applicableSalaryThreshold?.message} />
+                </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="workLocation">{t("workerForm.workLocation")}</Label>
                   <Input

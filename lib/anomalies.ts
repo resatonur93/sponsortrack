@@ -1,4 +1,5 @@
 import type {
+  AbsenceRecord,
   Document,
   NotificationEvent,
   SalaryHistory,
@@ -6,7 +7,14 @@ import type {
   Worker,
   WorkerChangeLog,
 } from "@prisma/client";
-import { hasDisallowedDeduction, parseDeductions } from "@/lib/salary-record-utils";
+import {
+  hasDisallowedDeduction,
+  parseDeductions,
+  computeExpectedForPeriodWithLeave,
+} from "@/lib/salary-record-utils";
+import { unpaidLeaveDaysInPeriod } from "@/lib/absence-record-compute";
+
+const SALARY_TOLERANCE_GBP = 100;
 
 export type AnomalySeverity = "HIGH" | "MEDIUM";
 
@@ -24,6 +32,7 @@ export function detectAnomalies(input: {
   documents: Document[];
   notifications: NotificationEvent[];
   salaryRecords?: SalaryRecord[];
+  absences?: AbsenceRecord[];
 }): AnomalyFinding[] {
   const findings: AnomalyFinding[] = [];
   const byAddress = new Map<string, string[]>();
@@ -143,6 +152,47 @@ export function detectAnomalies(input: {
         message: `Sponsorluk kurallarına göre izin verilmeyen bir kesinti kategorisi kullanılmış (${r.periodEnd.toISOString().slice(0, 10)})`,
         workerId: r.workerId,
       });
+    }
+    if (r.belowApplicableThreshold) {
+      findings.push({
+        code: "BELOW_APPLICABLE_THRESHOLD",
+        severity: "HIGH",
+        message: `Sözleşmeli maaş, çalışan için belirlenen uygulanabilir eşiğin altında (${r.periodEnd.toISOString().slice(0, 10)})`,
+        workerId: r.workerId,
+      });
+    }
+  }
+
+  const absences = input.absences ?? [];
+  if (absences.length > 0 && salaryRecords.length > 0) {
+    const absencesByWorker = new Map<string, AbsenceRecord[]>();
+    for (const a of absences) {
+      const arr = absencesByWorker.get(a.workerId) ?? [];
+      arr.push(a);
+      absencesByWorker.set(a.workerId, arr);
+    }
+    for (const r of salaryRecords) {
+      const workerAbsences = absencesByWorker.get(r.workerId) ?? [];
+      if (workerAbsences.length === 0) continue;
+      const unpaidDays = unpaidLeaveDaysInPeriod(
+        { start: r.periodStart, end: r.periodEnd },
+        workerAbsences
+      );
+      if (unpaidDays <= 0) continue;
+      const adjustedExpected = computeExpectedForPeriodWithLeave(
+        r.contractedSalary,
+        r.periodStart,
+        r.periodEnd,
+        unpaidDays
+      );
+      if (r.actualPaid + SALARY_TOLERANCE_GBP < adjustedExpected) {
+        findings.push({
+          code: "UNDERPAID_DESPITE_LEAVE_ADJUSTMENT",
+          severity: "HIGH",
+          message: `Ücretsiz izin günleri düşüldükten sonra bile ödeme beklenenin altında (${r.periodEnd.toISOString().slice(0, 10)})`,
+          workerId: r.workerId,
+        });
+      }
     }
   }
 

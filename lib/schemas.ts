@@ -55,6 +55,7 @@ export const workerCreateSchema = z.object({
   occupationCodeJustification: z.string().optional().nullable(),
   salary: z.number().int().nonnegative(),
   contractedHoursPerWeek: z.number().int().positive().optional().nullable(),
+  applicableSalaryThreshold: z.number().int().positive().optional().nullable(),
   workLocation: z.string().min(1),
   employmentStatus: employmentStatusSchema.optional(),
   employmentStartDate: optionalDateInput,

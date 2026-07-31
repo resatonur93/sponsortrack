@@ -8,11 +8,13 @@ import { logger } from "@/lib/logger";
 import {
   evaluateSalaryCompliance,
   computeExpectedForPeriod,
+  computeExpectedForPeriodWithLeave,
   parseSalaryCsvDate,
   checkBelowCosThreshold,
   checkHoursDiscrepancy,
+  checkBelowApplicableThreshold,
 } from "@/lib/salary-record-utils";
-import { overlapsUnpaidLeave } from "@/lib/absence-record-compute";
+import { unpaidLeaveDaysInPeriod } from "@/lib/absence-record-compute";
 
 type SalaryDeductionItem = z.infer<typeof salaryDeductionItemSchema>;
 
@@ -35,7 +37,11 @@ async function createRecord(
   workerId: string,
   tenantId: string,
   userId: string,
-  worker: { salary: number; contractedHoursPerWeek: number | null },
+  worker: {
+    salary: number;
+    contractedHoursPerWeek: number | null;
+    applicableSalaryThreshold: number | null;
+  },
   raw: {
     periodStart: string;
     periodEnd: string;
@@ -68,6 +74,10 @@ async function createRecord(
     periodStart,
     periodEnd
   );
+  const belowApplicableThreshold = checkBelowApplicableThreshold(
+    raw.contractedSalary,
+    worker.applicableSalaryThreshold
+  );
 
   return prisma.salaryRecord.create({
     data: {
@@ -88,6 +98,7 @@ async function createRecord(
       discrepancyReason,
       belowCosThreshold,
       hoursDiscrepancy,
+      belowApplicableThreshold,
       evidenceUrl: raw.evidenceUrl ?? undefined,
       approvedBy: raw.approvedBy ?? userId,
     },
@@ -99,7 +110,11 @@ function parseSalaryCsvForWorker(
   workerId: string,
   tenantId: string,
   userId: string,
-  worker: { salary: number; contractedHoursPerWeek: number | null }
+  worker: {
+    salary: number;
+    contractedHoursPerWeek: number | null;
+    applicableSalaryThreshold: number | null;
+  }
 ): Promise<SalaryRecord[]> {
   const lines = csv
     .split(/\r?\n/)
@@ -189,7 +204,12 @@ export async function GET(
     return await withTenant(user, req, async () => {
       const worker = await prisma.worker.findFirst({
         where: { id: workerId },
-        select: { id: true, salary: true, contractedHoursPerWeek: true },
+        select: {
+          id: true,
+          salary: true,
+          contractedHoursPerWeek: true,
+          applicableSalaryThreshold: true,
+        },
       });
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -208,15 +228,32 @@ export async function GET(
 
       return NextResponse.json({
         data: {
-          records: rows.map((r) => ({
-            ...enrichRecord(r),
-            overlapsUnpaidLeave: overlapsUnpaidLeave(
+          records: rows.map((r) => {
+            const unpaidDays = unpaidLeaveDaysInPeriod(
               { start: r.periodStart, end: r.periodEnd },
               unpaidLeaves
-            ),
-          })),
+            );
+            const expectedForPeriodAdjustedForLeave =
+              unpaidDays > 0
+                ? computeExpectedForPeriodWithLeave(
+                    r.contractedSalary,
+                    r.periodStart,
+                    r.periodEnd,
+                    unpaidDays
+                  )
+                : null;
+            return {
+              ...enrichRecord(r),
+              overlapsUnpaidLeave: unpaidDays > 0,
+              expectedForPeriodAdjustedForLeave,
+              underpaidBeyondLeave:
+                expectedForPeriodAdjustedForLeave !== null &&
+                r.actualPaid + 100 < expectedForPeriodAdjustedForLeave,
+            };
+          }),
           cosAnnualSalaryGbp: worker.salary,
           contractedHoursPerWeek: worker.contractedHoursPerWeek,
+          applicableSalaryThreshold: worker.applicableSalaryThreshold,
         },
       });
     });
@@ -244,7 +281,12 @@ export async function POST(
     return await withTenant(user, req, async () => {
       const worker = await prisma.worker.findFirst({
         where: { id: workerId },
-        select: { id: true, salary: true, contractedHoursPerWeek: true },
+        select: {
+          id: true,
+          salary: true,
+          contractedHoursPerWeek: true,
+          applicableSalaryThreshold: true,
+        },
       });
       if (!worker) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });

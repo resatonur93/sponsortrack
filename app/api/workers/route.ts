@@ -118,6 +118,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             d.occupationCodeJustification ?? undefined,
           salary: d.salary,
           contractedHoursPerWeek: d.contractedHoursPerWeek ?? undefined,
+          applicableSalaryThreshold: d.applicableSalaryThreshold ?? undefined,
           workLocation: d.workLocation,
           employmentStatus: d.employmentStatus ?? "PENDING_START",
           employmentStartDate: d.employmentStartDate

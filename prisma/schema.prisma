@@ -414,6 +414,8 @@ model Worker {
   salary                    Int
   /// Sponsorlu ana iş için sözleşmeli haftalık saat — CoS'taki saatle karşılaştırmak için (opsiyonel, SupplementaryEmployment.hoursPerWeek'ten bağımsız).
   contractedHoursPerWeek    Int?
+  /// AO'nun güncel Home Office kurallarına göre belirlediği uygulanabilir maaş eşiği (going rate/genel eşik) — sistem otomatik hesaplamaz, elle girilir.
+  applicableSalaryThreshold Int?
   workLocation              String
   employmentStatus          EmploymentStatus @default(PENDING_START)
   employmentStartDate       DateTime?
@@ -533,6 +535,8 @@ model SalaryRecord {
   belowCosThreshold   Boolean  @default(false)
   /// Kayıt oluşturulurken hesaplanır: hoursWorked, Worker.contractedHoursPerWeek'e göre beklenenden belirgin şekilde farklıysa true.
   hoursDiscrepancy    Boolean  @default(false)
+  /// Kayıt oluşturulurken hesaplanır: contractedSalary, Worker.applicableSalaryThreshold'un altındaysa true (CoS karşılaştırmasından bağımsız, resmi eşik kontrolü).
+  belowApplicableThreshold Boolean @default(false)
   evidenceUrl         String?
   approvedBy          String?
   tenantId            String

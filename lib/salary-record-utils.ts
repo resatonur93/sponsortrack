@@ -123,6 +123,37 @@ export function hasDisallowedDeduction(deductions: SalaryDeductionItem[]): boole
   );
 }
 
+/**
+ * contractedSalary, AO'nun elle girdiği "uygulanabilir maaş eşiği"nin (Worker.applicableSalaryThreshold —
+ * güncel Home Office going rate/genel eşik) altındaysa true. Eşik girilmemişse kontrol atlanır (false).
+ * CoS karşılaştırmasından (checkBelowCosThreshold) bağımsız bir kontroldür — tolerans uygulanmaz,
+ * çünkü resmi bir eşik değeri sert bir sınırdır.
+ */
+export function checkBelowApplicableThreshold(
+  contractedSalary: number,
+  applicableThreshold: number | null | undefined
+): boolean {
+  if (applicableThreshold == null || applicableThreshold <= 0) return false;
+  return contractedSalary < applicableThreshold;
+}
+
+/**
+ * computeExpectedForPeriod'un, dönem içindeki ücretsiz izin günleri düşülerek uyarlanmış hali —
+ * ücretsiz izinde geçirilen günler için ödeme beklenmez. unpaidLeaveDays 0 ise computeExpectedForPeriod
+ * ile aynı sonucu verir.
+ */
+export function computeExpectedForPeriodWithLeave(
+  annualContractedGbp: number,
+  periodStart: Date,
+  periodEnd: Date,
+  unpaidLeaveDays: number
+): number {
+  const base = computeExpectedForPeriod(annualContractedGbp, periodStart, periodEnd);
+  if (unpaidLeaveDays <= 0) return base;
+  const dailyRate = annualContractedGbp / 365;
+  return Math.max(0, Math.round(base - dailyRate * unpaidLeaveDays));
+}
+
 export function parseSalaryCsvDate(value: string): Date | null {
   const t = value.trim();
   if (!t) return null;

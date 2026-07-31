@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   computeExpectedForPeriod,
+  computeExpectedForPeriodWithLeave,
   evaluateSalaryCompliance,
   parseSalaryCsvDate,
   checkBelowCosThreshold,
   checkHoursDiscrepancy,
+  checkBelowApplicableThreshold,
   parseDeductions,
   hasDisallowedDeduction,
 } from "@/lib/salary-record-utils";
@@ -177,5 +179,51 @@ describe("hasDisallowedDeduction", () => {
 
   it("boş listede false döner", () => {
     expect(hasDisallowedDeduction([])).toBe(false);
+  });
+});
+
+describe("checkBelowApplicableThreshold", () => {
+  it("sözleşmeli maaş eşiğin altındaysa true döner", () => {
+    expect(checkBelowApplicableThreshold(35000, 38700)).toBe(true);
+  });
+
+  it("sözleşmeli maaş eşiğe eşit veya üstündeyse false döner", () => {
+    expect(checkBelowApplicableThreshold(38700, 38700)).toBe(false);
+    expect(checkBelowApplicableThreshold(40000, 38700)).toBe(false);
+  });
+
+  it("tolerans uygulanmaz — eşiğin 1 altı bile true döner (resmi eşik, sert sınır)", () => {
+    expect(checkBelowApplicableThreshold(38699, 38700)).toBe(true);
+  });
+
+  it("eşik girilmemişse (null/undefined/0) kontrolü atlar", () => {
+    expect(checkBelowApplicableThreshold(10000, null)).toBe(false);
+    expect(checkBelowApplicableThreshold(10000, undefined)).toBe(false);
+    expect(checkBelowApplicableThreshold(10000, 0)).toBe(false);
+  });
+});
+
+describe("computeExpectedForPeriodWithLeave", () => {
+  const start = new Date("2024-01-01T00:00:00Z");
+  const end = new Date("2024-01-31T00:00:00Z");
+
+  it("ücretsiz izin günü 0 ise computeExpectedForPeriod ile aynı sonucu verir", () => {
+    const base = computeExpectedForPeriod(36500, start, end);
+    const withLeave = computeExpectedForPeriodWithLeave(36500, start, end, 0);
+    expect(withLeave).toBe(base);
+  });
+
+  it("ücretsiz izin günleri kadar beklenen tutarı düşürür", () => {
+    const base = computeExpectedForPeriod(36500, start, end);
+    const withLeave = computeExpectedForPeriodWithLeave(36500, start, end, 10);
+    // günlük oran ~36500/365 = 100
+    expect(withLeave).toBeLessThan(base);
+    expect(base - withLeave).toBeGreaterThan(900);
+    expect(base - withLeave).toBeLessThan(1100);
+  });
+
+  it("negatife düşmez, 0'da durur", () => {
+    const withLeave = computeExpectedForPeriodWithLeave(36500, start, end, 365);
+    expect(withLeave).toBe(0);
   });
 });

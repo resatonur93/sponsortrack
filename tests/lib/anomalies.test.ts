@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { detectAnomalies } from "@/lib/anomalies";
-import type { SalaryRecord } from "@prisma/client";
+import type { AbsenceRecord, SalaryRecord } from "@prisma/client";
 
 function makeSalaryRecord(overrides: Partial<SalaryRecord> = {}): SalaryRecord {
   return {
@@ -18,12 +18,36 @@ function makeSalaryRecord(overrides: Partial<SalaryRecord> = {}): SalaryRecord {
     discrepancyReason: null,
     belowCosThreshold: false,
     hoursDiscrepancy: false,
+    belowApplicableThreshold: false,
     evidenceUrl: "https://example.com/payslip.pdf",
     approvedBy: null,
     tenantId: "t1",
     createdAt: new Date("2024-01-31"),
     ...overrides,
   } as SalaryRecord;
+}
+
+function makeAbsence(overrides: Partial<AbsenceRecord> = {}): AbsenceRecord {
+  return {
+    id: "a1",
+    workerId: "w1",
+    startDate: new Date("2024-01-10"),
+    endDate: new Date("2024-01-15"),
+    type: "UNPAID_LEAVE",
+    status: "ACTIVE",
+    isAuthorised: true,
+    approvedBy: null,
+    reason: null,
+    notes: null,
+    contactAttempts: null,
+    returnToWorkDate: null,
+    returnToWorkNotes: null,
+    consecutiveWorkingDays: null,
+    isReportable: false,
+    tenantId: "t1",
+    createdAt: new Date("2024-01-10"),
+    ...overrides,
+  } as AbsenceRecord;
 }
 
 const baseInput = {
@@ -173,6 +197,81 @@ describe("detectAnomalies — PAYSLIP_DROP_NO_JUSTIFICATION", () => {
       ],
     });
     expect(findings.some((f) => f.code === "PAYSLIP_DROP_NO_JUSTIFICATION")).toBe(false);
+  });
+});
+
+describe("detectAnomalies — BELOW_APPLICABLE_THRESHOLD", () => {
+  it("belowApplicableThreshold true ise üretir", () => {
+    const findings = detectAnomalies({
+      ...baseInput,
+      salaryRecords: [makeSalaryRecord({ belowApplicableThreshold: true })],
+    });
+    expect(findings.some((f) => f.code === "BELOW_APPLICABLE_THRESHOLD")).toBe(true);
+  });
+
+  it("belowApplicableThreshold false ise üretmez", () => {
+    const findings = detectAnomalies({
+      ...baseInput,
+      salaryRecords: [makeSalaryRecord({ belowApplicableThreshold: false })],
+    });
+    expect(findings.some((f) => f.code === "BELOW_APPLICABLE_THRESHOLD")).toBe(false);
+  });
+});
+
+describe("detectAnomalies — UNDERPAID_DESPITE_LEAVE_ADJUSTMENT", () => {
+  it("izin günleri düşüldükten sonra bile ödeme yetersizse üretir", () => {
+    const findings = detectAnomalies({
+      ...baseInput,
+      salaryRecords: [
+        makeSalaryRecord({
+          contractedSalary: 36500, // ~100/gün
+          periodStart: new Date("2024-01-01"),
+          periodEnd: new Date("2024-01-31"), // 30 gün, tam beklenti ~3000
+          actualPaid: 100, // 10 günlük izin düşülse bile (~2000 beklenir) çok düşük
+        }),
+      ],
+      absences: [
+        makeAbsence({ startDate: new Date("2024-01-10"), endDate: new Date("2024-01-19") }),
+      ],
+    });
+    expect(findings.some((f) => f.code === "UNDERPAID_DESPITE_LEAVE_ADJUSTMENT")).toBe(true);
+  });
+
+  it("izin düşüldükten sonra ödeme yeterliyse üretmez", () => {
+    const findings = detectAnomalies({
+      ...baseInput,
+      salaryRecords: [
+        makeSalaryRecord({
+          contractedSalary: 36500,
+          periodStart: new Date("2024-01-01"),
+          periodEnd: new Date("2024-01-31"),
+          actualPaid: 2000, // 10 günlük izin sonrası uyarlanmış beklentiye (~2000) yakın
+        }),
+      ],
+      absences: [
+        makeAbsence({ startDate: new Date("2024-01-10"), endDate: new Date("2024-01-19") }),
+      ],
+    });
+    expect(findings.some((f) => f.code === "UNDERPAID_DESPITE_LEAVE_ADJUSTMENT")).toBe(false);
+  });
+
+  it("çakışan izin yoksa üretmez", () => {
+    const findings = detectAnomalies({
+      ...baseInput,
+      salaryRecords: [makeSalaryRecord({ actualPaid: 100 })],
+      absences: [
+        makeAbsence({ startDate: new Date("2024-05-01"), endDate: new Date("2024-05-10") }),
+      ],
+    });
+    expect(findings.some((f) => f.code === "UNDERPAID_DESPITE_LEAVE_ADJUSTMENT")).toBe(false);
+  });
+
+  it("absences verilmezse (undefined) üretmez, hata atmaz", () => {
+    const findings = detectAnomalies({
+      ...baseInput,
+      salaryRecords: [makeSalaryRecord({ actualPaid: 100 })],
+    });
+    expect(findings.some((f) => f.code === "UNDERPAID_DESPITE_LEAVE_ADJUSTMENT")).toBe(false);
   });
 });
 

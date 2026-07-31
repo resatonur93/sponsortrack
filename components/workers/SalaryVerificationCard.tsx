@@ -51,12 +51,15 @@ const DEDUCTION_CATEGORIES: SalaryDeductionCategory[] = [
 type EnrichedRecord = SalaryRecord & {
   expectedForPeriod: number;
   overlapsUnpaidLeave: boolean;
+  expectedForPeriodAdjustedForLeave: number | null;
+  underpaidBeyondLeave: boolean;
 };
 
 type ApiGet = {
   records: EnrichedRecord[];
   cosAnnualSalaryGbp: number;
   contractedHoursPerWeek: number | null;
+  applicableSalaryThreshold: number | null;
 };
 
 function recordDeductions(r: EnrichedRecord): SalaryDeductionItem[] {
@@ -317,8 +320,10 @@ export function SalaryVerificationCard({
           (r) =>
             r.belowCosThreshold ||
             r.hoursDiscrepancy ||
+            r.belowApplicableThreshold ||
             !r.evidenceUrl ||
             r.overlapsUnpaidLeave ||
+            r.underpaidBeyondLeave ||
             hasDisallowedDeduction(recordDeductions(r))
         ) ? (
           <div className="space-y-3">
@@ -331,8 +336,13 @@ export function SalaryVerificationCard({
                 const flags: string[] = [];
                 if (r.belowCosThreshold) flags.push(t("workerDetail.salary.flagBelowCos"));
                 if (r.hoursDiscrepancy) flags.push(t("workerDetail.salary.flagHours"));
+                if (r.belowApplicableThreshold)
+                  flags.push(t("workerDetail.salary.flagBelowApplicableThreshold"));
                 if (!r.evidenceUrl) flags.push(t("workerDetail.salary.flagEvidence"));
-                if (r.overlapsUnpaidLeave) flags.push(t("workerDetail.salary.flagUnpaidLeave"));
+                if (r.overlapsUnpaidLeave && !r.underpaidBeyondLeave)
+                  flags.push(t("workerDetail.salary.flagUnpaidLeave"));
+                if (r.underpaidBeyondLeave)
+                  flags.push(t("workerDetail.salary.flagUnderpaidBeyondLeave"));
                 if (hasDisallowedDeduction(deductions))
                   flags.push(t("workerDetail.salary.flagDeduction"));
                 if (flags.length === 0) return null;
