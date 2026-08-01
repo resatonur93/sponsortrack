@@ -58,21 +58,12 @@ export async function PATCH(
             }
           : undefined;
 
-      // Not: prisma.user.update({ where: { id } }) burada kasıtlı olarak KULLANILMIYOR.
-      // Tenant-scope middleware'i (lib/prisma.ts) unique update/delete için where'i
-      // { AND: [{ id }, { tenantId }] } şeklinde sarmalıyor; Prisma'nın "extended
-      // whereUnique" doğrulaması bunu kabul etmiyor ("needs at least one of id or
-      // email") çünkü unique alan üst seviyede düz olarak bulunmalı. updateMany bu
-      // sorunu yaşamıyor çünkü unique-where şartı aramıyor.
-      await prisma.user.updateMany({
+      const updated = await prisma.user.update({
         where: { id: targetId },
         data: {
           role: parsed.data.role,
           pageAccessOverrides: nextOverrides,
         },
-      });
-      const updated = await prisma.user.findFirst({
-        where: { id: targetId },
         select: {
           id: true,
           firstName: true,
@@ -83,9 +74,6 @@ export async function PATCH(
           pageAccessOverrides: true,
         },
       });
-      if (!updated) {
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
-      }
 
       return NextResponse.json({
         data: {

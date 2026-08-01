@@ -50,11 +50,16 @@ function toDelegateKey(model: string): keyof PrismaClient {
     model.slice(1)) as keyof PrismaClient;
 }
 
+/**
+ * `tenantId`'yi where'e düz (flat) olarak ekler — `{ AND: [where, { tenantId }] }` DEĞİL.
+ * Prisma'nın "extended whereUnique" doğrulaması, `update`/`delete` çağrılarında unique alanın
+ * (örn. `id`) where objesinin ÜST SEVİYESİNDE düz olmasını şart koşuyor; AND içine sarmak bunu
+ * bozup "needs at least one of id or ..." hatasına yol açıyor. Düz birleştirme, findMany/
+ * findFirst/count/updateMany/deleteMany için de eşdeğer ve güvenli (Prisma, WhereInput'ta
+ * kardeş alanları zaten örtük AND ile birleştirir).
+ */
 function mergeWhere(where: object | undefined, tenantId: string): object {
-  if (!where || Object.keys(where).length === 0) {
-    return { tenantId };
-  }
-  return { AND: [where, { tenantId }] };
+  return { ...(where ?? {}), tenantId };
 }
 
 export const prisma = prismaBase.$extends({
