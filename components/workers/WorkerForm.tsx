@@ -80,7 +80,6 @@ function normalizePayload(values: FormValues): FormValues {
     "lineManagerId",
     "lineManagerName",
     "lineManagerEmail",
-    "currentAddress",
     "emergencyContact",
     "emergencyPhone",
     "rightToWorkLastCheckedAt",
@@ -121,6 +120,7 @@ export function WorkerForm(): JSX.Element {
       lastName: "",
       email: "",
       nationality: NATIONALITY_PRESET_META.UK,
+      currentAddress: "",
       employmentStatus: EmploymentStatus.PENDING_START,
       salary: 30_000,
       isOffshoreWorker: false,
@@ -444,6 +444,15 @@ export function WorkerForm(): JSX.Element {
                       },
                     })}
                   />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="currentAddress">{t("workerForm.currentAddress")}</Label>
+                  <textarea
+                    id="currentAddress"
+                    className="min-h-[72px] w-full rounded-md border border-slate-300/95 bg-transparent px-3 py-2 text-sm shadow-sm outline-none ring-brand-navy/20 focus-visible:ring-2"
+                    {...form.register("currentAddress")}
+                  />
+                  <FieldErr msg={form.formState.errors.currentAddress?.message} />
                 </div>
               </div>
             </section>
@@ -786,6 +795,7 @@ export function WorkerForm(): JSX.Element {
                       form.watch("passportNumber") || "—",
                     ],
                     [t("workerForm.brp"), form.watch("brpNumber") || "—"],
+                    [t("workerForm.currentAddress"), form.watch("currentAddress") || "—"],
                   ]}
                 />
                 <SummaryBlock

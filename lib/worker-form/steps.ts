@@ -13,6 +13,7 @@ export const WORKER_FORM_STEP_KEYS = [
     "dateOfBirth",
     "passportNumber",
     "brpNumber",
+    "currentAddress",
   ],
   [
     "visaType",

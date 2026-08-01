@@ -62,7 +62,7 @@ export const workerCreateSchema = z.object({
   lineManagerId: z.string().cuid().optional().nullable(),
   lineManagerName: z.string().optional().nullable(),
   lineManagerEmail: z.string().optional().nullable(),
-  currentAddress: z.string().optional().nullable(),
+  currentAddress: z.string().min(1),
   emergencyContact: z.string().optional().nullable(),
   emergencyPhone: z.string().optional().nullable(),
   rightToWorkLastCheckedAt: optionalDateInput,
@@ -429,7 +429,7 @@ export const salaryDeductionItemSchema = z.object({
 export const salaryRecordCreateSchema = z.object({
   periodStart: dateInput,
   periodEnd: dateInput,
-  contractedSalary: z.number().int(),
+  contractedSalary: z.number().int().optional(),
   actualPaid: z.number().int(),
   currency: z.string().min(1).optional().default("GBP"),
   hoursWorked: z.number().int().optional().nullable(),

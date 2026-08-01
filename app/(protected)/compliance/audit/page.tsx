@@ -72,6 +72,25 @@ export default function ComplianceAuditPage(): JSX.Element {
         <p className="text-slate-600">{t("complianceAuditPage.subtitle")}</p>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-brand-navy/10 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            {t("complianceAuditPage.totalWorkers")}
+          </p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-brand-navy">
+            {pack.workers.length}
+          </p>
+        </div>
+        <div className="rounded-xl border border-brand-navy/10 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            {t("complianceAuditPage.totalAnomalies")}
+          </p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-brand-navy">
+            {pack.anomalies.length}
+          </p>
+        </div>
+      </div>
+
       <AuditPackDownload />
 
       <section>

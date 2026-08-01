@@ -47,17 +47,17 @@ describe("evaluateSalaryCompliance", () => {
     expect(result.discrepancyReason).toBeNull();
   });
 
-  it("100 GBP tolerans içinde ödeme compliant sayılır", () => {
+  it("varsayılan toleransı yoktur — küçük bir eksik ödeme bile non-compliant sayılır", () => {
     const expected = computeExpectedForPeriod(36000, start, end);
-    const result = evaluateSalaryCompliance(36000, expected - 99, start, end);
-    expect(result.isCompliant).toBe(true);
-  });
-
-  it("tolerans aşılırsa non-compliant döndürür", () => {
-    const expected = computeExpectedForPeriod(36000, start, end);
-    const result = evaluateSalaryCompliance(36000, expected - 500, start, end);
+    const result = evaluateSalaryCompliance(36000, expected - 1, start, end);
     expect(result.isCompliant).toBe(false);
     expect(result.discrepancyReason).toMatch(/Underpayment/);
+  });
+
+  it("tam ödemeden fazlası her zaman compliant sayılır", () => {
+    const expected = computeExpectedForPeriod(36000, start, end);
+    const result = evaluateSalaryCompliance(36000, expected + 500, start, end);
+    expect(result.isCompliant).toBe(true);
   });
 
   it("expectedForPeriod değerini döndürür", () => {
@@ -67,7 +67,7 @@ describe("evaluateSalaryCompliance", () => {
 
   it("özel tolerans parametresiyle çalışır", () => {
     const expected = computeExpectedForPeriod(36000, start, end);
-    // Varsayılan tolerans 100 — büyük toleransla compliant olmalı
+    // Varsayılan tolerans artık 0 — açıkça geçirilen tolerans yine de uygulanmalı
     const result = evaluateSalaryCompliance(36000, expected - 400, start, end, 500);
     expect(result.isCompliant).toBe(true);
   });

@@ -245,7 +245,7 @@ describe("detectAnomalies — UNDERPAID_DESPITE_LEAVE_ADJUSTMENT", () => {
           contractedSalary: 36500,
           periodStart: new Date("2024-01-01"),
           periodEnd: new Date("2024-01-31"),
-          actualPaid: 2000, // 10 günlük izin sonrası uyarlanmış beklentiye (~2000) yakın
+          actualPaid: 2100, // uyarlanmış beklentiye (2100) tam eşit — tolerans olmadan da yeterli sayılmalı
         }),
       ],
       absences: [

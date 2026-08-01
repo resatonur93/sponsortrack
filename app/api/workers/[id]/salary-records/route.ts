@@ -45,7 +45,7 @@ async function createRecord(
   raw: {
     periodStart: string;
     periodEnd: string;
-    contractedSalary: number;
+    contractedSalary?: number;
     actualPaid: number;
     currency?: string;
     hoursWorked?: number | null;
@@ -61,13 +61,16 @@ async function createRecord(
     throw new Error("periodEnd must be on or after periodStart");
   }
 
+  // CoS'ta taahhüt edilen maaş, çalışan profilinden gelir — kullanıcı her kayıtta yeniden girmez.
+  const contractedSalary = raw.contractedSalary ?? worker.salary;
+
   const { isCompliant, discrepancyReason } = evaluateSalaryCompliance(
-    raw.contractedSalary,
+    contractedSalary,
     raw.actualPaid,
     periodStart,
     periodEnd
   );
-  const belowCosThreshold = checkBelowCosThreshold(raw.contractedSalary, worker.salary);
+  const belowCosThreshold = checkBelowCosThreshold(contractedSalary, worker.salary);
   const hoursDiscrepancy = checkHoursDiscrepancy(
     raw.hoursWorked,
     worker.contractedHoursPerWeek,
@@ -75,7 +78,7 @@ async function createRecord(
     periodEnd
   );
   const belowApplicableThreshold = checkBelowApplicableThreshold(
-    raw.contractedSalary,
+    contractedSalary,
     worker.applicableSalaryThreshold
   );
 
@@ -85,7 +88,7 @@ async function createRecord(
       tenantId,
       periodStart,
       periodEnd,
-      contractedSalary: raw.contractedSalary,
+      contractedSalary,
       actualPaid: raw.actualPaid,
       currency: raw.currency ?? "GBP",
       hoursWorked: raw.hoursWorked ?? undefined,
@@ -248,7 +251,7 @@ export async function GET(
               expectedForPeriodAdjustedForLeave,
               underpaidBeyondLeave:
                 expectedForPeriodAdjustedForLeave !== null &&
-                r.actualPaid + 100 < expectedForPeriodAdjustedForLeave,
+                r.actualPaid < expectedForPeriodAdjustedForLeave,
             };
           }),
           cosAnnualSalaryGbp: worker.salary,

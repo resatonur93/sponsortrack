@@ -14,7 +14,7 @@ import {
 } from "@/lib/salary-record-utils";
 import { unpaidLeaveDaysInPeriod } from "@/lib/absence-record-compute";
 
-const SALARY_TOLERANCE_GBP = 100;
+const SALARY_TOLERANCE_GBP = 0;
 
 export type AnomalySeverity = "HIGH" | "MEDIUM";
 

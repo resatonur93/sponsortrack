@@ -1,5 +1,5 @@
 const DAY_MS = 86400000;
-const TOLERANCE_GBP = 100;
+const TOLERANCE_GBP = 0;
 
 export function computeExpectedForPeriod(
   annualContractedGbp: number,

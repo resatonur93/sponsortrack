@@ -91,7 +91,6 @@ export function SalaryVerificationCard({
   const [saving, setSaving] = useState(false);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
-  const [contractedSalary, setContractedSalary] = useState("");
   const [actualPaid, setActualPaid] = useState("");
   const [hoursWorked, setHoursWorked] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
@@ -147,9 +146,8 @@ export function SalaryVerificationCard({
 
   async function submitManual(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    const c = parseInt(contractedSalary.replace(/\D/g, ""), 10);
     const a = parseInt(actualPaid.replace(/\D/g, ""), 10);
-    if (!periodStart || !periodEnd || Number.isNaN(c) || Number.isNaN(a)) {
+    if (!periodStart || !periodEnd || Number.isNaN(a)) {
       setError(t("workerDetail.salary.fillError"));
       return;
     }
@@ -165,7 +163,6 @@ export function SalaryVerificationCard({
         body: JSON.stringify({
           periodStart,
           periodEnd,
-          contractedSalary: c,
           actualPaid: a,
           hoursWorked: Number.isNaN(h) ? undefined : h,
           evidenceUrl: evidenceUrl.trim() || undefined,
@@ -179,7 +176,6 @@ export function SalaryVerificationCard({
       }
       setPeriodStart("");
       setPeriodEnd("");
-      setContractedSalary("");
       setActualPaid("");
       setHoursWorked("");
       setEvidenceUrl("");
@@ -399,27 +395,18 @@ export function SalaryVerificationCard({
                 />
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="text-xs">{t("workerDetail.salary.contractedAnnual")}</Label>
-                <Input
-                  inputMode="numeric"
-                  value={contractedSalary}
-                  onChange={(e) => setContractedSalary(e.target.value)}
-                  placeholder="e.g. 36000"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{t("workerDetail.salary.actualPaid")}</Label>
-                <Input
-                  inputMode="numeric"
-                  value={actualPaid}
-                  onChange={(e) => setActualPaid(e.target.value)}
-                  placeholder="e.g. 2800"
-                  required
-                />
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{t("workerDetail.salary.actualPaid")}</Label>
+              <p className="text-[11px] text-slate-500">
+                {t("workerDetail.salary.contractedFromProfile").replace("{amount}", cosAmountFormatted)}
+              </p>
+              <Input
+                inputMode="numeric"
+                value={actualPaid}
+                onChange={(e) => setActualPaid(e.target.value)}
+                placeholder="e.g. 2800"
+                required
+              />
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
