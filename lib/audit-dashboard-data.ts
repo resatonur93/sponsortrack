@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 type Db = typeof prisma;
 import { evaluateMissingDocuments } from "@/lib/required-documents";
 import { refreshComplianceEventOverdueStatuses } from "@/lib/compliance-reporting-engine";
+import { getComplianceDashboardSummary } from "@/lib/compliance/dashboard-summary";
+import { computeCompliancePercent } from "@/lib/compliance/compliance-percent";
 
 export type AuditOverdueRow = {
   id: string;
@@ -49,6 +51,8 @@ export type AuditDashboardPayload = {
     missingDocumentsWorkers: number;
     salaryAnomalyRecords: number;
     salaryAnomalyWorkers: number;
+    /** /dashboard sayfasıyla aynı formülle hesaplanır (computeCompliancePercent). */
+    compliancePercent: number | null;
   };
   riskSummary: Record<ComplianceRiskLevel, number>;
   actionRequired: {
@@ -130,6 +134,8 @@ export async function buildAuditDashboardPayload(
   in90.setDate(in90.getDate() + 90);
 
   const notTerminated = { employmentStatus: { not: "TERMINATED" as const } };
+
+  const complianceTraffic = await getComplianceDashboardSummary(tenantId, db, now);
 
   const [
     totalSponsoredWorkers,
@@ -340,6 +346,10 @@ export async function buildAuditDashboardPayload(
     (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
   );
 
+  const workersWithIssues = new Set(
+    complianceTraffic.aggregateItems.map((row) => row.workerId)
+  ).size;
+
   return {
     stats: {
       totalSponsoredWorkers,
@@ -350,6 +360,7 @@ export async function buildAuditDashboardPayload(
       missingDocumentsWorkers,
       salaryAnomalyRecords,
       salaryAnomalyWorkers: salaryAnomalyWorkersRaw.length,
+      compliancePercent: computeCompliancePercent(totalSponsoredWorkers, workersWithIssues),
     },
     riskSummary,
     actionRequired: {

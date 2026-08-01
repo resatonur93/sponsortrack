@@ -1,11 +1,16 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccessAdminPanel } from "@/lib/admin-panel-access";
+import {
+  canAccessPage,
+  resolveNavKeyForPath,
+  type PageAccessOverrides,
+} from "@/lib/authorization/page-access";
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token as
-      | { role?: string; email?: string | null }
+      | { role?: string; email?: string | null; pageAccessOverrides?: PageAccessOverrides }
       | undefined;
     const method = req.method;
     const path = req.nextUrl.pathname;
@@ -17,6 +22,15 @@ export default withAuth(
         }
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
+    }
+
+    const navKey = resolveNavKeyForPath(path);
+    if (
+      navKey &&
+      navKey !== "dashboard" &&
+      !canAccessPage(token?.pageAccessOverrides ?? {}, navKey)
+    ) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     const isPolicyAcknowledgePost =
@@ -90,6 +104,7 @@ export const config = {
     "/vacancies/:path*",
     "/api/vacancies",
     "/api/vacancies/:path*",
+    "/settings/:path*",
     "/api/workers",
     "/api/workers/:path*",
     "/api/notifications",
@@ -111,6 +126,7 @@ export const config = {
     "/api/org-changes",
     "/api/org-changes/:path*",
     "/api/tenant-users",
+    "/api/tenant-users/:path*",
     "/api/compliance",
     "/api/compliance/:path*",
     "/api/audit",

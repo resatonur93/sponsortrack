@@ -12,10 +12,12 @@ import {
   OrgChangeStatus,
   OrgChangeType,
   PolicyCategory,
+  Role,
   RtwCheckMethod,
   SupplementaryEmploymentStatus,
   VacancyStatus,
 } from "@prisma/client";
+import { TENANT_NAV_PAGE_KEYS } from "@/lib/authorization/page-access";
 
 const employmentStatusSchema = z.nativeEnum(EmploymentStatus);
 
@@ -466,6 +468,13 @@ export const selfServiceProfileUpdateSchema = z.object({
   ),
   emergencyContact: z.string().optional().nullable(),
   emergencyPhone: z.string().optional().nullable(),
+});
+
+export const tenantUserUpdateSchema = z.object({
+  role: z.nativeEnum(Role).optional(),
+  pageAccessOverrides: z
+    .record(z.enum(TENANT_NAV_PAGE_KEYS), z.boolean())
+    .optional(),
 });
 
 export const policyCreateSchema = z

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { WorkersSubNav } from "@/components/workers/WorkersSubNav";
 
 function tEnum(
   translate: (key: string, fallback?: string) => string,
@@ -110,6 +111,7 @@ export default function VacanciesPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
+      <WorkersSubNav />
       <div>
         <h1 className="text-2xl font-semibold text-brand-navy">{t("vacancies.title")}</h1>
         <p className="mt-1 text-sm text-slate-600">{t("vacancies.subtitle")}</p>

@@ -313,6 +313,22 @@ function AuditDashboardContent(): JSX.Element | null {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <GlanceStat
+            icon={UserCheck}
+            label={t("audit.dashboard.stats.compliancePercent")}
+            hint={t("audit.dashboard.stats.compliancePercentHint")}
+            value={dash.stats.compliancePercent ?? 0}
+            valueSuffix={dash.stats.compliancePercent !== null ? "%" : ""}
+            sentiment={
+              dash.stats.compliancePercent === null
+                ? "neutral"
+                : dash.stats.compliancePercent >= 80
+                  ? "positive"
+                  : dash.stats.compliancePercent >= 50
+                    ? "caution"
+                    : "critical"
+            }
+          />
+          <GlanceStat
             icon={Users}
             label={t("audit.dashboard.stats.totalWorkers")}
             hint={t("audit.dashboard.stats.totalWorkersHint")}
@@ -832,6 +848,7 @@ function GlanceStat(props: {
   label: string;
   hint: string;
   value: number;
+  valueSuffix?: string;
   sentiment: GlanceSentiment;
 }): JSX.Element {
   const Icon = props.icon;
@@ -858,7 +875,10 @@ function GlanceStat(props: {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{props.label}</p>
-          <p className="text-3xl font-bold tabular-nums tracking-tight">{props.value}</p>
+          <p className="text-3xl font-bold tabular-nums tracking-tight">
+            {props.value}
+            {props.valueSuffix ?? ""}
+          </p>
           <p className="text-xs text-slate-600">{props.hint}</p>
         </div>
         <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", iconWrap)}>

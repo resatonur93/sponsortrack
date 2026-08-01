@@ -132,6 +132,8 @@ model User {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
+  /// Rolün üstüne sayfa bazlı erişim istisnaları — { [navKey]: boolean }. null/eksik anahtar = rol varsayılanı (erişilebilir).
+  pageAccessOverrides Json?
 
   assignedLeads  Lead[]         @relation("LeadAssignee")
   leadActivities LeadActivity[]

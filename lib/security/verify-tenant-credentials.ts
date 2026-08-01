@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { normalizeEmail } from "@/lib/registration";
 import { isTenantLoginIpAllowed } from "@/lib/security/tenant-login-ip";
 import { isLoginRateLimited, recordLoginFailure, LoginAttemptScope } from "@/lib/security/login-rate-limit";
+import { parsePageAccessOverrides, type PageAccessOverrides } from "@/lib/authorization/page-access";
 
 export type TenantCredentialsResult =
   | {
@@ -16,6 +17,7 @@ export type TenantCredentialsResult =
         tenantId: string;
         firstName: string;
         lastName: string;
+        pageAccessOverrides: PageAccessOverrides;
       };
     }
   | { ok: false };
@@ -82,6 +84,7 @@ export async function verifyTenantCredentials(params: {
       tenantId: user.tenantId,
       firstName: user.firstName,
       lastName: user.lastName,
+      pageAccessOverrides: parsePageAccessOverrides(user.pageAccessOverrides),
     },
   };
 }

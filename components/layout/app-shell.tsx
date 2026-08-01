@@ -17,7 +17,6 @@ import {
   LayoutPanelLeft,
   Gauge,
   BookOpen,
-  Briefcase,
   Menu,
   X,
 } from "lucide-react";
@@ -27,10 +26,14 @@ import { AlertCountPill } from "@/components/layout/AlertCountPill";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useState } from "react";
+import {
+  canAccessPage,
+  resolveNavKeyForPath,
+  parsePageAccessOverrides,
+} from "@/lib/authorization/page-access";
 
 const navBase = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
-  { href: "/vacancies", labelKey: "nav.vacancies", icon: Briefcase },
   { href: "/workers", labelKey: "nav.workers", icon: Users },
   { href: "/events", labelKey: "nav.events", icon: CalendarClock },
   { href: "/alerts", labelKey: "nav.alerts", icon: TriangleAlert },
@@ -52,6 +55,14 @@ const adminNavItem = {
   icon: UserCog,
 } as const;
 
+const usersNavItem = {
+  href: "/settings/users",
+  labelKey: "nav.users",
+  icon: UserCog,
+} as const;
+
+const MANAGE_USERS_ROLES = new Set(["AUTHORISING_OFFICER", "SYSTEM_ADMIN"]);
+
 /** The 4 routes that appear in the fixed bottom bar on mobile. */
 const BOTTOM_NAV_HREFS = [
   "/dashboard",
@@ -70,9 +81,18 @@ export function AppShell({
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const nav = data?.user?.canAccessAdminPanel
-    ? [...navBase, adminNavItem]
-    : [...navBase];
+  const overrides = parsePageAccessOverrides(data?.user?.pageAccessOverrides);
+  const visibleBase = navBase.filter((item) => {
+    const key = resolveNavKeyForPath(item.href);
+    return !key || canAccessPage(overrides, key);
+  });
+  const canManageUsers = MANAGE_USERS_ROLES.has(data?.user?.role ?? "");
+
+  const nav = [
+    ...visibleBase,
+    ...(canManageUsers ? [usersNavItem] : []),
+    ...(data?.user?.canAccessAdminPanel ? [adminNavItem] : []),
+  ];
 
   const bottomItems = nav.filter((item) =>
     (BOTTOM_NAV_HREFS as readonly string[]).includes(item.href)

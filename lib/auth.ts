@@ -69,6 +69,7 @@ export const authOptions: NextAuthOptions = {
         token.firstName = user.firstName;
         token.lastName = user.lastName;
         token.email = user.email;
+        token.pageAccessOverrides = user.pageAccessOverrides ?? {};
         try {
           token.authSid = await bootstrapAuthArtifactsOnSignIn({
             id: user.id,
@@ -94,6 +95,7 @@ export const authOptions: NextAuthOptions = {
           session.user.role
         );
         session.user.authSid = token.authSid;
+        session.user.pageAccessOverrides = token.pageAccessOverrides ?? {};
       }
       return session;
     },

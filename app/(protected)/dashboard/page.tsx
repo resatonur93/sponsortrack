@@ -12,6 +12,7 @@ import { UpcomingDeadlines } from "@/components/dashboard/UpcomingDeadlines";
 import { RecordKeepingCards } from "@/components/dashboard/RecordKeepingCards";
 import { PercentRing } from "@/components/ui/PercentRing";
 import { getGreetingKey } from "@/lib/greeting";
+import { computeCompliancePercent } from "@/lib/compliance/compliance-percent";
 import type { FullDashboardData } from "@/lib/dashboard-response";
 import type {
   AlertLevel,
@@ -171,12 +172,10 @@ export default function DashboardPage(): JSX.Element {
   const workersWithIssues = new Set(
     data.complianceTraffic.aggregateItems.map((row) => row.workerId)
   ).size;
-  const compliancePercent =
-    data.stats.totalWorkers > 0
-      ? Math.round(
-          ((data.stats.totalWorkers - workersWithIssues) / data.stats.totalWorkers) * 100
-        )
-      : null;
+  const compliancePercent = computeCompliancePercent(
+    data.stats.totalWorkers,
+    workersWithIssues
+  );
   const complianceStanding: { key: string; className: string; ringColor: string } =
     compliancePercent === null
       ? { key: "goodStanding", className: "bg-emerald-100 text-emerald-700", ringColor: "#059669" }

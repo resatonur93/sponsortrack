@@ -1,5 +1,6 @@
 import { type DefaultSession } from "next-auth";
 import { type Role } from "@prisma/client";
+import { type PageAccessOverrides } from "@/lib/authorization/page-access";
 
 declare module "next-auth" {
   interface Session {
@@ -10,6 +11,7 @@ declare module "next-auth" {
       firstName: string;
       lastName: string;
       canAccessAdminPanel: boolean;
+      pageAccessOverrides: PageAccessOverrides;
       /** JWT ile eşleşen sunucu oturumu kimliği — güvenlik API’leri */
       authSid?: string;
     } & DefaultSession["user"];
@@ -20,6 +22,7 @@ declare module "next-auth" {
     tenantId: string;
     firstName: string;
     lastName: string;
+    pageAccessOverrides?: PageAccessOverrides;
   }
 }
 
@@ -32,5 +35,6 @@ declare module "next-auth/jwt" {
     lastName: string;
     email?: string | null;
     authSid?: string;
+    pageAccessOverrides?: PageAccessOverrides;
   }
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { WorkerTable } from "@/components/workers/WorkerTable";
+import { WorkersSubNav } from "@/components/workers/WorkersSubNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +77,7 @@ export default function WorkersPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
+      <WorkersSubNav />
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
         <div>
